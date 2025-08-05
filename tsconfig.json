@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "strict": true, // 루트 설정에도 strict 권장
+    "forceConsistentCasingInFileNames": true
+  },
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}
