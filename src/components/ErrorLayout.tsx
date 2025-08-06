@@ -1,4 +1,3 @@
-// src/components/ErrorLayout.tsx
 import React from "react";
 
 interface ErrorLayoutProps {
@@ -15,8 +14,7 @@ const ErrorLayout: React.FC<ErrorLayoutProps> = ({
   imageAlt,
 }) => {
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8">
-      {/* 이미지 영역 */}
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
       {imageSrc && (
         <div className="mb-12">
           <img
@@ -26,14 +24,10 @@ const ErrorLayout: React.FC<ErrorLayoutProps> = ({
           />
         </div>
       )}
-
-      {/* 에러 제목 */}
-      <h1 className="text-6xl font-bold text-gray-800 mb-12 tracking-wide text-center">
+      <h1 className="text-4xl md:text-6xl font-bold text-text-primary mb-12 tracking-wide text-center">
         {title}
       </h1>
-
-      {/* 버튼들 */}
-      <div className="flex flex-col sm:flex-row gap-4">{children}</div>
+      <div className="flex flex-col md:flex-row gap-4">{children}</div>
     </div>
   );
 };
