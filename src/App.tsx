@@ -1,36 +1,55 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
+// src/App.tsx
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import ForbiddenPage from "./pages/error/403";
+import NotFoundPage from "./pages/error/404";
+import ServerErrorPage from "./pages/error/500";
 import "./App.css";
 
-function App() {
-  const [count, setCount] = useState(0);
-
+// 임시 홈페이지 컴포넌트 (나중에 실제 홈페이지로 교체)
+const HomePage: React.FC = () => {
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank" rel="noopener">
-          https://webhint.io/docs/user-guide/hints/hint-disown-opener/{" "}
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank" rel="noopener">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-lg p-8 text-center max-w-md w-full">
+        <h1 className="text-3xl font-bold text-gray-800 mb-4">환영합니다!</h1>
+        <p className="text-gray-600 mb-6">
+          웹사이트가 정상적으로 작동하고 있습니다.
         </p>
+        <div className="text-sm text-gray-500">
+          에러페이지 테스트:
+          <a href="/test-404" className="text-blue-500 hover:underline ml-1">
+            404
+          </a>
+          ,
+          <a href="/403" className="text-blue-500 hover:underline ml-1">
+            403
+          </a>
+          ,
+          <a href="/500" className="text-blue-500 hover:underline ml-1">
+            500
+          </a>
+        </div>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    </div>
   );
-}
+};
+
+const App: React.FC = () => {
+  return (
+    <Router>
+      <Routes>
+        {/* 메인 페이지 */}
+        <Route path="/" element={<HomePage />} />
+
+        {/* 에러 페이지들 */}
+        <Route path="/403" element={<ForbiddenPage />} />
+        <Route path="/500" element={<ServerErrorPage />} />
+
+        {/* 404는 맨 마지막에 - 모든 정의되지 않은 경로를 처리 */}
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </Router>
+  );
+};
 
 export default App;
