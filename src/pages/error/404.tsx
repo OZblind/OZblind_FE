@@ -2,18 +2,37 @@ import React from "react";
 import ErrorLayout from "../../components/ErrorLayout";
 
 const NotFoundPage: React.FC = () => {
+  const handleTryAgain = (): void => {
+    window.location.reload();
+  };
+
+  const handleGoHome = (): void => {
+    window.location.href = "/";
+  };
+
   return (
     <ErrorLayout
-      title="404 not found"
+      title="404 Not Found"
       imageSrc="/assets/images/error/404.png"
-      imageAlt="404 캐릭터들"
+      imageAlt="404 페이지를 찾을 수 없음 캐릭터들"
+      description="요청하신 페이지를 찾을 수 없습니다."
     >
-      <button
-        onClick={() => window.location.reload()}
-        className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-3 rounded-md text-base font-medium transition-colors duration-300 tracking-wide"
-      >
-        Refresh Page
-      </button>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <button
+          type="button"
+          onClick={handleTryAgain}
+          className="bg-primary hover:bg-primary-dark text-white px-8 py-3 rounded-md text-base font-medium transition-colors duration-300 tracking-wide"
+        >
+          다시 시도
+        </button>
+        <button
+          type="button"
+          onClick={handleGoHome}
+          className="bg-gray-500 hover:bg-gray-600 text-white px-8 py-3 rounded-md text-base font-medium transition-colors duration-300 tracking-wide"
+        >
+          홈으로 이동
+        </button>
+      </div>
     </ErrorLayout>
   );
 };
