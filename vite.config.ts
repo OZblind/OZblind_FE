@@ -4,12 +4,4 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  server: {
-    host: true,
-    port: 5173,
-    strictPort: true,
-    watch: {
-      usePolling: true, // Windows/Mac에서 핫리로드 문제 방지
-    },
-  },
 });
