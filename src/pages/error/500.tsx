@@ -12,7 +12,7 @@ const ServerErrorPage: React.FC = () => {
         <img
           src="/assets/images/error/500.png"
           alt="500 폭발 캐릭터"
-          className="h-56 w-auto max-w-md" // 500 페이지만 더 크게
+          className="h-56 w-auto max-w-md" 
         />
       </div>
 
