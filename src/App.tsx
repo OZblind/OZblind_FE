@@ -1,12 +1,10 @@
-// src/App.tsx
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import ForbiddenPage from "./pages/error/403";
 import NotFoundPage from "./pages/error/404";
 import ServerErrorPage from "./pages/error/500";
-import "./App.css";
 
-// 임시 홈페이지 컴포넌트 (나중에 실제 홈페이지로 교체)
+// 임시 홈페이지 컴포넌트
 const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -40,12 +38,10 @@ const App: React.FC = () => {
       <Routes>
         {/* 메인 페이지 */}
         <Route path="/" element={<HomePage />} />
-
+        
         {/* 에러 페이지들 */}
         <Route path="/403" element={<ForbiddenPage />} />
         <Route path="/500" element={<ServerErrorPage />} />
-
-        {/* 404는 맨 마지막에 - 모든 정의되지 않은 경로를 처리 */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Router>
