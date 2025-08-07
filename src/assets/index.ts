@@ -55,3 +55,104 @@ export { default as iconThumbUpLight } from "./icons/icon-thumb-up-light.svg";
 // Images
 export { default as person } from "./images/person.png";
 export { default as settings } from "./images/settings.png";
+
+// Icons 테마별 객체로 정리
+import {
+  iconArrowUpwardDark,
+  iconArrowUpwardLight,
+  iconBookmarkColor,
+  iconBookmarkDark,
+  iconBookmarkLight,
+  iconDeleteDark,
+  iconDeleteLight,
+  iconDelete,
+  iconFilterListDark,
+  iconFilterListLight,
+  iconKeyboardArrowDownDark,
+  iconKeyboardArrowDownLight,
+  iconKeyboardArrowUpDark,
+  iconKeyboardArrowUpLight,
+  iconLabelDark,
+  iconLabelLight,
+  iconLogoutBtnHoverDark,
+  iconLogoutBtnHoverLight,
+  iconLogoutBtn,
+  iconMenuDark,
+  iconMenuLight,
+  iconNotificationsDark,
+  iconNotificationsLight,
+  iconNotificationsOnDark,
+  iconNotificationsOnLight,
+  iconSearch,
+  iconThumbDownColor,
+  iconThumbDownDark,
+  iconThumbDownLight,
+  iconThumbUpColor,
+  iconThumbUpDark,
+  iconThumbUpLight,
+} from ".";
+
+export const icons = {
+  arrowUpward: {
+    dark: iconArrowUpwardDark,
+    light: iconArrowUpwardLight,
+  },
+  bookmark: {
+    dark: iconBookmarkDark,
+    light: iconBookmarkLight,
+    color: iconBookmarkColor,
+  },
+  delete: {
+    default: iconDelete,
+    dark: iconDeleteDark,
+    light: iconDeleteLight,
+  },
+  filterList: {
+    dark: iconFilterListDark,
+    light: iconFilterListLight,
+  },
+  keyboardArrowDown: {
+    dark: iconKeyboardArrowDownDark,
+    light: iconKeyboardArrowDownLight,
+  },
+  keyboardArrowUp: {
+    dark: iconKeyboardArrowUpDark,
+    light: iconKeyboardArrowUpLight,
+  },
+  label: {
+    dark: iconLabelDark,
+    light: iconLabelLight,
+  },
+  logoutBtn: {
+    default: iconLogoutBtn,
+    hover: {
+      dark: iconLogoutBtnHoverDark,
+      light: iconLogoutBtnHoverLight,
+    },
+  },
+  menu: {
+    dark: iconMenuDark,
+    light: iconMenuLight,
+  },
+  notifications: {
+    dark: iconNotificationsDark,
+    light: iconNotificationsLight,
+  },
+  notificationsOn: {
+    dark: iconNotificationsOnDark,
+    light: iconNotificationsOnLight,
+  },
+  search: {
+    default: iconSearch,
+  },
+  thumbDown: {
+    dark: iconThumbDownDark,
+    light: iconThumbDownLight,
+    color: iconThumbDownColor,
+  },
+  thumbUp: {
+    dark: iconThumbUpDark,
+    light: iconThumbUpLight,
+    color: iconThumbUpColor,
+  },
+};
