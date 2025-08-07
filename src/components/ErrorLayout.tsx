@@ -32,15 +32,13 @@ const ErrorLayout: React.FC<ErrorLayoutProps> = ({
         {ErrorImage}
 
         {/* 에러 제목 */}
-        <h1 className="text-4xl md:text-6xl font-bold text-primary mb-4 tracking-wide drop-shadow-lg">
+        <h1 className="text-4xl md:text-6xl font-bold text-primary mb-4 tracking-wide">
           {title}
         </h1>
 
         {/* 설명 텍스트 (선택사항) */}
         {description && (
-          <p className="text-lg text-gray-200 mb-8 max-w-md drop-shadow-md">
-            {description}
-          </p>
+          <p className="text-lg text-black mb-8 max-w-md">{description}</p>
         )}
 
         {/* 액션 버튼들 */}
