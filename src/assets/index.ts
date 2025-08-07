@@ -5,6 +5,7 @@ export { default as logoDark } from "./logos/logo-dark.svg";
 export { default as logoDarkV2 } from "./logos/logo-dark-v2.svg";
 export { default as logoLight } from "./logos/logo-light.svg";
 export { default as logoLightV2 } from "./logos/logo-light-v2.svg";
+export { default as ozSymbol } from "./logos/oz-symbol.svg";
 
 // Icons
 export { default as iconArrowUpwardDark } from "./icons/icon-arrow-upward-dark.svg";
