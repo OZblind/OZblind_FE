@@ -5,7 +5,9 @@ export { default as logoDark } from "./logos/logo-dark.svg";
 export { default as logoDarkV2 } from "./logos/logo-dark-v2.svg";
 export { default as logoLight } from "./logos/logo-light.svg";
 export { default as logoLightV2 } from "./logos/logo-light-v2.svg";
-export { default as ozSymbol } from "./logos/oz-symbol.svg";
+export { default as ozFavicon } from "./logos/oz-favicon.svg";
+export { default as ozSymbolDark } from "./logos/oz-symbol-dark.svg";
+export { default as ozSymbolLight } from "./logos/oz-symbol-light.svg";
 
 // Icons
 export { default as iconArrowUpwardDark } from "./icons/icon-arrow-upward-dark.svg";
@@ -56,8 +58,17 @@ export { default as iconThumbUpLight } from "./icons/icon-thumb-up-light.svg";
 export { default as person } from "./images/person.png";
 export { default as settings } from "./images/settings.png";
 
-// Icons 테마별 객체로 정리
+// Logo, Icons 테마별 객체로 정리
 import {
+  logoColor,
+  logoColorV2,
+  logoDark,
+  logoDarkV2,
+  logoLight,
+  logoLightV2,
+  ozFavicon,
+  ozSymbolDark,
+  ozSymbolLight,
   iconArrowUpwardDark,
   iconArrowUpwardLight,
   iconBookmarkColor,
@@ -91,6 +102,28 @@ import {
   iconThumbUpDark,
   iconThumbUpLight,
 } from ".";
+
+export const logos = {
+  main: {
+    color: {
+      v1: logoColor,
+      v2: logoColorV2,
+    },
+    dark: {
+      v1: logoDark,
+      v2: logoDarkV2,
+    },
+    light: {
+      v1: logoLight,
+      v2: logoLightV2,
+    },
+  },
+  favicon: ozFavicon,
+  symbol: {
+    dark: ozSymbolDark,
+    light: ozSymbolLight,
+  },
+};
 
 export const icons = {
   arrowUpward: {
