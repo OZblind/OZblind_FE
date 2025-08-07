@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useEffect } from "react";
 
 export interface ConfirmModalProps {
   isOpen: boolean;
@@ -19,8 +19,6 @@ export default function ConfirmModal({
   onCancel,
   onConfirm,
 }: ConfirmModalProps) {
-  const modalRef = useRef<HTMLDivElement>(null);
-
   // Escape 키 누르면 모달 닫기
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -55,7 +53,6 @@ export default function ConfirmModal({
       onClick={handleClickOutside}
     >
       <div
-        ref={modalRef}
         className="bg-primary-content rounded-2xl shadow-2xl w-full max-w-md mx-auto z-[4000] animate-in fade-in-0 zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
