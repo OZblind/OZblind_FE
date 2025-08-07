@@ -1,5 +1,6 @@
 import React from "react";
 import ErrorLayout from "../../components/ErrorLayout";
+import { ERROR_CONFIGS } from "../../config/errorConfigs";
 
 const ForbiddenPage: React.FC = () => {
   const handleTryAgain = (): void => {
@@ -12,13 +13,13 @@ const ForbiddenPage: React.FC = () => {
 
   return (
     <ErrorLayout
-      title="403 Forbidden"
-      imageSrc="/assets/images/error/403.png"
-      imageAlt="403 접근 금지 캐릭터들"
-      description="죄송합니다. 이 페이지에 접근할 권한이 없습니다."
+      title={ERROR_CONFIGS[403].title}
+      imageSrc={ERROR_CONFIGS[403].imageSrc}
+      imageAlt={ERROR_CONFIGS[403].imageAlt}
+      description={ERROR_CONFIGS[403].description}
     >
       <div className="flex flex-col sm:flex-row gap-4">
-        {/* 홈으로 이동 - 고스트 버튼 (왼쪽) */}
+        {/* 홈으로 이동 버튼 */}
         <button
           type="button"
           onClick={handleGoHome}
@@ -27,7 +28,7 @@ const ForbiddenPage: React.FC = () => {
           홈으로 이동
         </button>
 
-        {/* 다시 시도 - 메인 버튼 (오른쪽) */}
+        {/* 다시 시도 버튼 */}
         <button
           type="button"
           onClick={handleTryAgain}

@@ -1,5 +1,6 @@
 import React from "react";
 import ErrorLayout from "../../components/ErrorLayout";
+import { ERROR_CONFIGS } from "../../config/errorConfigs";
 
 const NotFoundPage: React.FC = () => {
   const handleTryAgain = (): void => {
@@ -12,13 +13,13 @@ const NotFoundPage: React.FC = () => {
 
   return (
     <ErrorLayout
-      title="404 Not Found"
-      imageSrc="/assets/images/error/404.png"
-      imageAlt="404 페이지를 찾을 수 없음 캐릭터들"
-      description="요청하신 페이지를 찾을 수 없습니다."
+      title={ERROR_CONFIGS[404].title}
+      imageSrc={ERROR_CONFIGS[404].imageSrc}
+      imageAlt={ERROR_CONFIGS[404].imageAlt}
+      description={ERROR_CONFIGS[404].description}
     >
       <div className="flex flex-col sm:flex-row gap-4">
-        {/* 홈으로 이동 - 고스트 버튼 (왼쪽) */}
+        {/* 홈으로 이동 버튼 */}
         <button
           type="button"
           onClick={handleGoHome}
@@ -27,7 +28,7 @@ const NotFoundPage: React.FC = () => {
           홈으로 이동
         </button>
 
-        {/* 다시 시도 - 메인 버튼 (오른쪽) */}
+        {/* 다시 시도 버튼 */}
         <button
           type="button"
           onClick={handleTryAgain}

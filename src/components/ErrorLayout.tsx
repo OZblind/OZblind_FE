@@ -22,7 +22,7 @@ const ErrorLayout: React.FC<ErrorLayoutProps> = ({
         <img
           src={imageSrc}
           alt={imageAlt ?? "에러 관련 이미지"}
-          className="w-full h-full object-cover rounded-full"
+          className="w-full h-full object-cover"
         />
       </div>
     </div>
