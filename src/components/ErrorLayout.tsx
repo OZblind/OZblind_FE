@@ -15,14 +15,14 @@ const ErrorLayout: React.FC<ErrorLayoutProps> = ({
   description,
   children,
 }) => {
-  // 동그란 이미지로 수정
+  // 동그란 원에 이미지가 완전히 맞게 들어가도록 수정
   const ErrorImage = imageSrc && (
     <div className="mb-12 flex justify-center w-full">
-      <div className="w-40 h-40 rounded-full overflow-hidden bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+      <div className="w-40 h-40 rounded-full overflow-hidden bg-white/10 backdrop-blur-sm border border-white/20">
         <img
           src={imageSrc}
           alt={imageAlt ?? "에러 관련 이미지"}
-          className="w-32 h-32 object-contain"
+          className="w-full h-full object-cover rounded-full"
         />
       </div>
     </div>
