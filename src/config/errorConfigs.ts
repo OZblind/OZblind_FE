@@ -1,3 +1,4 @@
+// src/config/errorConfigs.ts
 import image404 from "../assets/images/error/404.png";
 import image403 from "../assets/images/error/403.png";
 import image500 from "../assets/images/error/500.png";
