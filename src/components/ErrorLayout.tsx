@@ -15,14 +15,16 @@ const ErrorLayout: React.FC<ErrorLayoutProps> = ({
   description,
   children,
 }) => {
-  // 조건부 렌더링을 JSX 밖으로 분리
+  // 동그란 이미지로 수정
   const ErrorImage = imageSrc && (
     <div className="mb-12 flex justify-center w-full">
-      <img
-        src={imageSrc}
-        alt={imageAlt ?? "에러 관련 이미지"}
-        className="h-40 w-auto max-w-sm mx-auto"
-      />
+      <div className="w-40 h-40 rounded-full overflow-hidden bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+        <img
+          src={imageSrc}
+          alt={imageAlt ?? "에러 관련 이미지"}
+          className="w-32 h-32 object-contain"
+        />
+      </div>
     </div>
   );
 
@@ -38,7 +40,7 @@ const ErrorLayout: React.FC<ErrorLayoutProps> = ({
 
         {/* 설명 텍스트 (선택사항) */}
         {description && (
-          <p className="text-lg text-black mb-8 max-w-md">{description}</p>
+          <p className="text-lg text-foreground mb-8 max-w-md">{description}</p>
         )}
 
         {/* 액션 버튼들 */}

@@ -18,19 +18,22 @@ const ForbiddenPage: React.FC = () => {
       description="죄송합니다. 이 페이지에 접근할 권한이 없습니다."
     >
       <div className="flex flex-col sm:flex-row gap-4">
-        <button
-          type="button"
-          onClick={handleTryAgain}
-          className="bg-primary hover:bg-primary-dark text-white px-8 py-3 rounded-md text-base font-medium transition-colors duration-300 tracking-wide"
-        >
-          다시 시도
-        </button>
+        {/* 홈으로 이동 - 고스트 버튼 (왼쪽) */}
         <button
           type="button"
           onClick={handleGoHome}
-          className="bg-gray-500 hover:bg-gray-600 text-white px-8 py-3 rounded-md text-base font-medium transition-colors duration-300 tracking-wide"
+          className="border border-primary text-primary hover:bg-primary hover:text-white px-8 py-3 rounded-md text-base font-medium transition-colors duration-300 tracking-wide"
         >
           홈으로 이동
+        </button>
+
+        {/* 다시 시도 - 메인 버튼 (오른쪽) */}
+        <button
+          type="button"
+          onClick={handleTryAgain}
+          className="bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-md text-base font-medium transition-colors duration-300 tracking-wide"
+        >
+          다시 시도
         </button>
       </div>
     </ErrorLayout>
