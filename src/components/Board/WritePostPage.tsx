@@ -4,10 +4,10 @@ import ToastEditor from "@components/Board/editor/ToastEditor";
 // import { Button } from "@/components/ui/button"; // 버튼 컴포넌트 (Tailwind 기반)
 
 const boardOptions = [
-  { value: "free", label: "자유게시판" },
-  { value: "job", label: "취업게시판" },
-  { value: "info", label: "정보게시판" },
-  { value: "survey", label: "설문게시판" },
+  { value: "free", label: "자유 게시판" },
+  { value: "job", label: "취업 게시판" },
+  { value: "info", label: "정보 게시판" },
+  { value: "survey", label: "설문 게시판" },
   { value: "github", label: "GitHub 게시판" },
 ];
 
