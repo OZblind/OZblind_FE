@@ -1,5 +1,6 @@
 import { useState } from "react";
 import ToastEditor from "@components/Board/editor/ToastEditor";
+import { Button } from "../ui/Button";
 // import { createPost } from "@/api/post"; // 게시글 생성 API 추후 등록
 // import { Button } from "@/components/ui/button"; // 버튼 컴포넌트 (Tailwind 기반)
 
@@ -60,6 +61,14 @@ const WritePostPage = () => {
       </div>
 
       {/* 4. 버튼 섹션 */}
+      <div className="flex justify-end gap-4 mt-2">
+        <Button variant="secondary" className="min-w-[100px]">
+          취소
+        </Button>
+        <Button variant="primary" className="min-w-[100px]">
+          작성
+        </Button>
+      </div>
     </div>
   );
 };
