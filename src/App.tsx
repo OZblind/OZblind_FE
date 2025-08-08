@@ -7,6 +7,7 @@ import MyPageLayout from "./pages/mypage/MyPageLayout";
 import MyPageMain from "./pages/mypage/MyPageMain";
 import MyPosts from "./pages/mypage/MyPosts";
 import MyComments from "./pages/mypage/MyComments";
+import MyBookmarks from "./pages/mypage/MyBookmarks";
 
 const App: React.FC = () => {
   return (
@@ -24,7 +25,7 @@ const App: React.FC = () => {
 
         {/* 향후 추가될 상세 페이지들 */}
         <Route path="comments" element={<MyComments />} />
-        {/* <Route path="bookmarks" element={<MyBookmarks />} /> */}
+        <Route path="bookmarks" element={<MyBookmarks />} />
       </Route>
 
       {/* 에러 페이지 */}
