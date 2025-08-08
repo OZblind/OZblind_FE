@@ -4,7 +4,7 @@ import ForbiddenPage from "./pages/error/403";
 import NotFoundPage from "./pages/error/404";
 import ServerErrorPage from "./pages/error/500";
 import MyPageLayout from "./pages/mypage/MyPageLayout";
-import MyPageMain from "./pages/mypage/MypageMain";
+import MyPageMain from "./pages/mypage/MyPageMain";
 import MyPosts from "./pages/mypage/MyPosts";
 
 const App: React.FC = () => {
