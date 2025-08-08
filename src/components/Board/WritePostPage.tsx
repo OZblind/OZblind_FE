@@ -16,11 +16,14 @@ const WritePostPage = () => {
   const [title, setTitle] = useState("");
 
   return (
-    <div className="flex flex-col h-full max-w-4xl mx-auto px-4 py-8 gap-6">
+    <div className="flex flex-col h-full max-w-4xl mx-auto px-4 py-8 gap-2 text-black">
       {/* 1. 게시판 선택 */}
       <div>
-        <label htmlFor="board-select" className="block font-semibold mb-2">
-          게시판 선택
+        <label
+          htmlFor="board-select"
+          className="block font-semibold mb-2 text-white"
+        >
+          게시판 작성
         </label>
         <select
           id="board-select"
@@ -38,9 +41,6 @@ const WritePostPage = () => {
 
       {/* 2. 제목 입력 */}
       <div>
-        <label htmlFor="title" className="block font-semibold mb-2">
-          제목
-        </label>
         <input
           id="title"
           type="text"
