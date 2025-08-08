@@ -8,7 +8,11 @@ import colorSyntax from "@toast-ui/editor-plugin-color-syntax";
 
 type EditorOptions = ConstructorParameters<typeof Editor>[0];
 
-export default function ToastEditor() {
+interface ToastEditorProps {
+  onChange?: (content: string) => void;
+}
+
+export default function ToastEditor({ onChange }: ToastEditorProps) {
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const editorInstanceRef = useRef<Editor | null>(null);
 
@@ -16,10 +20,18 @@ export default function ToastEditor() {
     if (editorContainerRef.current) {
       const options: EditorOptions = {
         el: editorContainerRef.current,
-        height: "500px",
+        height: "600px",
         initialEditType: "wysiwyg",
         previewStyle: "vertical",
         plugins: [colorSyntax],
+        hooks: {
+          change() {
+            const content = editorInstanceRef.current?.getHTML();
+            if (onChange && content !== undefined) {
+              onChange(content);
+            }
+          },
+        },
       };
 
       editorInstanceRef.current = new Editor(options);
@@ -29,7 +41,7 @@ export default function ToastEditor() {
       editorInstanceRef.current?.destroy();
       editorInstanceRef.current = null;
     };
-  }, []);
+  }, [onChange]);
 
   return (
     <div

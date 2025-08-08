@@ -14,6 +14,9 @@ const boardOptions = [
 const WritePostPage = () => {
   const [selectedBoard, setSelectedBoard] = useState("free");
   const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+
+  console.log(content);
 
   return (
     <div className="flex flex-col h-full max-w-4xl mx-auto px-4 py-8 gap-2 text-black">
@@ -53,7 +56,7 @@ const WritePostPage = () => {
 
       {/* 3. 에디터 */}
       <div className="flex-1">
-        <ToastEditor />
+        <ToastEditor onChange={setContent} />
       </div>
 
       {/* 4. 버튼 섹션 */}
