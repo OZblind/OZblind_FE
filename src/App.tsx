@@ -6,6 +6,7 @@ import ServerErrorPage from "./pages/error/500";
 import MyPageLayout from "./pages/mypage/MyPageLayout";
 import MyPageMain from "./pages/mypage/MyPageMain";
 import MyPosts from "./pages/mypage/MyPosts";
+import MyComments from "./pages/mypage/MyComments";
 
 const App: React.FC = () => {
   return (
@@ -22,7 +23,7 @@ const App: React.FC = () => {
         <Route path="posts" element={<MyPosts />} />
 
         {/* 향후 추가될 상세 페이지들 */}
-        {/* <Route path="comments" element={<MyComments />} /> */}
+        <Route path="comments" element={<MyComments />} />
         {/* <Route path="bookmarks" element={<MyBookmarks />} /> */}
       </Route>
 
