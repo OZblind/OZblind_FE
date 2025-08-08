@@ -1,5 +1,5 @@
 import { useState } from "react";
-// import ToastEditor from "@/components/ToastEditor"; 아직 추가안함
+import ToastEditor from "@components/Board/editor/ToastEditor";
 // import { createPost } from "@/api/post"; // 게시글 생성 API 추후 등록
 // import { Button } from "@/components/ui/button"; // 버튼 컴포넌트 (Tailwind 기반)
 
@@ -53,8 +53,7 @@ const WritePostPage = () => {
 
       {/* 3. 에디터 */}
       <div className="flex-1">
-        <label className="block font-semibold mb-2">내용</label>
-        {/* <ToastEditor onChange={setContent} /> */}
+        <ToastEditor />
       </div>
 
       {/* 4. 버튼 섹션 */}
