@@ -1,4 +1,20 @@
+import { useState } from "react";
+
 export function UserSetting() {
+  const [key, setKey] = useState<string>("");
+  const [error, setError] = useState<string>("");
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  const handleLogin = (): void => {
+    if (key === "123") {
+      setError("");
+      alert("로그인 성공");
+      setIsAuthenticated(true);
+    } else {
+      setError("유효하지 않은 키입니다.");
+      setIsAuthenticated(false);
+    }
+  };
   return (
     <>
       <div className="fixed inset-0 bg-base-200 bg-opacity-50 flex justify-center items-center z-50">
@@ -16,17 +32,28 @@ export function UserSetting() {
 
           <div className="py-4">
             <p className="mb-2">오즈 스쿨 사용자 인증 Key</p>
-
-            <div>
-              <input
-                type="text"
-                placeholder="회원 Key 입력"
-                className="mr-2 bg-base-300 border border-base-200 p-2 focus:outline-none focus:border-primary"
-              />
-              <button className="px-4 bg-primary text-white py-2 rounded hover:bg-secondary transition">
-                인증
-              </button>
-            </div>
+            {isAuthenticated ? (
+              <div className=" p-3 w-full bg-base-300 text-secondary rounded-md">
+                이미 인증된 사용자입니다.
+              </div>
+            ) : (
+              <div>
+                <input
+                  type="text"
+                  placeholder="회원 Key 입력"
+                  value={key}
+                  onChange={(e) => setKey(e.target.value)}
+                  className="mr-2 bg-base-300 border border-base-200 p-2 focus:outline-none focus:border-primary"
+                />
+                <button
+                  onClick={handleLogin}
+                  className="px-4 bg-primary text-primary-content py-2 rounded hover:bg-secondary transition"
+                >
+                  인증
+                </button>
+              </div>
+            )}
+            {error && <p className="text-error font-thin">{error}</p>}
           </div>
         </div>
       </div>
