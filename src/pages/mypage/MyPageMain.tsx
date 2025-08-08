@@ -29,7 +29,7 @@ const Card: React.FC<CardProps> = ({
 }) => {
   return (
     <div
-      className={`bg-base-300 rounded-lg p-4 sm:p-6 hover:bg-opacity-80 transition-all duration-700 transform-gpu ${
+      className={`bg-base-300 rounded-lg p-6 sm:p-8 hover:bg-opacity-80 transition-all duration-700 transform-gpu min-w-[200px] sm:min-w-[250px] min-h-[180px] sm:min-h-[220px] ${
         isExpanding
           ? isClicked
             ? "scale-150 z-20 opacity-100"
@@ -42,16 +42,16 @@ const Card: React.FC<CardProps> = ({
       }}
     >
       {/* 카드 헤더 - 제목과 플러스 버튼 */}
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base sm:text-lg font-medium text-base-content">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg sm:text-xl font-medium text-base-content">
           {title}
         </h3>
         <button
           onClick={onClick}
-          className="w-6 h-6 sm:w-8 sm:h-8 bg-primary rounded-full flex items-center justify-center hover:bg-primary-focus transition-colors duration-200 group"
+          className="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-full flex items-center justify-center hover:bg-primary-focus transition-colors duration-200 group"
           aria-label={`${title} 전체보기`}
         >
-          <span className="text-primary-content text-sm sm:text-lg font-bold group-hover:scale-110 transition-transform duration-200">
+          <span className="text-primary-content text-lg sm:text-xl font-bold group-hover:scale-110 transition-transform duration-200">
             +
           </span>
         </button>
@@ -59,8 +59,8 @@ const Card: React.FC<CardProps> = ({
 
       {/* 카드 내용 - 아이콘과 카운트 */}
       <div className="text-center">
-        <div className="text-2xl sm:text-3xl mb-2">{icon}</div>
-        <div className="text-xl sm:text-2xl font-bold text-base-content">
+        <div className="text-4xl sm:text-5xl mb-4">{icon}</div>
+        <div className="text-3xl sm:text-4xl font-bold text-base-content">
           {count}
         </div>
       </div>
@@ -126,8 +126,8 @@ const MyPageMain: React.FC = () => {
           <div className="w-12 h-0.5 bg-primary rounded-full"></div>
         </div>
 
-        {/* 카드 그리드 */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 relative">
+        {/* 카드 그리드 - 항상 가로 일렬 */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center relative">
           {cardData.map((card, index) => (
             <Card
               key={index}
