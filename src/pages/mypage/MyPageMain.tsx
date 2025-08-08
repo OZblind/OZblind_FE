@@ -29,7 +29,7 @@ const Card: React.FC<CardProps> = ({
 }) => {
   return (
     <div
-      className={`bg-base-300 rounded-lg p-6 sm:p-8 hover:bg-opacity-80 transition-all duration-700 transform-gpu min-w-[200px] sm:min-w-[250px] min-h-[180px] sm:min-h-[220px] ${
+      className={`bg-base-300 rounded-lg p-6 sm:p-8 hover:bg-opacity-80 transition-all duration-300 transform-gpu min-w-[200px] sm:min-w-[250px] min-h-[180px] sm:min-h-[220px] ${
         isExpanding
           ? isClicked
             ? "scale-150 z-20 opacity-100"
@@ -103,10 +103,10 @@ const MyPageMain: React.FC = () => {
     // 2. 확장 애니메이션 시작
     setIsExpanding(true);
 
-    // 3. 애니메이션 완료 후 페이지 이동
+    // 3. 애니메이션 완료 후 페이지 이동 (700ms → 400ms)
     setTimeout(() => {
       navigate(`/mypage/${path}`);
-    }, 700);
+    }, 400);
   };
 
   return (
@@ -114,7 +114,7 @@ const MyPageMain: React.FC = () => {
       <div className="p-4 sm:p-6 relative overflow-hidden">
         {/* 활동 섹션 헤더 */}
         <div
-          className={`mb-6 transition-all duration-500 ${
+          className={`mb-6 transition-all duration-300 ${
             isExpanding
               ? "opacity-0 -translate-y-8"
               : "opacity-100 translate-y-0"
@@ -148,7 +148,7 @@ const MyPageMain: React.FC = () => {
           className="fixed inset-0 bg-base-100 z-30"
           style={{
             animation:
-              "expandFromCenter 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards",
+              "expandFromCenter 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards",
             clipPath: "polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%)",
             animationFillMode: "forwards",
           }}
