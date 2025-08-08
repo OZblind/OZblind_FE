@@ -51,7 +51,19 @@ const Card: React.FC<CardProps> = ({
           className="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-full flex items-center justify-center hover:bg-primary-focus transition-colors duration-200 group"
           aria-label={`${title} 전체보기`}
         >
-          <span className="text-primary-content text-lg sm:text-xl font-bold group-hover:scale-110 group-hover:rotate-90 transition-transform duration-300">
+          <span
+            className="text-primary-content text-lg sm:text-xl font-bold group-hover:scale-110 transition-transform duration-300"
+            style={{
+              transform: "rotate(0deg)",
+              transition: "transform 0.3s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "rotate(90deg) scale(1.1)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "rotate(0deg) scale(1)";
+            }}
+          >
             +
           </span>
         </button>
