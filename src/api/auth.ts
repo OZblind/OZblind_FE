@@ -1,6 +1,7 @@
 import axios from "axios";
 import { API_CALLBACK_URL, API_SIGNUP_URL } from "../constants/oauth";
 
+// Axios 인스턴스 생성
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
   withCredentials: true, // httpOnly 세션 쿠키 기반 인증 가정
@@ -12,7 +13,7 @@ export interface AuthStatus {
   user?: { id: number; email: string; name?: string };
 }
 
-// OAuth code → access token & 회원 상태 교환
+// OAuth code → access token & 회원 상태 교환 API
 export const exchangeCode = (code: string, state?: string) =>
   api.post<AuthStatus>(API_CALLBACK_URL, { code, state });
 
