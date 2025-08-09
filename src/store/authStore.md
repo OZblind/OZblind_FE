@@ -1,5 +1,7 @@
 # authStore 사용법
 
+작성자: 함서연
+
 ## 📌 개요
 
 `authStore`는 [`Zustand`](https://zustand-demo.pmnd.rs/)로 구현된 전역 상태 저장소로,  
