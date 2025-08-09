@@ -5,6 +5,15 @@ export type User = {
   email: string;
   name?: string;
   role?: string;
+  /**
+   * 서버 users.is_active → 계정 활성 여부 (미인증/정지/탈퇴 등)
+   * 로그인은 성공했더라도 isActive=false면 일부/전체 기능 제한 필요
+   */
+  isActive?: boolean;
+  /**
+   * 서버 users.social_provider (e.g. 'google'). UI 표기/분기용(민감X)
+   */
+  socialProvider?: string;
 };
 
 export type Tokens = {
@@ -21,12 +30,16 @@ const emptyTokens: Tokens = {
 
 export type AuthState = {
   user: User | null;
-  // isOzAuthenticated ≡ server.users.authenticated (회원 여부와 별개, 오즈키 인증 상태)
+  /**
+   * isOzAuthenticated ≡ server.users.authenticated
+   *  - 회원 여부와는 별개로, 오즈 키 인증 완료 상태를 의미함
+   *  - 로그인만 된 상태: isOzAuthenticated=false → /key-verify로 유도
+   */
   isOzAuthenticated: boolean | null;
   tokens: Tokens;
   setFromAuthPayload: (p: {
     user?: User | null;
-    tokens?: Partial<Tokens>; // null 금지, 부분 업데이트 허용
+    tokens?: Partial<Tokens>; // null 금지 + 토큰 정보만 부분 갱신 허용
     isOzAuthenticated?: boolean | null;
   }) => void;
   reset: () => void;
