@@ -1,25 +1,72 @@
 import axios from "axios";
-import { API_CALLBACK_URL, API_SIGNUP_URL } from "../constants/oauth";
+import {
+  API_BASE_URL,
+  API_GOOGLE_LOGIN,
+  API_GOOGLE_SIGNUP,
+  API_TOKEN_REFRESH,
+  API_TOKEN_REVOKE,
+} from "@/constants/oauth";
 
-// Axios 인스턴스 생성
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
-  withCredentials: true, // httpOnly 세션 쿠키 기반 인증 가정
+  baseURL: API_BASE_URL,
+  withCredentials: false, // 토큰 바디/헤더로 주고받는 구조라 기본은 false
+  headers: { "Content-Type": "application/json" },
 });
 
-export interface AuthStatus {
-  isRegistered: boolean;
-  isKeyVerified: boolean;
-  user?: { id: number; email: string; name?: string };
+/** 백엔드 임시 명세(완성 전): 로그인/가입 공통 응답 */
+export type RawAuthData = {
+  userId: string;
+  email: string;
+  name?: string;
+  role: string; // users.role
+  apiKey?: string; // 가입 시 최초 발급 가능
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  authenticated?: boolean; // users.authenticated (있으면 최우선 사용)
+};
+export type RawAuthResponse = { status: "success"; data: RawAuthData };
+
+/** 프론트 표준 스키마 */
+export type AuthPayload = {
+  user: { userId: string; email: string; name?: string; role: string };
+  apiKey: string | null;
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  isKeyVerified: boolean; // = users.authenticated
+};
+
+/** 어댑터: 백엔드 응답 → 프론트 표준 */
+export function normalizeAuthResponse(raw: RawAuthResponse): AuthPayload {
+  const d = raw.data;
+  const isVerified =
+    typeof d.authenticated === "boolean" ? d.authenticated : Boolean(d.apiKey); // 임시 휴리스틱
+
+  return {
+    user: { userId: d.userId, email: d.email, name: d.name, role: d.role },
+    apiKey: d.apiKey ?? null,
+    accessToken: d.accessToken,
+    refreshToken: d.refreshToken,
+    expiresIn: d.expiresIn,
+    isKeyVerified: isVerified,
+  };
 }
 
-// OAuth code → access token & 회원 상태 교환 API
-export const exchangeCode = (code: string, state?: string) =>
-  api.post<AuthStatus>(API_CALLBACK_URL, { code, state });
+/** 엔드포인트들 */
+export const googleLogin = (idToken: string) =>
+  api.post<RawAuthResponse>(API_GOOGLE_LOGIN, { idToken });
 
-// 신규 가입 API (가입 컨펌 모달에서 사용)
-export const signup = (payload: {
-  nickname: string;
-  termsAccepted: boolean;
-  privacyAccepted: boolean;
-}) => api.post(API_SIGNUP_URL, payload);
+export const googleSignup = (idToken: string) =>
+  api.post<RawAuthResponse>(API_GOOGLE_SIGNUP, { idToken });
+
+export const refreshToken = (refreshToken: string) =>
+  api.post<{
+    status: "success";
+    data: { accessToken: string; expiresIn: number };
+  }>(API_TOKEN_REFRESH, { refreshToken });
+
+export const revokeToken = (refreshToken: string) =>
+  api.post<{ status: "success"; message: string }>(API_TOKEN_REVOKE, {
+    refreshToken,
+  });
