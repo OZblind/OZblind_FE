@@ -24,7 +24,7 @@ export function UserSetting() {
             <div className="flex justify-between">
               <div className="font-thin">설정</div>
               <button
-                className="px-4 bg-base-300 text-white py-2 rounded-full hover:bg-secondary transition"
+                className="px-4 text-white py-2 rounded-full hover:bg-base-300 transition"
                 onClick={() => setIsOpen(false)}
               >
                 X
@@ -35,20 +35,20 @@ export function UserSetting() {
               다크 모드 설정
             </div>
 
-            <div className="py-4">
+            <div className="border-b border-neutral-content py-6">
               <p className="mb-2">오즈 스쿨 사용자 인증 Key</p>
               {isAuthenticated ? (
                 <div className=" p-3 w-full bg-base-300 text-secondary rounded-md">
                   이미 인증된 사용자입니다.
                 </div>
               ) : (
-                <div>
+                <div className="flex justify-between">
                   <input
                     type="text"
                     placeholder="회원 Key 입력"
                     value={key}
                     onChange={(e) => setKey(e.target.value)}
-                    className="mr-2 bg-base-300 border border-base-200 p-2 focus:outline-none focus:border-primary"
+                    className="w-[330px] bg-base-300 border border-base-200 p-2 focus:outline-none focus:border-primary rounded"
                   />
                   <button
                     onClick={handleLogin}
@@ -60,6 +60,7 @@ export function UserSetting() {
               )}
               {error && <p className="text-error font-thin">{error}</p>}
             </div>
+            <div className="py-6">회원 탈퇴</div>
           </div>
         </div>
       )}
