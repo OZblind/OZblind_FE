@@ -7,3 +7,15 @@
     font-family: "Pretendard", "sans-serif", "system-ui";
   }
 }
+
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+}
+button {
+  cursor: pointer;
+}
