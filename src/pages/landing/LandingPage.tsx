@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PATHS } from "@constants/paths";
 import { getGoogleIdToken } from "@utils/google";
@@ -10,6 +10,7 @@ import {
 } from "@hooks/useAuthQueries";
 import ConfirmModal from "@components/commons/ConfirmModal/ConfirmModal";
 import { logoColor } from "@src/assets";
+import { useAuthStore } from "@store/authStore";
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -20,6 +21,16 @@ export default function LandingPage() {
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingIdToken, setPendingIdToken] = useState<string | null>(null);
+
+  const { tokens, isOzAuthenticated } = useAuthStore();
+
+  // 이미 로그인 상태면 /auth에서 즉시 보내기
+  useEffect(() => {
+    if (tokens.accessToken) {
+      const next = resolvePostLoginPath(Boolean(isOzAuthenticated));
+      navigate(next, { replace: true });
+    }
+  }, [tokens.accessToken, isOzAuthenticated, navigate]);
 
   const onClickGoogle = async () => {
     try {

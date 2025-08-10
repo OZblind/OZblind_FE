@@ -40,7 +40,11 @@ interface RawAuthResponse {
   isOzAuthenticated?: boolean;
 }
 
-/** FE isOzAuthenticated ≡ backend users.authenticated (회원 여부와 별개) */
+/** FE isOzAuthenticated ≡ backend users.authenticated (회원 여부와 별개)
+ * FE user.isActive ≡ backend users.authenticated
+ * 둘을 분리해둔 이유는 둘의 명시적인 역할이 달라서.
+ * isOzAuthenticated는 순전히 오즈키 인증 상태이자 인증/미인증 라우팅 분기.
+ * isActive는 계정 활성화에 관련된 것으로 추후 "정지/휴면" 등 별도 정책이 생기면 둘은 갈라질 수 있음. */
 export type AuthPayload = {
   user: User;
   tokens: Tokens;
@@ -48,34 +52,43 @@ export type AuthPayload = {
 };
 
 /** 백엔드 Auth 응답 → FE AuthPayload로 정규화 */
-export const normalizeAuthResponse = (raw: RawAuthResponse): AuthPayload => ({
-  user: {
-    userId: String(raw?.user?.id ?? raw?.userId ?? raw?.id ?? ""),
-    email: String(raw?.user?.email ?? raw?.email ?? ""),
-    name: raw?.user?.name ?? raw?.name ?? undefined,
-    role: raw?.user?.role ?? raw?.role ?? undefined,
-    isActive:
-      raw?.user?.is_active ??
-      raw?.user?.isActive ??
-      raw?.is_active ??
-      raw?.isActive ??
-      false,
-    socialProvider:
-      raw?.user?.social_provider ??
-      raw?.user?.provider ??
-      raw?.social_provider ??
-      raw?.provider ??
-      undefined,
-  },
-  tokens: {
-    accessToken: raw?.tokens?.accessToken ?? raw?.accessToken ?? null,
-    refreshToken: raw?.tokens?.refreshToken ?? raw?.refreshToken ?? null,
-    expiresIn: raw?.tokens?.expiresIn ?? raw?.expiresIn ?? null,
-  },
-  isOzAuthenticated: Boolean(
+export const normalizeAuthResponse = (raw: RawAuthResponse): AuthPayload => {
+  const authenticated = Boolean(
     raw?.authenticated ?? raw?.isOzAuthenticated ?? false
-  ),
-});
+  );
+
+  return {
+    user: {
+      userId: String(raw?.user?.id ?? raw?.userId ?? raw?.id ?? ""),
+      email: String(raw?.user?.email ?? raw?.email ?? ""),
+      name: raw?.user?.name ?? raw?.name ?? undefined,
+      role: raw?.user?.role ?? raw?.role ?? undefined,
+
+      // 핵심: isActive는 최우선 authenticated와 동기화
+      // 백이 user.is_active를 따로 내려줘도, 도메인 규칙상 authenticated를 신뢰
+      isActive:
+        raw?.user?.is_active ??
+        raw?.user?.isActive ??
+        raw?.is_active ??
+        raw?.isActive ??
+        authenticated,
+
+      // 부가 필드
+      socialProvider:
+        raw?.user?.social_provider ??
+        raw?.user?.provider ??
+        raw?.social_provider ??
+        raw?.provider ??
+        undefined,
+    },
+    tokens: {
+      accessToken: raw?.tokens?.accessToken ?? raw?.accessToken ?? null,
+      refreshToken: raw?.tokens?.refreshToken ?? raw?.refreshToken ?? null,
+      expiresIn: raw?.tokens?.expiresIn ?? raw?.expiresIn ?? null,
+    },
+    isOzAuthenticated: authenticated,
+  };
+};
 
 /** Google 로그인 */
 export const loginWithGoogle = async (
