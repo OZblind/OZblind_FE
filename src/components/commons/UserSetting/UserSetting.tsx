@@ -54,7 +54,7 @@ export function UserSetting() {
                   />
                   <button
                     onClick={handleLogin}
-                    className="px-4 bg-primary text-primary-content py-2 rounded hover:bg-secondary transition"
+                    className="px-4 bg-primary text-white py-2 rounded hover:bg-secondary transition"
                   >
                     인증
                   </button>
