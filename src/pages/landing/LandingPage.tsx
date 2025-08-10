@@ -71,7 +71,7 @@ export default function LandingPage() {
   return (
     <main className="min-h-screen bg-base-100 flex flex-col items-center justify-center gap-8 p-6">
       {/* 로고 */}
-      <img src={logoColor} alt="로고" className="w-48 h-auto" />
+      <img src={logoColor} alt="로고" className="w-64 h-auto" />
 
       {/* Google 로그인 버튼 */}
       <button
