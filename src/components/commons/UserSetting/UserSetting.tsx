@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ThemeToggleButton from "./ThemeToggleButten";
 
 export function UserSetting() {
   const [isOpen, setIsOpen] = useState<boolean>(true);
@@ -19,20 +20,21 @@ export function UserSetting() {
   return (
     <>
       {isOpen && (
-        <div className="fixed inset-0 bg-base-200 bg-opacity-50 flex justify-center items-center z-50">
+        <div className="fixed inset-0 bg-zinc-950 bg-opacity-50 flex justify-center items-center z-[9999]">
           <div className="bg-base-200 rounded-md p-6 max-w-md w-full h-[500px]">
             <div className="flex justify-between">
               <div className="font-thin">설정</div>
               <button
-                className="px-4 text-white py-2 rounded-full hover:bg-base-300 transition"
+                className="px-4 text-base-content py-2 rounded-full hover:bg-base-300 transition"
                 onClick={() => setIsOpen(false)}
               >
                 X
               </button>
             </div>
 
-            <div className="border-b border-neutral-content py-6">
+            <div className="flex justify-between border-b border-neutral-content py-6">
               다크 모드 설정
+              <ThemeToggleButton />
             </div>
 
             <div className="border-b border-neutral-content py-6">
