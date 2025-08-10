@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import ConfirmModal from "@components/commons/ConfirmModal/ConfirmModal";
 import { PATHS } from "@constants/paths";
 import { getGoogleIdToken } from "@utils/google";
 import { resolvePostLoginPath } from "@utils/postLogin";
@@ -9,6 +8,7 @@ import {
   useLoginWithGoogleMutation,
   useSignupWithGoogleMutation,
 } from "@hooks/useAuthQueries";
+import ConfirmModal from "@components/commons/ConfirmModal/ConfirmModal";
 import { logoColor } from "@src/assets";
 
 export default function LandingPage() {
@@ -47,18 +47,13 @@ export default function LandingPage() {
     if (!pendingIdToken) return;
     try {
       await signupMut.mutateAsync(pendingIdToken);
-      // 정책: 가입 직후에는 인증 미완이므로 PATHS.KEY_VERIFY 경로 고정
       push({
         message: "가입 완료! 오즈키 인증으로 이동합니다.",
         type: "success",
       });
       navigate(PATHS.KEY_VERIFY, { replace: true });
-    } catch (e: unknown) {
-      const msg =
-        typeof e === "object" && e && "message" in e
-          ? ((e as { message?: string }).message ?? "가입에 실패했어요.")
-          : "가입에 실패했어요.";
-      push({ message: msg, type: "error" });
+    } catch {
+      push({ message: "가입에 실패했어요.", type: "error" });
     } finally {
       setConfirmOpen(false);
       setPendingIdToken(null);
@@ -74,14 +69,22 @@ export default function LandingPage() {
   const disabled = loginMut.isPending || signupMut.isPending;
 
   return (
-    <main style={{ padding: 24 }}>
-      <h1>
-        <img src={logoColor} alt="로고" />
-      </h1>
-      <button type="button" onClick={onClickGoogle} disabled={disabled}>
-        {disabled ? "Processing..." : "Continue with Google"}
+    <main className="min-h-screen bg-base-100 flex flex-col items-center justify-center gap-8 p-6">
+      {/* 로고 */}
+      <img src={logoColor} alt="로고" className="w-48 h-auto" />
+
+      {/* Google 로그인 버튼 */}
+      <button
+        type="button"
+        onClick={onClickGoogle}
+        disabled={disabled}
+        className="btn btn-primary w-60"
+      >
+        {disabled && <span className="loading loading-spinner"></span>}
+        {disabled ? "처리 중..." : "Continue with Google"}
       </button>
 
+      {/* 가입 확인 모달 */}
       <ConfirmModal
         isOpen={confirmOpen}
         title="가입되지 않은 계정입니다. 가입하시겠습니까?"
