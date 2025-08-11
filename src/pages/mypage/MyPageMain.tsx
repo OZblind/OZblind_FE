@@ -68,15 +68,11 @@ const Card: React.FC<CardProps> = ({
       }}
     >
       {/* 카드 헤더 - 제목과 플러스 버튼 */}
-      <div className="flex items-center justify-between mb-4 select-none">
-        <div className="flex items-center gap-2 select-none">
-          <span className="text-2xl select-none">{icon}</span>
-          <h3 className="text-lg font-medium text-base-content select-none">
-            {title}
-          </h3>
-          <span className="text-sm text-neutral-content select-none">
-            ({count})
-          </span>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">{icon}</span>
+          <h3 className="text-lg font-medium text-base-content">{title}</h3>
+          <span className="text-sm text-neutral-content">({count})</span>
         </div>
         <button
           onClick={onClick}
@@ -116,34 +112,39 @@ const Card: React.FC<CardProps> = ({
       </div>
 
       {/* 카드 내용 - 실제 글 목록 미리보기 */}
-      <div className="space-y-3 select-none">
+      <div className="space-y-3">
         {items && items.length > 0 ? (
           items.slice(0, 4).map((item) => (
             <div
               key={item.id}
-              className="p-3 bg-base-200 rounded-lg hover:bg-base-100 transition-colors cursor-pointer select-none"
+              className="p-3 bg-base-200 rounded-lg hover:bg-base-100 transition-colors cursor-pointer"
             >
-              <div className="flex items-center justify-between select-none">
+              <div className="flex items-center justify-between">
                 {item.category && (
-                  <span className="text-xs bg-base-300 px-2 py-1 rounded text-base-content select-none">
+                  <span className="text-xs bg-base-300 px-2 py-1 rounded text-base-content">
                     {item.category}
                   </span>
                 )}
-                <span className="text-xs text-neutral-content select-none">
+                <span className="text-xs text-neutral-content">
                   {item.date}
                 </span>
               </div>
-              <h4 className="text-sm text-base-content mt-2 line-clamp-1 select-none">
+              <h4
+                className="text-sm text-base-content mt-2"
+                style={{
+                  overflow: "hidden",
+                  whiteSpace: "nowrap",
+                  textOverflow: "ellipsis",
+                }}
+              >
                 {item.title}
               </h4>
             </div>
           ))
         ) : (
-          <div className="text-center py-8 select-none">
-            <div className="text-neutral-content text-3xl mb-2 select-none">
-              {icon}
-            </div>
-            <p className="text-neutral-content text-sm select-none">
+          <div className="text-center py-8">
+            <div className="text-neutral-content text-3xl mb-2">{icon}</div>
+            <p className="text-neutral-content text-sm">
               {getEmptyMessage(title)}
             </p>
           </div>
@@ -151,8 +152,8 @@ const Card: React.FC<CardProps> = ({
 
         {/* 더보기 표시 */}
         {items && items.length > 4 && (
-          <div className="text-center py-2 select-none">
-            <span className="text-xs text-neutral-content select-none">
+          <div className="text-center py-2">
+            <span className="text-xs text-neutral-content">
               외 {items.length - 4}개 더...
             </span>
           </div>
@@ -292,6 +293,7 @@ const MyPageMain: React.FC = () => {
               title={card.title}
               count={card.count}
               icon={card.icon}
+              items={card.items}
               onClick={() => handleCardClick(card.path)}
               isExpanding={isExpanding}
               isClicked={clickedCard === card.path}
