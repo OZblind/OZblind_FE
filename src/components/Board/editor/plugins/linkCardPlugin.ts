@@ -9,7 +9,7 @@ export type LinkCardPluginOptions = {
   titleText?: string; // 카드 상단 제목
 };
 
-export default function linkCardPlugin(
+export function attachLinkCard(
   editor: EditorWithLinkCard,
   options?: LinkCardPluginOptions
 ) {
@@ -18,7 +18,8 @@ export default function linkCardPlugin(
 
   editor.__insertLinkCard = (url: string) => {
     if (!url) return;
-    const safeUrl = escapeHtml(url);
+    const safeUrl = escapeHtml(url ?? "");
+    if (!safeUrl) return;
 
     const cardHTML = `
       <div class="${className}" style="padding:12px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;margin-bottom:16px;">
@@ -34,6 +35,7 @@ export default function linkCardPlugin(
     const current = editor.getHTML();
     editor.setHTML(cardHTML + current);
   };
+  console.log(editor.__insertLinkCard);
 }
 
 function escapeHtml(input: string) {
