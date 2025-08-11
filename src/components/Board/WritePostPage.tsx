@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SharedPostForm from "./SharedPostForm";
+import SurveyPostForm from "./SurveyPostForm";
 // import { createPost } from "@/api/post"; // 게시글 생성 API 추후 등록
 // import { Button } from "@/components/ui/button"; // 버튼 컴포넌트 (Tailwind 기반)
 
@@ -42,9 +43,7 @@ const WritePostPage = () => {
 
       {/* 2. 폼 스위칭 */}
       {selectedBoard === "survey" ? (
-        <div className="text-sm text-white/80">
-          설문 전용 폼은 추후 구현 예정입니다.
-        </div>
+        <SurveyPostForm onCancel={() => navigate(-1)} />
       ) : selectedBoard === "github" ? (
         <div className="text-sm text-white/80">
           GitHub 전용 폼은 추후 구현 예정입니다.
