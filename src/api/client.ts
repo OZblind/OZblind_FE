@@ -7,7 +7,11 @@ import axios, {
 import { ENDPOINTS } from "@constants/endpoints";
 import { useAuthStore } from "@store/authStore";
 
-const baseURL = import.meta.env.VITE_API_BASE_URL as string;
+const baseURL = (import.meta.env.VITE_API_BASE_URL as string)?.trim();
+
+if (!baseURL && import.meta.env.DEV) {
+  throw new Error("VITE_API_BASE_URL is missing");
+}
 
 /** 401 재시도 무한루프 방지를 위한 플래그를 추가한 확장 타입 */
 interface RetriableConfig<D = unknown> extends InternalAxiosRequestConfig<D> {
