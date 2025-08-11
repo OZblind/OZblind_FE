@@ -109,7 +109,8 @@ export default function SurveyPostForm({ onCancel }: Props) {
 
       {/* 에디터 */}
       <div className="flex-1">
-        <ToastEditor onChange={setContent} />
+        <label className="block font-semibold mb-1 text-white">내용</label>
+        <ToastEditor onChange={setContent} formLink={formLink} />
       </div>
 
       {/* 버튼 */}
