@@ -1,6 +1,12 @@
 // 라우팅 + 부팅 훅 + 가드 분기
 
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { PATHS } from "@constants/paths";
 
 import LandingPage from "@pages/landing/LandingPage"; // /auth (로비)
@@ -18,16 +24,24 @@ import RootLayout from "@layouts/RootLayout";
 import { redirectWithIntent } from "./guards";
 
 // 임시+테스트용: 오즈키 인증 페이지 관련 import
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   useVerifyOzKeyMutation,
   useGetCurrentUserQuery,
 } from "@hooks/useAuthQueries";
 import { useToastStore } from "@store/toastStore";
 import { resolvePostLoginPath } from "@utils/postLogin";
-import { useNavigate } from "react-router-dom";
 
-// 임시: 오즈키 인증 페이지 (담당자 구현 전) — 실동작 가능한 DEV 버전
+/** 공개(보호 불필요) 경로 목록 */
+const PUBLIC_PATHS: ReadonlySet<string> = new Set([
+  PATHS.ROOT,
+  PATHS.AUTH,
+  PATHS.ERROR_403,
+  PATHS.ERROR_404,
+  PATHS.ERROR_500,
+]);
+
+/** 임시: 오즈키 인증 페이지 (담당자 구현 전) — 실동작 가능한 DEV 버전 */
 function KeyVerifyPlaceholder() {
   const [key, setKey] = useState("");
   const { push } = useToastStore();
@@ -71,7 +85,7 @@ function KeyVerifyPlaceholder() {
     <main className="min-h-screen flex items-center justify-center px-4">
       <form
         onSubmit={onSubmit}
-        className="w-full max-w-md card bg-base-200 shadow-xl"
+        className="w_full max-w-md card bg-base-200 shadow-xl"
       >
         <div className="card-body">
           <h1 className="card-title">오즈키 인증</h1>
@@ -106,12 +120,63 @@ function KeyVerifyPlaceholder() {
 export default function AppRouter() {
   // 앱 최초 1회 JWT/프로필 확인
   const { loading } = useAuthBootstrap();
-  const { tokens, isOzAuthenticated } = useAuthStore();
+
+  // Zustand 셀렉터로 필요한 값만 구독 → 불필요 리렌더 줄이기
+  const isAuthed = useAuthStore((s) => Boolean(s.tokens.accessToken));
+  const isOzAuthenticated = useAuthStore((s) => s.isOzAuthenticated);
+
   const location = useLocation();
+  const navigate = useNavigate();
 
+  // 같은 경로로 중복 이동 방지
+  const goto = useCallback(
+    (to: string) => {
+      if (location.pathname !== to) navigate(to, { replace: true });
+    },
+    [location.pathname, navigate]
+  );
+
+  useEffect(() => {
+    if (loading) return;
+
+    // A) AUTH에 있는데 로그인되면 → KEY_VERIFY 또는 MAIN
+    if (location.pathname === PATHS.AUTH && isAuthed) {
+      const next = isOzAuthenticated
+        ? resolvePostLoginPath(true)
+        : PATHS.KEY_VERIFY;
+      goto(next);
+      return;
+    }
+
+    // B) 보호 라우트(= 공개 목록에 없는 경로)에 있는데 로그아웃되면 → AUTH (의도 경로 유지)
+    const isPublic = PUBLIC_PATHS.has(location.pathname);
+    if (!isAuthed && !isPublic) {
+      const next = `${PATHS.AUTH}?next=${encodeURIComponent(
+        location.pathname + location.search
+      )}`;
+      goto(next);
+      return;
+    }
+
+    // C) KEY_VERIFY 중 인증 완료되면 → MAIN
+    if (
+      location.pathname === PATHS.KEY_VERIFY &&
+      isAuthed &&
+      isOzAuthenticated
+    ) {
+      goto(PATHS.MAIN);
+    }
+  }, [
+    loading,
+    isAuthed,
+    isOzAuthenticated,
+    location.pathname,
+    location.search,
+    goto, // ← 의존성에 포함
+  ]);
+
+  // 훅 호출 이후에 조기 return (로딩 스켈레톤)
   if (loading) return <div style={{ padding: 24 }}>Loading...</div>;
-
-  const isAuthed = Boolean(tokens.accessToken);
 
   return (
     <Routes>
@@ -144,7 +209,6 @@ export default function AppRouter() {
           element={
             isAuthed ? (
               isOzAuthenticated === false ? (
-                // 이곳을 키 인증 페이지로 바꿔주세요!
                 <KeyVerifyPlaceholder />
               ) : (
                 <Navigate to={PATHS.MAIN} replace />
