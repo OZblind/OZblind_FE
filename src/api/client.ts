@@ -8,7 +8,6 @@ import { ENDPOINTS } from "@constants/endpoints";
 import { useAuthStore } from "@store/authStore";
 
 const baseURL = (import.meta.env.VITE_API_BASE_URL as string)?.trim();
-
 if (!baseURL && import.meta.env.DEV) {
   throw new Error("VITE_API_BASE_URL is missing");
 }
@@ -49,7 +48,7 @@ function applyAuthHeader(
  */
 export const api: AxiosInstance = axios.create({
   baseURL,
-  headers: { "Content-Type": "application/json" },
+  // 헤더의 Content-Type는 요청 인터셉터에서 자동 세팅하도록 설정함
   // withCredentials: true, // 쿠키 기반 인증을 쓸 경우 활성화
 });
 
@@ -57,10 +56,25 @@ export const api: AxiosInstance = axios.create({
  * 요청 인터셉터
  * - 전역 상태에서 accessToken을 읽어 Authorization 헤더를 자동 부착합니다.
  * - 컴포넌트 외부(인터셉터)에서는 useAuthStore.getState()로 스냅샷을 읽습니다.
+ * - Content-Type 또한 포맷별로 헤더 자동 부착됩니다.
  */
 api.interceptors.request.use((config) => {
+  // 1) Authorization 자동 부착
   const at = useAuthStore.getState().tokens.accessToken;
   if (at) applyAuthHeader(config, at);
+
+  // 2) Content-Type 자동 세팅
+  const method = (config.method ?? "get").toLowerCase();
+  const hasBody = ["post", "put", "patch", "delete"].includes(method);
+  if (hasBody && config.data !== undefined) {
+    const hdrs = ensureAxiosHeaders(config.headers);
+    if (!hdrs.has("Content-Type")) {
+      // ❗️ 여기에 FormData, Blob, ArrayBuffer, URLSearchParams 등의 예외 케이스 추가해 주세요!
+      hdrs.set("Content-Type", "application/json");
+    }
+    config.headers = hdrs;
+  }
+
   return config;
 });
 
