@@ -1,20 +1,34 @@
 import { useState } from "react";
 import { Button } from "@components/ui/Button";
 import ToastEditor from "@components/Board/editor/ToastEditor";
-// import { createSurveyPost } from "@/api/post"; // 실제 API 연결 시 사용
 
 interface Props {
   onCancel: () => void;
 }
 
+const PROVIDERS = [
+  { value: "google", label: "구글 폼", url: "https://forms.google.com" },
+  { value: "naver", label: "네이버 폼", url: "https://form.naver.com" },
+  { value: "moaform", label: "모아폼", url: "https://moaform.com" },
+];
+
 export default function SurveyPostForm({ onCancel }: Props) {
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState(""); // ToastEditor onChange로 채움
-  const [formLink, setFormLink] = useState(""); // 작성된 설문 링크
-  const [endDate, setEndDate] = useState(""); // YYYY-MM-DD
+  const [content, setContent] = useState("");
+  const [formLink, setFormLink] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [provider, setProvider] = useState<string>(""); // placeholder 상태
 
-  const openExternal = (url: string) => {
-    window.open(url, "_blank", "noopener,noreferrer");
+  const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const next = e.target.value;
+    setProvider(next);
+    const found = PROVIDERS.find((p) => p.value === next);
+    if (found) {
+      // 선택 즉시 새 창 열기
+      window.open(found.url, "_blank", "noopener,noreferrer");
+      // 다시 placeholder로 되돌려 중복 선택 시도 가능하게
+      setTimeout(() => setProvider(""), 0);
+    }
   };
 
   const handleSubmit = async () => {
@@ -23,10 +37,7 @@ export default function SurveyPostForm({ onCancel }: Props) {
     if (!formLink.trim()) return alert("작성한 설문 링크를 입력하세요.");
     if (!endDate) return alert("설문 종료일을 선택하세요.");
 
-    const payload = { title, content, formLink, endDate };
-    console.log("submit survey payload:", payload);
-
-    // await createSurveyPost(payload);
+    console.log({ title, content, formLink, endDate });
     alert("설문 게시글이 등록되었습니다. (mock)");
     onCancel();
   };
@@ -44,72 +55,64 @@ export default function SurveyPostForm({ onCancel }: Props) {
           onChange={(e) => setTitle(e.target.value)}
         />
       </div>
+      {/* 설문지 작성 / 링크 / 마감일 */}
+      <div className="flex flex-wrap gap-4">
+        <div className="flex flex-col gap-1 shrink-0">
+          <label className="font-semibold text-white">설문 생성</label>
+          {/* 설문지 제공자 드롭다운 (선택 즉시 새 창) */}
+          <select
+            aria-label="설문 폼 선택"
+            className="border border-gray-300 rounded p-2 bg-white shrink-0"
+            value={provider}
+            onChange={handleProviderChange}
+          >
+            <option value="" disabled>
+              설문 폼 선택
+            </option>
+            {PROVIDERS.map((p) => (
+              <option key={p.value} value={p.value}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      {/* 설문지 작성 바로가기 */}
-      <div>
-        <span className="block font-semibold mb-1 text-white">
-          설문지 작성 바로가기
-        </span>
-        <div className="flex items-center gap-3">
-          {/* 버튼 그룹 */}
-          <div className="flex gap-2 shrink-0">
-            <Button
-              variant="primary"
-              onClick={() => openExternal("https://forms.google.com")}
-            >
-              구글 폼 열기
-            </Button>
-            <Button
-              variant="primary"
-              onClick={() => openExternal("https://form.naver.com/")}
-            >
-              네이버 폼 열기
-            </Button>
-            <Button
-              variant="primary"
-              onClick={() => openExternal("https://moaform.com")}
-            >
-              모아폼 열기
-            </Button>
-          </div>
-          {/* 작성된 설문 링크 */}
+        {/* 설문 링크 입력 */}
+        <div className="flex flex-col gap-1 flex-1 min-w-[220px]">
+          <label htmlFor="survey-link" className="font-semibold text-white">
+            설문 링크
+          </label>
           <input
             id="survey-link"
             type="url"
-            className="flex-1 border border-gray-300 rounded p-2"
+            className="border border-gray-300 rounded p-2"
             placeholder="예) https://forms.gle/xxxx"
             value={formLink}
             onChange={(e) => setFormLink(e.target.value)}
           />
         </div>
-      </div>
-      {/* 설문 종료일 */}
-      <div>
-        <label
-          htmlFor="survey-end"
-          className="block font-semibold mb-1 text-white"
-        >
-          설문 종료일
-        </label>
-        <input
-          id="survey-end"
-          type="date"
-          className="w-full border border-gray-300 rounded p-2"
-          value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
-        />
-        <p className="text-xs text-white/60 mt-1">
-          종료일 23:59 (Asia/Seoul) 기준으로 마감 처리 권장.
-        </p>
+
+        {/* 설문 마감일 */}
+        <div className="flex flex-col gap-1 shrink-0">
+          <label htmlFor="survey-end" className="font-semibold text-white">
+            마감일
+          </label>
+          <input
+            id="survey-end"
+            type="date"
+            className="border border-gray-300 rounded p-2"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+        </div>
       </div>
 
       {/* 에디터 */}
       <div className="flex-1">
-        <label className="block font-semibold mb-1 text-white">내용</label>
         <ToastEditor onChange={setContent} />
       </div>
 
-      {/* 버튼 섹션 (우하단 정렬) */}
+      {/* 버튼 */}
       <div className="flex justify-end gap-3 mt-2">
         <Button
           variant="secondary"
