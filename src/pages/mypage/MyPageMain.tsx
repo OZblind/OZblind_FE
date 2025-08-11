@@ -40,9 +40,22 @@ const Card: React.FC<CardProps> = ({
   isExpanding,
   isClicked,
 }) => {
+  const getEmptyMessage = (title: string) => {
+    switch (title) {
+      case "작성글":
+        return "작성한 글이 없습니다.";
+      case "작성댓글":
+        return "작성한 댓글이 없습니다.";
+      case "북마크":
+        return "북마크한 글이 없습니다.";
+      default:
+        return `${title}이 없습니다.`;
+    }
+  };
+
   return (
     <div
-      className={`bg-base-300 rounded-lg p-4 hover:bg-opacity-80 transition-all duration-300 transform-gpu flex-1 min-w-0 max-w-xs min-h-[350px] ${
+      className={`bg-base-300 rounded-lg p-4 hover:bg-opacity-80 transition-all duration-300 transform-gpu flex-1 min-w-0 max-w-xs min-h-[350px] select-none ${
         isExpanding
           ? isClicked
             ? "scale-150 z-20 opacity-100"
@@ -55,11 +68,15 @@ const Card: React.FC<CardProps> = ({
       }}
     >
       {/* 카드 헤더 - 제목과 플러스 버튼 */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">{icon}</span>
-          <h3 className="text-lg font-medium text-base-content">{title}</h3>
-          <span className="text-sm text-neutral-content">({count})</span>
+      <div className="flex items-center justify-between mb-4 select-none">
+        <div className="flex items-center gap-2 select-none">
+          <span className="text-2xl select-none">{icon}</span>
+          <h3 className="text-lg font-medium text-base-content select-none">
+            {title}
+          </h3>
+          <span className="text-sm text-neutral-content select-none">
+            ({count})
+          </span>
         </div>
         <button
           onClick={onClick}
@@ -99,39 +116,43 @@ const Card: React.FC<CardProps> = ({
       </div>
 
       {/* 카드 내용 - 실제 글 목록 미리보기 */}
-      <div className="space-y-3">
+      <div className="space-y-3 select-none">
         {items && items.length > 0 ? (
           items.slice(0, 4).map((item) => (
             <div
               key={item.id}
-              className="p-3 bg-base-200 rounded-lg hover:bg-base-100 transition-colors cursor-pointer"
+              className="p-3 bg-base-200 rounded-lg hover:bg-base-100 transition-colors cursor-pointer select-none"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between select-none">
                 {item.category && (
-                  <span className="text-xs bg-base-300 px-2 py-1 rounded text-base-content">
+                  <span className="text-xs bg-base-300 px-2 py-1 rounded text-base-content select-none">
                     {item.category}
                   </span>
                 )}
-                <span className="text-xs text-neutral-content">
+                <span className="text-xs text-neutral-content select-none">
                   {item.date}
                 </span>
               </div>
-              <h4 className="text-sm text-base-content mt-2 line-clamp-1">
+              <h4 className="text-sm text-base-content mt-2 line-clamp-1 select-none">
                 {item.title}
               </h4>
             </div>
           ))
         ) : (
-          <div className="text-center py-8">
-            <div className="text-neutral-content text-3xl mb-2">{icon}</div>
-            <p className="text-neutral-content text-sm">{title}이 없습니다.</p>
+          <div className="text-center py-8 select-none">
+            <div className="text-neutral-content text-3xl mb-2 select-none">
+              {icon}
+            </div>
+            <p className="text-neutral-content text-sm select-none">
+              {getEmptyMessage(title)}
+            </p>
           </div>
         )}
 
         {/* 더보기 표시 */}
         {items && items.length > 4 && (
-          <div className="text-center py-2">
-            <span className="text-xs text-neutral-content">
+          <div className="text-center py-2 select-none">
+            <span className="text-xs text-neutral-content select-none">
               외 {items.length - 4}개 더...
             </span>
           </div>

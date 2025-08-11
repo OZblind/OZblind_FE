@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
-import { UserSetting } from "../commons/UserSetting/UserSetting"; // 팀원이 만든 컴포넌트
 
 // 사용자 프로필 타입 정의
 interface UserProfile {
