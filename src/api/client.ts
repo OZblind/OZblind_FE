@@ -6,6 +6,7 @@ import axios, {
 } from "axios";
 import { ENDPOINTS } from "@constants/endpoints";
 import { useAuthStore } from "@store/authStore";
+import { postTokenUpdate, postLogout } from "@utils/auth/sync";
 
 const baseURL = (import.meta.env.VITE_API_BASE_URL as string)?.trim();
 if (!baseURL && import.meta.env.DEV) {
@@ -120,6 +121,8 @@ api.interceptors.response.use(
       // refreshToken이 없으면 갱신 불가 → 즉시 로그아웃 처리
       if (!tokens.refreshToken) {
         reset();
+        // 멀티 탭에 LOGOUT 브로드캐스트(다른 탭들도 즉시 로그아웃)
+        postLogout();
         return Promise.reject(error);
       }
 
@@ -155,6 +158,14 @@ api.interceptors.response.use(
           tokens: { accessToken: newAccess, refreshToken: newRefresh },
         });
 
+        /* 리프레시 성공 시 멀티 탭에 TOKEN_UPDATE 전파
+            - 다른 탭도 즉시 새 토큰을 사용하게 함
+            - newAccess는 서버 응답 string이라 그대로 전달 가능 (안전 가드로 if 추가)
+        */
+        if (newAccess) {
+          postTokenUpdate({ accessToken: newAccess, refreshToken: newRefresh });
+        }
+
         // 대기중이던 원요청들에 새 토큰 전달
         flushQueue(null, newAccess);
 
@@ -165,6 +176,8 @@ api.interceptors.response.use(
         // refresh 실패: 대기중이던 요청들 일괄 실패 처리 + 전역 상태 리셋
         flushQueue(e, undefined);
         useAuthStore.getState().reset();
+        // 멀티 탭에 LOGOUT 브로드캐스트
+        postLogout();
         return Promise.reject(e);
       } finally {
         isRefreshing = false;
