@@ -7,6 +7,12 @@ interface CardData {
   count: number;
   icon: string;
   path: string;
+  items: Array<{
+    id: number;
+    title: string;
+    date: string;
+    category?: string;
+  }>;
 }
 
 // 개별 카드 컴포넌트
@@ -14,6 +20,12 @@ interface CardProps {
   title: string;
   count: number;
   icon: string;
+  items?: Array<{
+    id: number;
+    title: string;
+    date: string;
+    category?: string;
+  }>;
   onClick: () => void;
   isExpanding?: boolean;
   isClicked?: boolean;
@@ -23,13 +35,14 @@ const Card: React.FC<CardProps> = ({
   title,
   count,
   icon,
+  items = [],
   onClick,
   isExpanding,
   isClicked,
 }) => {
   return (
     <div
-      className={`bg-base-300 rounded-lg p-6 sm:p-8 hover:bg-opacity-80 transition-all duration-300 transform-gpu min-w-[200px] sm:min-w-[250px] min-h-[180px] sm:min-h-[220px] ${
+      className={`bg-base-300 rounded-lg p-4 hover:bg-opacity-80 transition-all duration-300 transform-gpu flex-1 min-w-0 max-w-xs min-h-[350px] ${
         isExpanding
           ? isClicked
             ? "scale-150 z-20 opacity-100"
@@ -42,27 +55,87 @@ const Card: React.FC<CardProps> = ({
       }}
     >
       {/* 카드 헤더 - 제목과 플러스 버튼 */}
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg sm:text-xl font-medium text-base-content">
-          {title}
-        </h3>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">{icon}</span>
+          <h3 className="text-lg font-medium text-base-content">{title}</h3>
+          <span className="text-sm text-neutral-content">({count})</span>
+        </div>
         <button
           onClick={onClick}
-          className="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-full flex items-center justify-center hover:bg-primary-focus transition-colors duration-200 group"
+          className="w-8 h-8 bg-primary rounded-full flex items-center justify-center hover:bg-primary-focus transition-colors duration-200 group relative overflow-hidden"
           aria-label={`${title} 전체보기`}
         >
-          <span className="text-primary-content text-lg sm:text-xl font-bold group-hover:scale-110 group-hover:rotate-90 transition-transform duration-300">
-            +
-          </span>
+          <div
+            className="w-5 h-5 text-primary-content flex items-center justify-center transition-transform duration-300"
+            style={{
+              transform: "rotate(0deg) scale(1)",
+              transition: "transform 0.3s ease",
+              transformOrigin: "50% 50%",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "rotate(90deg) scale(1.1)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "rotate(0deg) scale(1)";
+            }}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 16 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M8 3V13M3 8H13"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
         </button>
       </div>
 
-      {/* 카드 내용 - 아이콘과 카운트 */}
-      <div className="text-center">
-        <div className="text-4xl sm:text-5xl mb-4">{icon}</div>
-        <div className="text-3xl sm:text-4xl font-bold text-base-content">
-          {count}
-        </div>
+      {/* 카드 내용 - 실제 글 목록 미리보기 */}
+      <div className="space-y-3">
+        {items && items.length > 0 ? (
+          items.slice(0, 4).map((item) => (
+            <div
+              key={item.id}
+              className="p-3 bg-base-200 rounded-lg hover:bg-base-100 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center justify-between">
+                {item.category && (
+                  <span className="text-xs bg-base-300 px-2 py-1 rounded text-base-content">
+                    {item.category}
+                  </span>
+                )}
+                <span className="text-xs text-neutral-content">
+                  {item.date}
+                </span>
+              </div>
+              <h4 className="text-sm text-base-content mt-2 line-clamp-1">
+                {item.title}
+              </h4>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-8">
+            <div className="text-neutral-content text-3xl mb-2">{icon}</div>
+            <p className="text-neutral-content text-sm">{title}이 없습니다.</p>
+          </div>
+        )}
+
+        {/* 더보기 표시 */}
+        {items && items.length > 4 && (
+          <div className="text-center py-2">
+            <span className="text-xs text-neutral-content">
+              외 {items.length - 4}개 더...
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -73,25 +146,89 @@ const MyPageMain: React.FC = () => {
   const [isExpanding, setIsExpanding] = useState(false);
   const [clickedCard, setClickedCard] = useState<string | null>(null);
 
-  // 카드 데이터 (추후 API에서 가져올 데이터)
+  // 카드 데이터 (실제 데이터 포함)
   const cardData: CardData[] = [
     {
       title: "작성글",
       count: 12,
       icon: "📝",
       path: "posts",
+      items: [
+        {
+          id: 1,
+          title: "안녕하세요 처음 가입했어요 ㅎㅎ ㅎㅎㅎ [21]",
+          date: "01.15",
+          category: "자유",
+        },
+        {
+          id: 2,
+          title: "동료들과의 관계에 대해서~",
+          date: "01.14",
+          category: "질문",
+        },
+        {
+          id: 3,
+          title: "점심 뭐 먹을까 고민입니다",
+          date: "01.13",
+          category: "자유",
+        },
+        {
+          id: 4,
+          title: "회사 생활 처음인데 조언 구해요",
+          date: "01.12",
+          category: "익명",
+        },
+      ],
     },
     {
       title: "작성댓글",
       count: 45,
       icon: "💬",
       path: "comments",
+      items: [
+        {
+          id: 1,
+          title: "환영합니다! 저도 얼마 전에 가입했는데...",
+          date: "01.15",
+        },
+        {
+          id: 2,
+          title: "비슷한 경험 있어요. 저는 먼저 다가가서...",
+          date: "01.14",
+        },
+        { id: 3, title: "김치찌개 추천이요! 오늘 날씨에 딱...", date: "01.13" },
+        {
+          id: 4,
+          title: "처음엔 다들 그래요. 너무 조급해하지...",
+          date: "01.12",
+        },
+      ],
     },
     {
       title: "북마크",
       count: 8,
       icon: "🔖",
       path: "bookmarks",
+      items: [
+        {
+          id: 1,
+          title: "신입이 물어보기 어려운 질문들 [3]",
+          date: "01.10",
+          category: "질문",
+        },
+        {
+          id: 2,
+          title: "이직 준비 어떻게 하셨나요?",
+          date: "01.08",
+          category: "질문",
+        },
+        {
+          id: 3,
+          title: "점심시간 맛집 추천 받아요!",
+          date: "01.09",
+          category: "자유",
+        },
+      ],
     },
   ];
 
