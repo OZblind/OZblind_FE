@@ -2,6 +2,7 @@
 
 import { api } from "@api/client";
 import { ENDPOINTS } from "@constants/endpoints";
+import { pickFirst } from "@src/utils/pickFirst";
 import type { User, Tokens } from "@store/authStore";
 
 /** 백엔드에서 내려오는 Auth 응답 데이터 타입 (정규화 전) */
@@ -54,37 +55,53 @@ export type AuthPayload = {
 /** 백엔드 Auth 응답 → FE AuthPayload로 정규화 */
 export const normalizeAuthResponse = (raw: RawAuthResponse): AuthPayload => {
   const authenticated = Boolean(
-    raw?.authenticated ?? raw?.isOzAuthenticated ?? false
+    pickFirst(raw?.authenticated, raw?.isOzAuthenticated, false)
   );
+  const userId = pickFirst(raw?.user?.id, raw?.userId, raw?.id, "");
+  const email = pickFirst(raw?.user?.email, raw?.email, "");
+  const name = pickFirst(raw?.user?.name, raw?.name, undefined);
+  const role = pickFirst(raw?.user?.role, raw?.role, undefined);
+
+  const isActive = pickFirst(
+    raw?.user?.is_active,
+    raw?.user?.isActive,
+    raw?.is_active,
+    raw?.isActive,
+    authenticated
+  );
+
+  const socialProvider = pickFirst(
+    raw?.user?.social_provider,
+    raw?.user?.provider,
+    raw?.social_provider,
+    raw?.provider,
+    undefined
+  );
+
+  const accessToken =
+    pickFirst(raw?.tokens?.accessToken, raw?.accessToken) ?? null;
+  const refreshToken =
+    pickFirst(raw?.tokens?.refreshToken, raw?.refreshToken) ?? null;
+  const expiresIn = pickFirst(raw?.tokens?.expiresIn, raw?.expiresIn) ?? null;
 
   return {
     user: {
-      userId: String(raw?.user?.id ?? raw?.userId ?? raw?.id ?? ""),
-      email: String(raw?.user?.email ?? raw?.email ?? ""),
-      name: raw?.user?.name ?? raw?.name ?? undefined,
-      role: raw?.user?.role ?? raw?.role ?? undefined,
+      userId: String(userId),
+      email: String(email),
+      name,
+      role,
 
       // 핵심: isActive는 최우선 authenticated와 동기화
       // 백이 user.is_active를 따로 내려줘도, 도메인 규칙상 authenticated를 신뢰
-      isActive:
-        raw?.user?.is_active ??
-        raw?.user?.isActive ??
-        raw?.is_active ??
-        raw?.isActive ??
-        authenticated,
+      isActive: Boolean(isActive),
 
       // 부가 필드
-      socialProvider:
-        raw?.user?.social_provider ??
-        raw?.user?.provider ??
-        raw?.social_provider ??
-        raw?.provider ??
-        undefined,
+      socialProvider,
     },
     tokens: {
-      accessToken: raw?.tokens?.accessToken ?? raw?.accessToken ?? null,
-      refreshToken: raw?.tokens?.refreshToken ?? raw?.refreshToken ?? null,
-      expiresIn: raw?.tokens?.expiresIn ?? raw?.expiresIn ?? null,
+      accessToken,
+      refreshToken,
+      expiresIn,
     },
     isOzAuthenticated: authenticated,
   };
@@ -135,7 +152,7 @@ export const verifyOzKey = async (key: string): Promise<{ ok: boolean }> => {
   const { data } = await api.post<{ ok?: boolean }>(ENDPOINTS.KEY_VERIFY, {
     key,
   });
-  return { ok: Boolean(data?.ok ?? true) };
+  return { ok: Boolean(pickFirst(data?.ok, true)) };
 };
 
 /** 토큰 갱신 */
@@ -147,8 +164,9 @@ export const refreshToken = async (
     refreshToken?: string;
   }>(ENDPOINTS.TOKEN_REFRESH, { refreshToken: refreshTokenValue });
   return {
-    accessToken: data?.accessToken,
-    refreshToken: data?.refreshToken ?? refreshTokenValue,
+    accessToken: data.accessToken,
+    refreshToken:
+      pickFirst(data.refreshToken, refreshTokenValue) ?? refreshTokenValue,
   };
 };
 
