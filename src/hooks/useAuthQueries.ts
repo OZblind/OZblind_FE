@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   loginWithGoogle,
   signupWithGoogle,
@@ -10,16 +10,17 @@ import {
 } from "@api/auth";
 import { useAuthStore } from "@store/authStore";
 import { queryKeys } from "@constants/queryKeys";
+import { postTokenUpdate, postLogout } from "@utils/auth/sync";
 
 type CurrentUserKey = typeof queryKeys.currentUser;
 
-/** 현재 유저 정보 조회 (부팅 훅 등에서 사용) */
+/** 현재 유저 정보 조회 */
 export function useGetCurrentUserQuery(enabled = true) {
   const set = useAuthStore.getState().setFromAuthPayload;
 
   const query = useQuery<AuthPayload, Error, AuthPayload, CurrentUserKey>({
     queryKey: queryKeys.currentUser,
-    queryFn: getCurrentUser, // () => Promise<AuthPayload>
+    queryFn: getCurrentUser,
     enabled,
     retry: false,
   });
@@ -31,7 +32,7 @@ export function useGetCurrentUserQuery(enabled = true) {
   return query;
 }
 
-/** Google 로그인 (idToken -> {status:200|404,...}) */
+/** Google 로그인 */
 export function useLoginWithGoogleMutation() {
   const set = useAuthStore.getState().setFromAuthPayload;
 
@@ -42,37 +43,58 @@ export function useLoginWithGoogleMutation() {
   >({
     mutationFn: loginWithGoogle,
     onSuccess: (res) => {
-      if (res.status === 200) set(res.payload);
-      // 404는 호출부에서 가입 모달 등으로 분기
+      if (res.status === 200) {
+        set(res.payload);
+
+        // accessToken 있을 때만 string으로 좁혀서 브로드캐스트
+        const { accessToken, refreshToken } = res.payload.tokens;
+        if (accessToken) {
+          postTokenUpdate({ accessToken, refreshToken });
+        }
+      }
     },
   });
 }
 
-/** Google 회원가입 (idToken -> AuthPayload) */
+/** Google 회원가입 */
 export function useSignupWithGoogleMutation() {
   const set = useAuthStore.getState().setFromAuthPayload;
 
   return useMutation<AuthPayload, Error, string>({
     mutationFn: signupWithGoogle,
-    onSuccess: (payload) => set(payload),
+    onSuccess: (payload) => {
+      set(payload);
+
+      // accessToken 있을 때만 브로드캐스트
+      const { accessToken, refreshToken } = payload.tokens;
+      if (accessToken) {
+        postTokenUpdate({ accessToken, refreshToken });
+      }
+    },
   });
 }
 
-/** 오즈키 검증 (key -> { ok: boolean }) */
+/** 오즈키 검증 */
 export function useVerifyOzKeyMutation() {
   return useMutation<{ ok: boolean }, Error, string>({
     mutationFn: verifyOzKey,
   });
 }
 
-/** 로그아웃 (void -> void) */
+/** 로그아웃 */
 export function useLogoutMutation() {
   const reset = useAuthStore.getState().reset;
+  const qc = useQueryClient();
 
   return useMutation<void, Error, void>({
     mutationFn: revokeToken,
     onSettled: () => {
-      reset(); // 서버 실패해도 클라이언트 상태는 초기화
+      // 1) 상태 초기화
+      reset();
+      // 2) 멀티탭에 LOGOUT 전파
+      postLogout();
+      // 3) 유저 캐시 삭제
+      qc.removeQueries({ queryKey: queryKeys.currentUser });
     },
   });
 }
