@@ -47,7 +47,7 @@ export function UserSetting() {
                     placeholder="회원 Key 입력"
                     value={key}
                     onChange={(e) => setKey(e.target.value)}
-                    className="w-[330px] bg-base-300 border border-base-200 p-2 focus:outline-none focus:border-primary rounded"
+                    className="flex-1 min-w-0 bg-base-300 border border-base-200 p-2 focus:outline-none focus:border-primary rounded"
                   />
                   <button
                     onClick={handleLogin}
