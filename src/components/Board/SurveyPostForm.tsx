@@ -18,6 +18,9 @@ export default function SurveyPostForm({ onCancel }: Props) {
   const [formLink, setFormLink] = useState("");
   const [endDate, setEndDate] = useState("");
   const [provider, setProvider] = useState<string>(""); // placeholder 상태
+  const [error, setError] = useState("");
+
+  const urlPattern = /^(https?:\/\/)[^\s$.?#].[^\s]*$/i;
 
   const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const next = e.target.value;
@@ -43,6 +46,18 @@ export default function SurveyPostForm({ onCancel }: Props) {
     console.log({ title, content, formLink, endDate });
     alert("설문 게시글이 등록되었습니다. (mock)");
     onCancel();
+  };
+
+  // 유효성 검사
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFormLink(value);
+
+    if (value && !urlPattern.test(value)) {
+      setError("유효한 URL 형식이 아닙니다.");
+    } else {
+      setError("");
+    }
   };
 
   return (
@@ -88,11 +103,14 @@ export default function SurveyPostForm({ onCancel }: Props) {
           <input
             id="survey-link"
             type="url"
-            className="border border-gray-300 rounded p-2"
+            className={`border rounded p-2 ${
+              error ? "border-red-500" : "border-gray-300"
+            }`}
             placeholder="예) https://forms.gle/xxxx"
             value={formLink}
-            onChange={(e) => setFormLink(e.target.value)}
+            onChange={handleChange}
           />
+          {error && <span className="text-red-500 text-sm">{error}</span>}
         </div>
 
         {/* 설문 마감일 */}
