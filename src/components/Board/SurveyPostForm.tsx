@@ -37,6 +37,9 @@ export default function SurveyPostForm({ onCancel }: Props) {
     if (!formLink.trim()) return alert("작성한 설문 링크를 입력하세요.");
     if (!endDate) return alert("설문 종료일을 선택하세요.");
 
+    // 실제 API 연동
+    // await createSurveyPost({ title, content, formLink, endDate });
+
     console.log({ title, content, formLink, endDate });
     alert("설문 게시글이 등록되었습니다. (mock)");
     onCancel();
@@ -106,11 +109,23 @@ export default function SurveyPostForm({ onCancel }: Props) {
           />
         </div>
       </div>
-
+      {/* 링크 미리보기 카드 */}
+      {formLink && (
+        <div className="p-4 border rounded bg-white shadow-sm mt-1">
+          <p className="font-semibold text-lg mb-1">📄 설문지 미리보기</p>
+          <a
+            href={formLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 underline break-all"
+          >
+            {formLink}
+          </a>
+        </div>
+      )}
       {/* 에디터 */}
       <div className="flex-1">
-        <label className="block font-semibold mb-1 text-white">내용</label>
-        <ToastEditor onChange={setContent} formLink={formLink} />
+        <ToastEditor onChange={setContent} />
       </div>
 
       {/* 버튼 */}
