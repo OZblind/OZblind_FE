@@ -32,18 +32,20 @@ export default function NoticeCard({
   const normalReadBg = "bg-base-200";
   const baseBgClass = isSystem
     ? n.read
-      ? "bg-info/5  border-info/30"
-      : "bg-info/10 border-info/50"
+      ? "bg-info/15 border-info/30"
+      : "bg-info/30 border-info/50"
     : n.read
       ? `${normalReadBg} border-base-300`
       : `${normalUnreadBg} border-base-300`;
 
+  // hover: 배경 색 고정 + "오버레이 레이어"만 아주 살짝(배경만) 보이게
+  // - 클릭 가능한 상태에서만 적용
   const hoverOverlayClass = clickable
     ? isSystem
       ? "group-hover:bg-info/10"
       : isDark
-        ? "group-hover:bg-white/5" // 다크에선 밝은 오버레이
-        : "group-hover:bg-black/5" // 라이트에선 어두운 오버레이
+        ? "group-hover:bg-white/5"
+        : "group-hover:bg-black/5"
     : "";
 
   // 그림자: 읽음은 없음, 안 읽음만 hover 시 살짝 업(강도 낮게)
@@ -55,6 +57,7 @@ export default function NoticeCard({
       role={clickable ? (path ? "link" : "button") : undefined}
       tabIndex={clickable ? 0 : undefined}
       className={[
+        // 오버레이가 카드 안에서 깔끔하게 동작하도록 group/overflow-hidden 추가
         "relative group overflow-hidden rounded-xl border p-3 md:p-4 transition-all",
         baseBgClass,
         elevationBase,
@@ -65,7 +68,7 @@ export default function NoticeCard({
       onClick={undefined}
       title={rawForTitle || undefined}
     >
-      {/* 배경 오버레이: hover 시에만 살짝 보임 (텍스트에는 영향 없음) */}
+      {/* 배경 오버레이: hover 시에만 살짝 보임 */}
       <span
         aria-hidden
         className={[
@@ -97,7 +100,7 @@ export default function NoticeCard({
       <div className="flex items-start gap-2 pr-8 relative z-[1]">
         <div className="min-w-0 w-full">
           {/* 1) 첫째 줄: “ + snippet(길어지면 … 처리) + ” + suffix(항상 보임) */}
-          <div className="flex items-baseline whitespace-nowrap overflow-hidden text-xs md:text-sm text-neutral-content">
+          <div className="flex items-baseline whitespace-nowrap overflow-hidden text-xs md:text-sm text-base-content/70">
             {isQuoted && <span className="flex-none">“</span>}
             <span className="min-w-0 shrink truncate">{snippet}</span>
             {isQuoted && <span className="flex-none">”</span>}
@@ -113,7 +116,7 @@ export default function NoticeCard({
 
           {/* 3) 셋째 줄: 알림 발생 시각 */}
           <div className="mt-1 flex justify-end -mr-8">
-            <time className="text-xs text-neutral-content">{time}</time>
+            <time className="text-xs text-base-content/70">{time}</time>
           </div>
         </div>
       </div>

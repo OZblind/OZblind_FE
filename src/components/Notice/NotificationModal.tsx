@@ -42,7 +42,7 @@ export default function NotificationModal({ open, onClose }: Props) {
       <button
         aria-label="모달 닫기"
         onClick={handleClose}
-        className="absolute inset-0 bg-black/60"
+        className="absolute inset-0 bg-black/60 cursor-default"
       />
       {/* 패널 */}
       <section
