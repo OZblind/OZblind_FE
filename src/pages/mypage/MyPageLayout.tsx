@@ -16,7 +16,7 @@ interface MyPageLayoutProps {
 const MyPageLayout: React.FC<MyPageLayoutProps> = ({
   userProfile = {
     nickname: "익명",
-    userId: "사용자 ID",
+    userId: "FE001", // 예시: 백엔드에서 받을 실제 사용자 ID
     hasKey: false,
   },
 }) => {
@@ -26,6 +26,50 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
   const handleProfileClick = () => {
     setIsSettingsOpen(true);
   };
+
+  // 사용자 ID에서 FE/BE 구분하는 함수
+  const getUserType = (userId: string) => {
+    if (userId.startsWith("FE")) return "FE";
+    if (userId.startsWith("BE")) return "BE";
+    return "FE"; // 기본값
+  };
+
+  // 사용자 ID에서 기수 추출하는 함수 (예: FE001 → 11기, BE002 → 12기)
+  const getUserGeneration = (userId: string) => {
+    // 실제로는 백엔드에서 기수 정보를 별도로 받거나, ID 패턴에 따라 결정
+    // 예시: 임시로 홀수는 11기, 짝수는 12기로 설정
+    const idNumber = parseInt(userId.slice(-1)) || 1;
+    return idNumber % 2 === 1 ? "11기" : "12기";
+  };
+
+  // 타입별 색상 설정
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case "FE":
+        return "bg-gradient-to-r from-blue-500 to-purple-600"; // 클래식 블루-퍼플
+      case "BE":
+        return "bg-gradient-to-r from-green-500 to-teal-600"; // 그린-틸
+      default:
+        return "bg-gradient-to-r from-blue-500 to-purple-600";
+    }
+  };
+
+  // 기수별 색상 설정
+  const getGenerationColor = (generation: string) => {
+    switch (generation) {
+      case "11기":
+        return "bg-gradient-to-r from-orange-500 to-red-500"; // 오렌지-레드
+      case "12기":
+        return "bg-gradient-to-r from-purple-500 to-pink-500"; // 퍼플-핑크
+      default:
+        return "bg-gradient-to-r from-gray-500 to-gray-600"; // 기본값
+    }
+  };
+
+  const userType = getUserType(userProfile.userId || "");
+  const userGeneration = getUserGeneration(userProfile.userId || "");
+  const typeColor = getTypeColor(userType);
+  const generationColor = getGenerationColor(userGeneration);
 
   return (
     <div className="min-h-screen bg-base-100">
@@ -76,17 +120,26 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
               )}
             </div>
 
-            {/* 사용자 정보 */}
-            <h2 className="text-lg sm:text-xl font-semibold text-base-content mb-1">
-              {userProfile.nickname}
-            </h2>
-            <p className="text-neutral-content text-xs sm:text-sm">
-              {userProfile.userId}
-            </p>
+            {/* 사용자 정보 - 태그들로만 구성 */}
+            <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
+              {/* 기수 태그 */}
+              <div
+                className={`inline-flex items-center justify-center ${generationColor} text-white px-4 py-1.5 rounded-full font-bold shadow-lg select-none text-sm min-w-[60px]`}
+              >
+                <span>{userGeneration}</span>
+              </div>
+
+              {/* FE/BE 태그 */}
+              <div
+                className={`inline-flex items-center justify-center ${typeColor} text-white px-4 py-1.5 rounded-full font-bold shadow-lg select-none text-sm min-w-[60px]`}
+              >
+                <span>{userType}</span>
+              </div>
+            </div>
 
             {/* 키 인증 안내 */}
             {!userProfile.hasKey && (
-              <div className="mt-3 px-3 py-1 bg-warning text-warning-content text-xs rounded-full">
+              <div className="px-4 py-2 bg-warning text-warning-content text-sm rounded-lg font-medium">
                 키 인증이 필요합니다
               </div>
             )}
