@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@components/ui/Button";
 import ToastEditor from "@components/Board/editor/ToastEditor";
-import { FaGithub } from "react-icons/fa";
+import { RepoPreviewCard } from "./RepoPreviewCard";
 
 interface Props {
   onCancel: () => void;
@@ -69,22 +69,9 @@ export default function GitRepoPostForm({ onCancel }: Props) {
         {error && <span className="text-red-500 text-sm">{error}</span>}
       </div>
 
-      {/* 레포 미리보기 카드 */}
-      {repoLink && (
-        <div className="p-4 border rounded bg-white shadow-sm mt-1">
-          <p className="font-semibold text-lg mb-1">
-            <FaGithub className="text-gray-800" size={20} /> 레포 미리보기
-          </p>
-          <a
-            href={repoLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 underline break-all"
-          >
-            {repoLink}
-          </a>
-        </div>
-      )}
+      {/* 레포 프리뷰 카드 */}
+      {repoLink && <RepoPreviewCard repoLink={repoLink} />}
+
       {/* 에디터 */}
       <div className="flex-1">
         <ToastEditor onChange={setContent} />
