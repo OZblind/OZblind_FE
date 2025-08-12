@@ -1,7 +1,7 @@
 export type NoticeType = "comment" | "reply" | "system";
 
 export type NoticeContext = {
-  board?: string; // 게시판/섹션명 (추후 게시판 타입으로 대체 가능)
+  board?: string; // 게시판/섹션명 (TODO: 추후 게시판 타입으로 대체 가능)
   title?: string; // 내가 쓴 '게시글 제목' (comment용)
   myComment?: string; // 내가 쓴 '댓글 내용' (reply용)
   path?: string; // 클릭 시 라우팅 경로

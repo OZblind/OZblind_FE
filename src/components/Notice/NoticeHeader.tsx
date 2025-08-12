@@ -1,7 +1,7 @@
 import { useTheme } from "./useTheme";
-import IconDeleteDark from "@/assets/icons/icon-delete-dark.svg";
-import IconDeleteLight from "@/assets/icons/icon-delete-light.svg";
-import IconDeleteOn from "@/assets/icons/icon-delete.svg";
+import IconDeleteDark from "@assets/icons/icon-delete-dark.svg";
+import IconDeleteLight from "@assets/icons/icon-delete-light.svg";
+import IconDeleteOn from "@assets/icons/icon-delete.svg";
 
 export default function NoticeHeader({
   deleteMode,
@@ -26,20 +26,19 @@ export default function NoticeHeader({
         알림
       </h2>
 
-      <div className="flex items-center gap-1.5 md:gap-2">
+      <div className="flex items-center gap-1 md:gap-2">
         {/* 삭제모드 토글 */}
-        <div className="tooltip tooltip-bottom" data-tip={tip}>
-          <button
-            type="button"
-            onClick={onToggleDeleteMode}
-            className="btn btn-ghost btn-sm"
-            aria-pressed={deleteMode}
-            aria-label={tip}
-          >
-            <img src={icon} alt="" className="w-4 h-4" />
-            <span className="sr-only">{tip}</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onToggleDeleteMode}
+          className="btn btn-ghost btn-xs tooltip tooltip-bottom"
+          data-tip={tip}
+          aria-pressed={deleteMode}
+          aria-label={tip}
+        >
+          <img src={icon} alt="" className="block w-4 h-4" />
+          <span className="sr-only">{tip}</span>
+        </button>
 
         {deleteMode ? <DeleteAllButton /> : <MarkAllReadButton />}
 
@@ -47,7 +46,7 @@ export default function NoticeHeader({
         <button
           type="button"
           onClick={onRequestClose}
-          className="btn btn-ghost btn-sm md:hidden w-10 h-10 p-0 rounded-full"
+          className="btn btn-ghost btn-xs md:hidden w-6 h-6 p-0 rounded-full"
           aria-label="알림 닫기"
         >
           <span className="text-lg leading-none">×</span>
@@ -61,7 +60,7 @@ function MarkAllReadButton() {
   return (
     <button
       type="button"
-      className="btn btn-ghost btn-sm"
+      className="btn btn-ghost btn-xs"
       aria-label="모두 읽음 처리"
     >
       모두 읽음
@@ -73,7 +72,7 @@ function DeleteAllButton() {
   return (
     <button
       type="button"
-      className="btn btn-error btn-sm text-error-content"
+      className="btn btn-error btn-xs text-error-content"
       aria-label="모두 삭제"
     >
       모두 삭제

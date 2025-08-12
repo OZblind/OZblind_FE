@@ -35,6 +35,7 @@ export default function NotificationModal({ open, onClose }: Props) {
 
   if (!open) return null;
 
+  // TODO: 테스트용 스타일로, 추후 위치 조정 필요(알림 버튼 옆)
   return (
     <div className="fixed inset-0 z-[2000]">
       {/* 오버레이(바깥 클릭 시 닫기) */}
