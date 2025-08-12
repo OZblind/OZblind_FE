@@ -1,7 +1,7 @@
 import { useState } from "react";
-import ToastEditor from "@components/Board/editor/ToastEditor";
-import { Button } from "../ui/Button";
 import { useNavigate } from "react-router-dom";
+import SharedPostForm from "./SharedPostForm";
+import SurveyPostForm from "./SurveyPostForm";
 // import { createPost } from "@/api/post"; // 게시글 생성 API 추후 등록
 // import { Button } from "@/components/ui/button"; // 버튼 컴포넌트 (Tailwind 기반)
 
@@ -15,12 +15,7 @@ const boardOptions = [
 
 const WritePostPage = () => {
   const navigate = useNavigate();
-
   const [selectedBoard, setSelectedBoard] = useState("free");
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-
-  console.log(content);
 
   return (
     <div className="flex flex-col h-full max-w-4xl mx-auto px-4 py-8 gap-2 text-black">
@@ -46,36 +41,16 @@ const WritePostPage = () => {
         </select>
       </div>
 
-      {/* 2. 제목 입력 */}
-      <div>
-        <input
-          id="title"
-          type="text"
-          className="w-full border border-gray-300 rounded p-2"
-          placeholder="제목을 입력하세요"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-      </div>
-
-      {/* 3. 에디터 */}
-      <div className="flex-1">
-        <ToastEditor onChange={setContent} />
-      </div>
-
-      {/* 4. 버튼 섹션 */}
-      <div className="flex justify-end gap-4 mt-2">
-        <Button
-          variant="secondary"
-          className="min-w-[100px]"
-          onClick={() => navigate(-1)}
-        >
-          취소
-        </Button>
-        <Button variant="primary" className="min-w-[100px]">
-          작성
-        </Button>
-      </div>
+      {/* 2. 폼 스위칭 */}
+      {selectedBoard === "survey" ? (
+        <SurveyPostForm onCancel={() => navigate(-1)} />
+      ) : selectedBoard === "github" ? (
+        <div className="text-sm text-white/80">
+          GitHub 전용 폼은 추후 구현 예정입니다.
+        </div>
+      ) : (
+        <SharedPostForm board={selectedBoard} onCancel={() => navigate(-1)} />
+      )}
     </div>
   );
 };
