@@ -32,16 +32,19 @@ const ThemeToggleButton: React.FC = () => {
   };
 
   return (
-    <button
-      onClick={toggleTheme}
-      className={`w-14 h-8 flex items-center rounded-full p-1 transition-colors duration-300
+    <div className="flex items-center justify-between border-b border-neutral-content py-6">
+      다크 모드 설정
+      <button
+        onClick={toggleTheme}
+        className={`w-14 h-8 flex items-center rounded-full p-1 transition-colors duration-300
     ${theme === "oz_dark" ? "bg-gray-700" : "bg-primary"}`}
-    >
-      <div
-        className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform duration-300
+      >
+        <div
+          className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform duration-300
       ${theme === "oz_dark" ? "translate-x-0" : "translate-x-6"}`}
-      />
-    </button>
+        />
+      </button>
+    </div>
   );
 };
 
