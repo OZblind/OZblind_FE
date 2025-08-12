@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@components/ui/Button";
 import ToastEditor from "@components/Board/editor/ToastEditor";
+import { FaGithub } from "react-icons/fa";
 
 interface Props {
   onCancel: () => void;
@@ -71,7 +72,9 @@ export default function GitRepoPostForm({ onCancel }: Props) {
       {/* 레포 미리보기 카드 */}
       {repoLink && (
         <div className="p-4 border rounded bg-white shadow-sm mt-1">
-          <p className="font-semibold text-lg mb-1">📄 레포 미리보기</p>
+          <p className="font-semibold text-lg mb-1">
+            <FaGithub className="text-gray-800" size={20} /> 레포 미리보기
+          </p>
           <a
             href={repoLink}
             target="_blank"
