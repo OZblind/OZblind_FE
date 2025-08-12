@@ -1,5 +1,5 @@
 import { useState } from "react";
-import ThemeToggleButton from "./ThemeToggleButten";
+import ThemeToggleButton from "./ThemeToggleButton";
 
 export function UserSetting() {
   const [isOpen, setIsOpen] = useState<boolean>(true);
