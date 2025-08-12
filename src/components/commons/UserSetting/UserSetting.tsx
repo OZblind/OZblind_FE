@@ -20,7 +20,7 @@ export function UserSetting() {
   return (
     <>
       {isOpen && (
-        <div className="fixed inset-0 bg-zinc-950 bg-opacity-50 flex justify-center items-center z-[9999]">
+        <div className="fixed inset-0 bg-zinc-950 bg-opacity-50 flex justify-center items-center z-[2000]">
           <div className="relative bg-base-200 rounded-md p-6 max-w-md w-full h-[500px]">
             <button
               className="absolute top-4 right-4 px-4 text-base-content py-2 rounded-full hover:bg-base-300 transition"
