@@ -1,8 +1,12 @@
-import { useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { SettingPopup } from "./SettingsPopup";
 
-export function SettingsPage() {
-  const [isOpen, setIsOpen] = useState<boolean>(true);
+type SettingsPageProps = {
+  isOpen: boolean;
+  setIsOpen: Dispatch<SetStateAction<boolean>>;
+};
+
+export function SettingsPage({ isOpen, setIsOpen }: SettingsPageProps) {
   return (
     <>
       {isOpen && (

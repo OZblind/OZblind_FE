@@ -3,8 +3,12 @@ import { PATHS } from "@constants/paths";
 import { useAuthStore } from "@store/authStore";
 import { useLogoutMutation } from "@hooks/useAuthQueries";
 import { useToastStore } from "@store/toastStore";
+import { SettingsPage } from "@src/components/commons/SettingModal/SettingsPage";
+import { useState } from "react";
 
 export default function TestHub() {
+  const [settingOpen, setSettingIsOpen] = useState<boolean>(false);
+
   const items = [
     { to: "/test/write", label: "게시글 작성 테스트" },
     { to: "/403", label: "403 테스트" },
@@ -54,6 +58,16 @@ export default function TestHub() {
         >
           404 테스트
         </Link>
+
+        {/* 사용자 설정 모달 테스트 */}
+        <button
+          type="button"
+          onClick={() => setSettingIsOpen(true)}
+          className="rounded-xl border px-4 py-3 text-center hover:bg-gray-50 active:scale-[0.98] transition"
+        >
+          사용자 설정 모달 테스트
+        </button>
+        <SettingsPage isOpen={settingOpen} setIsOpen={setSettingIsOpen} />
       </div>
 
       {/* 인증 상태 패널 */}

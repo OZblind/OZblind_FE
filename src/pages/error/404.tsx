@@ -1,7 +1,6 @@
 import React from "react";
 import ErrorLayout from "../../components/ErrorLayout";
 import { ERROR_CONFIGS } from "../../config/errorConfigs";
-import { UserSetting } from "../../components/commons/UserSetting/UserSetting";
 
 const NotFoundPage: React.FC = () => {
   const handleTryAgain = (): void => {
@@ -14,7 +13,6 @@ const NotFoundPage: React.FC = () => {
 
   return (
     <>
-      <UserSetting />
       <ErrorLayout
         title={ERROR_CONFIGS[404].title}
         imageSrc={ERROR_CONFIGS[404].imageSrc}
