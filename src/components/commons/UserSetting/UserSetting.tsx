@@ -21,18 +21,15 @@ export function UserSetting() {
     <>
       {isOpen && (
         <div className="fixed inset-0 bg-zinc-950 bg-opacity-50 flex justify-center items-center z-[9999]">
-          <div className="bg-base-200 rounded-md p-6 max-w-md w-full h-[500px]">
-            <div className="flex justify-between">
-              <div className="font-thin">설정</div>
-              <button
-                className="px-4 text-base-content py-2 rounded-full hover:bg-base-300 transition"
-                onClick={() => setIsOpen(false)}
-              >
-                X
-              </button>
-            </div>
-
-            <div className="flex justify-between border-b border-neutral-content py-6">
+          <div className="relative bg-base-200 rounded-md p-6 max-w-md w-full h-[500px]">
+            <button
+              className="absolute top-4 right-4 px-4 text-base-content py-2 rounded-full hover:bg-base-300 transition"
+              onClick={() => setIsOpen(false)}
+            >
+              X
+            </button>
+            <div className="font-thin">설정</div>
+            <div className="flex items-center justify-between border-b border-neutral-content py-6">
               다크 모드 설정
               <ThemeToggleButton />
             </div>
