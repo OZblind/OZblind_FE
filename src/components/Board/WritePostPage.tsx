@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SharedPostForm from "./SharedPostForm";
 import SurveyPostForm from "./SurveyPostForm";
-import GithubPostForm from "./GithubPostForm";
+import GitRepoPostForm from "./GithubPostForm";
 // import { createPost } from "@/api/post"; // 게시글 생성 API 추후 등록
 // import { Button } from "@/components/ui/button"; // 버튼 컴포넌트 (Tailwind 기반)
 
@@ -46,7 +46,7 @@ const WritePostPage = () => {
       {selectedBoard === "survey" ? (
         <SurveyPostForm onCancel={() => navigate(-1)} />
       ) : selectedBoard === "github" ? (
-        <GithubPostForm onCancel={() => navigate(-1)} />
+        <GitRepoPostForm onCancel={() => navigate(-1)} />
       ) : (
         <SharedPostForm board={selectedBoard} onCancel={() => navigate(-1)} />
       )}
