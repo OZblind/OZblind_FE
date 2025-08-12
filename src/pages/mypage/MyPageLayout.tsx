@@ -11,6 +11,7 @@ interface UserProfile {
 
 interface MyPageLayoutProps {
   userProfile?: UserProfile;
+  className?: string;
 }
 
 const MyPageLayout: React.FC<MyPageLayoutProps> = ({
@@ -19,6 +20,7 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
     userId: "FE001", // 예시: 백엔드에서 받을 실제 사용자 ID
     hasKey: false,
   },
+  className,
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -72,7 +74,7 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
   const generationColor = getGenerationColor(userGeneration);
 
   return (
-    <div className="min-h-screen bg-base-100">
+    <div className={`min-h-screen bg-base-100 ${className || ""}`}>
       <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
         {/* 프로필 섹션 */}
         <div className="bg-base-200 rounded-lg shadow-sm p-4 sm:p-6 mb-6">
@@ -83,33 +85,53 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
                 onClick={handleProfileClick}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
-                className="w-16 h-16 sm:w-20 sm:h-20 bg-base-300 rounded-full flex items-center justify-center transition-all duration-300 hover:bg-primary hover:scale-105 group"
+                className="w-16 h-16 sm:w-20 sm:h-20 bg-base-300 rounded-full flex items-center justify-center transition-all duration-500 hover:bg-primary hover:scale-105 group relative overflow-hidden"
+                aria-label="프로필 설정"
               >
-                {isHovered ? (
-                  // 톱니바퀴 아이콘
+                {/* 프로필 아이콘/이미지 */}
+                <div
+                  className="absolute inset-0 flex items-center justify-center transition-all duration-500"
+                  style={{
+                    opacity: isHovered ? 0 : 1,
+                    transform: isHovered ? "scale(0.8)" : "scale(1)",
+                  }}
+                >
+                  {userProfile.profileImage ? (
+                    <img
+                      src={userProfile.profileImage}
+                      alt="프로필"
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-base-100 rounded-full flex items-center justify-center">
+                      <span className="text-base-content text-lg sm:text-2xl">
+                        👤
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* 톱니바퀴 아이콘 */}
+                <div
+                  className={`absolute inset-0 flex items-center justify-center transition-all duration-500 ${
+                    isHovered ? "animate-gear-pulse" : ""
+                  }`}
+                  style={{
+                    opacity: isHovered ? 1 : 0,
+                    transform: isHovered ? "scale(1.2)" : "scale(0.8)",
+                  }}
+                >
                   <svg
                     width="24"
                     height="24"
                     fill="currentColor"
                     viewBox="0 0 16 16"
-                    className="text-primary-content transition-all duration-300 group-hover:rotate-90"
+                    className="text-primary-content"
                   >
                     <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z" />
                     <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319z" />
                   </svg>
-                ) : userProfile.profileImage ? (
-                  <img
-                    src={userProfile.profileImage}
-                    alt="프로필"
-                    className="w-full h-full rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-base-100 rounded-full flex items-center justify-center">
-                    <span className="text-base-content text-lg sm:text-2xl">
-                      👤
-                    </span>
-                  </div>
-                )}
+                </div>
               </button>
 
               {/* 키 인증 상태 표시 */}
@@ -125,6 +147,8 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
               {/* 기수 태그 */}
               <div
                 className={`inline-flex items-center justify-center ${generationColor} text-white px-4 py-1.5 rounded-full font-bold shadow-lg select-none text-sm min-w-[60px]`}
+                role="tag"
+                aria-label={`${userGeneration} 기수`}
               >
                 <span>{userGeneration}</span>
               </div>
@@ -132,6 +156,8 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
               {/* FE/BE 태그 */}
               <div
                 className={`inline-flex items-center justify-center ${typeColor} text-white px-4 py-1.5 rounded-full font-bold shadow-lg select-none text-sm min-w-[60px]`}
+                role="tag"
+                aria-label={`${userType} 개발자`}
               >
                 <span>{userType}</span>
               </div>
@@ -159,6 +185,25 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
           onClose={() => setIsSettingsOpen(false)}
         />
       )}
+
+      {/* 커스텀 애니메이션 CSS */}
+      <style jsx>{`
+        .animate-gear-pulse {
+          animation: growPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes growPulse {
+          0% {
+            transform: scale(1.2);
+          }
+          50% {
+            transform: scale(1.5);
+          }
+          100% {
+            transform: scale(1.2);
+          }
+        }
+      `}</style>
     </div>
   );
 };

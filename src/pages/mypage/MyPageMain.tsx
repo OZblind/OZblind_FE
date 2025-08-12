@@ -190,13 +190,13 @@ const MyPageMain: React.FC = () => {
         },
         {
           id: 3,
-          title: "점심 뭐 먹을까 고민입니다",
+          title: "권후르",
           date: "01.13",
           category: "자유",
         },
         {
           id: 4,
-          title: "회사 생활 처음인데 조언 구해요",
+          title: "권후르 = 효진",
           date: "01.12",
           category: "익명",
         },
@@ -210,7 +210,7 @@ const MyPageMain: React.FC = () => {
       items: [
         {
           id: 1,
-          title: "환영합니다! 저도 얼마 전에 가입했는데...",
+          title: "환영합니다! 권후르...",
           date: "01.15",
         },
         {
@@ -218,7 +218,7 @@ const MyPageMain: React.FC = () => {
           title: "비슷한 경험 있어요. 저는 먼저 다가가서...",
           date: "01.14",
         },
-        { id: 3, title: "김치찌개 추천이요! 오늘 날씨에 딱...", date: "01.13" },
+        { id: 3, title: "김치전 추천이요! 오늘 날씨에 딱...", date: "01.13" },
         {
           id: 4,
           title: "처음엔 다들 그래요. 너무 조급해하지...",
@@ -240,9 +240,9 @@ const MyPageMain: React.FC = () => {
         },
         {
           id: 2,
-          title: "이직 준비 어떻게 하셨나요?",
+          title: "속보 권후르 이직 준비",
           date: "01.08",
-          category: "질문",
+          category: "정보",
         },
         {
           id: 3,
