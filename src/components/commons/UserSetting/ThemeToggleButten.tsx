@@ -3,11 +3,24 @@ import React, { useEffect, useState } from "react";
 const ThemeToggleButton: React.FC = () => {
   const [theme, setTheme] = useState<"oz_dark" | "oz_light">("oz_dark");
 
-  // 첫 로드 시 현재 HTML data-theme 값 읽기
+  // 초기 로드 시 테마 설정
   useEffect(() => {
-    const currentTheme = document.documentElement.getAttribute("data-theme");
-    if (currentTheme === "oz_light" || currentTheme === "oz_dark") {
-      setTheme(currentTheme);
+    const savedTheme = localStorage.getItem("theme") as
+      | "oz_dark"
+      | "oz_light"
+      | null;
+
+    if (savedTheme) {
+      setTheme(savedTheme);
+      document.documentElement.setAttribute("data-theme", savedTheme);
+    } else {
+      // 브라우저 다크모드 감지
+      const prefersDark = window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      ).matches;
+      const initialTheme = prefersDark ? "oz_dark" : "oz_light";
+      setTheme(initialTheme);
+      document.documentElement.setAttribute("data-theme", initialTheme);
     }
   }, []);
 
@@ -15,6 +28,7 @@ const ThemeToggleButton: React.FC = () => {
     const newTheme = theme === "oz_dark" ? "oz_light" : "oz_dark";
     document.documentElement.setAttribute("data-theme", newTheme);
     setTheme(newTheme);
+    localStorage.setItem("theme", newTheme);
   };
 
   return (
