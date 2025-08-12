@@ -21,12 +21,12 @@ export default function NoticeHeader({
   const tip = deleteMode ? "삭제모드 해제" : "삭제모드";
 
   return (
-    <header className="h-12 px-3 md:px-4 border-b border-base-300 flex items-center justify-between">
+    <header className="h-12 px-3 md:px-4 border-b border-primary-content/10 flex items-center justify-between">
       <h2 id="notice-title" className="text-base md:text-lg font-semibold">
         알림
       </h2>
 
-      <div className="flex items-center gap-1 md:gap-2">
+      <div className="flex items-center gap-1.5 md:gap-2">
         {/* 삭제모드 토글 */}
         <button
           type="button"
@@ -72,7 +72,7 @@ function DeleteAllButton() {
   return (
     <button
       type="button"
-      className="btn btn-error btn-xs text-error-content"
+      className="btn btn-error btn-xs text-primary-content"
       aria-label="모두 삭제"
     >
       모두 삭제

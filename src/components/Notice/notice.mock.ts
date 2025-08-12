@@ -15,7 +15,6 @@ export const MOCK_NOTICES: Notification[] = [
     createdAt: "2025-08-04T11:07:00Z",
     read: true,
     context: {
-      title: "황치즈 뿅또아 맛있지 않음?",
       myComment:
         "난 요즘 붕어싸만코가 더 맛있더라. 이유를 쓰자면 한도 끝도 없지만, 아무튼 근본 아이스크림이 제일 좋은 듯. 변치 않는 맛 최고야.",
       path: "/posts/789#comment-321",
@@ -30,5 +29,13 @@ export const MOCK_NOTICES: Notification[] = [
     read: false,
     text: "시스템 점검 안내",
     detail: "25/08/06 02:00~03:00 점검 예정입니다.",
+  },
+  {
+    id: "n4",
+    type: "system",
+    createdAt: "2025-08-02T16:20:00Z",
+    read: true,
+    text: "조교의 목소리",
+    detail: "여러분 운만조 참여해 주세요.",
   },
 ];
