@@ -20,7 +20,7 @@ export type UseInfiniteScrollReturn = {
  */
 export function useInfiniteScroll({
   root = null,
-  rootMargin = "600px 0px",
+  rootMargin = "1000px 0px",
   threshold = 0,
   disabled = false,
   onIntersect,
