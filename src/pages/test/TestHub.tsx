@@ -7,6 +7,8 @@ import { useToastStore } from "@store/toastStore";
 export default function TestHub() {
   const items = [
     { to: "/test/write", label: "게시글 작성 테스트" },
+    { to: "/test/post", label: "게시글 확인 테스트" },
+
     { to: "/403", label: "403 테스트" },
     { to: "/500", label: "500 테스트" },
     // 404는 없는 주소
