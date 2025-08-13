@@ -9,6 +9,7 @@ export function AccountDeletionSection() {
 
   const handleDelete = () => {
     if (isValid) {
+      setIsConfirmVisible(false);
       // 탈퇴 처리 콜백
     }
   };
@@ -26,24 +27,23 @@ export function AccountDeletionSection() {
   return (
     <>
       <div className="flex items-center justify-between pt-6 pb-4">
-        회원 탈퇴
         <button
           className="text-gray-400 hover:text-info"
           onClick={handleToggle}
         >
-          정말 탈퇴하시겠습니까?
+          회원 탈퇴
         </button>
       </div>
 
       {isWarningVisible && (
         <div className="p-4 border-2 border-base-300 rounded mb-4">
-          <p className="pb-2 text-">
-            오즈 key를 입력해야지만 다시 가입할 수 있으며 회원 탈퇴 후 복구가
-            불가능합니다.
-          </p>
-          <p className="text-info pb-1">
-            정말 그림자 속으로 떠나버리시겠습니까?
-          </p>
+          <p className="pb-2">회원 탈퇴 시</p>
+          <div className="mb-2 bg-red-600/10 rounded p-2 text-red-600">
+            <p>• 회원 정보와 이용·인증 기록이 모두 삭제됩니다.</p>
+            <p>• 재가입 시 가입과 인증을 처음부터 진행해야 합니다.</p>
+            <p>• 삭제된 정보는 복구할 수 없습니다.</p>
+          </div>
+          <p className="text-info pb-1">정말 그림자 속으로 떠나버리겠습니까?</p>
           <button
             onClick={() => {
               setIsConfirmVisible(true);
@@ -51,7 +51,7 @@ export function AccountDeletionSection() {
             }}
             className="w-full py-2 rounded text-white bg-primary hover:bg-secondary transition"
           >
-            네
+            확인했습니다
           </button>
         </div>
       )}

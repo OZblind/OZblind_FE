@@ -18,7 +18,7 @@ export function KeySection() {
 
   return (
     <div className="border-b border-neutral-content py-6">
-      <p className="mb-2">오즈 스쿨 사용자 인증 Key</p>
+      <p className="mb-2">회원 인증</p>
       {isAuthenticated ? (
         <div className=" p-3 w-full bg-base-300 text-secondary rounded-md">
           이미 인증된 사용자입니다.
@@ -27,7 +27,7 @@ export function KeySection() {
         <div className="flex justify-between">
           <input
             type="text"
-            placeholder="회원 Key 입력"
+            placeholder="발급받은 인증 키를 입력해 주세요."
             value={key}
             onChange={(e) => setKey(e.target.value)}
             className="flex-1 min-w-0 bg-base-300 border border-base-200 p-2 focus:outline-none focus:border-primary rounded"
