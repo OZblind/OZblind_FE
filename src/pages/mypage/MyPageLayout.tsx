@@ -178,12 +178,31 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
         </div>
       </div>
 
-      {/* 팀원이 만든 설정 모달 */}
-      {isSettingsOpen && (
+      {/* 팀원이 만든 설정 모달 - 임시 주석 처리 */}
+      {/* {isSettingsOpen && (
         <UserSetting
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
         />
+      )} */}
+
+      {/* 임시 설정 모달 - UserSetting 컴포넌트 대신 사용 */}
+      {isSettingsOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-base-100 p-6 rounded-lg max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">설정</h3>
+            <p className="text-neutral-content mb-4">
+              설정 기능은 준비 중입니다. UserSetting 컴포넌트가 완성되면
+              교체됩니다.
+            </p>
+            <button
+              onClick={() => setIsSettingsOpen(false)}
+              className="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-300"
+            >
+              닫기
+            </button>
+          </div>
+        </div>
       )}
 
       {/* 커스텀 애니메이션 CSS */}
