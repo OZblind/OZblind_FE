@@ -15,7 +15,7 @@ const ThemeToggleButton: React.FC<Props> = ({ theme, setTheme }) => {
 
   return (
     <div className="flex items-center justify-between border-b border-neutral-content py-6">
-      다크 모드 설정
+      라이트 모드 설정
       <button
         onClick={toggleTheme}
         className={`w-14 h-8 flex items-center rounded-full p-1 transition-colors duration-300
