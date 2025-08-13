@@ -176,7 +176,7 @@ export default function AppRouter() {
   ]);
 
   // 훅 호출 이후에 조기 return (로딩 스켈레톤)
-  if (loading) return <div style={{ padding: 24 }}>Loading...</div>;
+  if (loading) return <div className="p-6">Loading...</div>;
 
   return (
     <Routes>
