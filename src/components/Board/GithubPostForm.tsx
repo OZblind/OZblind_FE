@@ -24,7 +24,7 @@ export default function GitRepoPostForm({ onCancel }: Props) {
     // await createGitRepoPost({ title, content, repoLink });
 
     console.log({ title, content, repoLink });
-    alert("설문 게시글이 등록되었습니다. (mock)");
+    alert("깃 레포 게시글이 등록되었습니다. (mock)");
     onCancel();
   };
 
