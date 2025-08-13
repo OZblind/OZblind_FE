@@ -1,14 +1,15 @@
 import { useMemo, useState } from "react";
 import {
   Bookmark,
-  Flag,
   Loader2,
   MessageSquare,
   MoreHorizontal,
-  Share2,
   ThumbsDown,
   ThumbsUp,
   Eye,
+  Copy,
+  Trash2,
+  Pencil,
 } from "lucide-react";
 import clsx from "clsx";
 import {
@@ -105,12 +106,17 @@ export default function PostDetail({ post }: { post: PostMeta }) {
           >
             <li>
               <a className="flex items-center">
-                <Flag className="h-4 w-4" /> 신고하기
+                <Copy className="h-4 w-4" /> URL 복사
               </a>
             </li>
             <li>
               <a className="flex items-center">
-                <Share2 className="h-4 w-4" /> 공유하기
+                <Trash2 className="h-4 w-4" /> 게시글 삭제
+              </a>
+            </li>
+            <li>
+              <a className="flex items-center">
+                <Pencil className="h-4 w-4" /> 게시글 수정
               </a>
             </li>
           </ul>
