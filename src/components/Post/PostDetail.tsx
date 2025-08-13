@@ -159,30 +159,27 @@ export default function PostDetail({ post }: { post: PostMeta }) {
       {/* 리액션 바 */}
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <button
-          type="button"
-          className={clsx("btn btn-secondary", like && "btn-active")}
+          className={clsx("btn btn-ghost btn-sm", like && "text-primary")}
           onClick={toggleLike}
           aria-pressed={!!like}
         >
-          <ThumbsUp className="mr-2 h-4 w-4" /> 좋아요 {fmtNum(reaction.like)}
+          <ThumbsUp className="mr-1 h-4 w-4" /> {fmtNum(reaction.like)}
         </button>
+
         <button
-          type="button"
-          className={clsx("btn btn-outline", dislike && "btn-active")}
+          className={clsx("btn btn-ghost btn-sm", dislike && "text-primary")}
           onClick={toggleDislike}
           aria-pressed={!!dislike}
         >
-          <ThumbsDown className="mr-2 h-4 w-4" /> 싫어요{" "}
-          {fmtNum(reaction.dislike)}
+          <ThumbsDown className="mr-1 h-4 w-4" /> {fmtNum(reaction.dislike)}
         </button>
+
         <button
-          type="button"
-          className={clsx("btn", bookmarked ? "btn-primary" : "btn-outline")}
+          className={clsx("btn btn-ghost btn-sm", bookmarked && "text-primary")}
           onClick={() => setBookmarked((v) => !v)}
           aria-pressed={!!bookmarked}
         >
-          <Bookmark className="mr-2 h-4 w-4" /> 북마크{" "}
-          {fmtNum(reaction.bookmark)}
+          <Bookmark className="mr-2 h-4 w-4" /> {fmtNum(reaction.bookmark)}
         </button>
       </div>
 
