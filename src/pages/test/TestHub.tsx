@@ -5,9 +5,11 @@ import { useLogoutMutation } from "@hooks/useAuthQueries";
 import { useToastStore } from "@store/toastStore";
 import { SettingsPage } from "@src/components/commons/SettingModal/SettingsPage";
 import { useState } from "react";
+import { ThemeInitializer } from "@src/components/commons/SettingModal/ThemeInitializer";
 
 export default function TestHub() {
   const [settingOpen, setSettingIsOpen] = useState<boolean>(false);
+  const [theme, setTheme] = useState<"oz_dark" | "oz_light">("oz_dark");
 
   const items = [
     { to: "/test/write", label: "게시글 작성 테스트" },
@@ -67,7 +69,13 @@ export default function TestHub() {
         >
           사용자 설정 모달 테스트
         </button>
-        <SettingsPage isOpen={settingOpen} setIsOpen={setSettingIsOpen} />
+        <SettingsPage
+          isOpen={settingOpen}
+          setIsOpen={setSettingIsOpen}
+          theme={theme}
+          setTheme={setTheme}
+        />
+        <ThemeInitializer setTheme={setTheme} />
       </div>
 
       {/* 인증 상태 패널 */}
