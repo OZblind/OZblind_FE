@@ -1,3 +1,4 @@
+// pages/MyBookmarks.tsx - 에러 처리 적용 버전
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import UndoToast from "@src/components/commons/Toast/UndoToast";
@@ -43,7 +44,6 @@ const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
     const timer = setTimeout(() => {
       setIsVisible(true);
     }, delay);
-
     return () => clearTimeout(timer);
   }, [delay]);
 
@@ -108,7 +108,13 @@ const MyBookmarks: React.FC = () => {
   const navigate = useNavigate();
   const [isExiting, setIsExiting] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  // 간단한 상태 관리
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // 선택 관리
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
   // 실행 취소 관련 상태
@@ -118,59 +124,90 @@ const MyBookmarks: React.FC = () => {
   // 컴포넌트 마운트 시 애니메이션
   useEffect(() => {
     setIsLoaded(true);
-    // 임시 북마크 데이터 설정
-    setBookmarks([
-      {
-        id: 1,
-        postId: 1,
-        category: "자유",
-        title: "안녕하세요 처음 가입했어요 ㅎㅎ ㅎㅎㅎ [21]",
-        date: "2024.01.15",
-        bookmarkedDate: "2024.01.16",
-        views: 124,
-        comments: 21,
-      },
-      {
-        id: 2,
-        postId: 4,
-        category: "익명",
-        title: "회사 생활 처음인데 조언 구해요",
-        date: "2024.01.12",
-        bookmarkedDate: "2024.01.14",
-        views: 156,
-        comments: 8,
-      },
-      {
-        id: 3,
-        postId: 6,
-        category: "질문",
-        title: "신입이 물어보기 어려운 질문들 [3]",
-        date: "2024.01.10",
-        bookmarkedDate: "2024.01.13",
-        views: 234,
-        comments: 15,
-      },
-      {
-        id: 4,
-        postId: 8,
-        category: "자유",
-        title: "점심시간 맛집 추천 받아요!",
-        date: "2024.01.09",
-        bookmarkedDate: "2024.01.12",
-        views: 89,
-        comments: 12,
-      },
-      {
-        id: 5,
-        postId: 12,
-        category: "질문",
-        title: "이직 준비 어떻게 하셨나요?",
-        date: "2024.01.08",
-        bookmarkedDate: "2024.01.11",
-        views: 178,
-        comments: 23,
-      },
-    ]);
+  }, []);
+
+  // 북마크 데이터 로딩 함수
+  const loadBookmarks = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // 시뮬레이션: 네트워크 지연
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+
+      // 시뮬레이션: 가끔 에러 발생 (테스트용)
+      if (Math.random() < 0.1) {
+        // 10% 확률로 에러
+        throw new Error("북마크 데이터를 불러오는데 실패했습니다.");
+      }
+
+      // 임시 북마크 데이터
+      const dummyBookmarks: BookmarkItem[] = [
+        {
+          id: 1,
+          postId: 1,
+          category: "자유",
+          title: "안녕하세요 처음 가입했어요 ㅎㅎ ㅎㅎㅎ [21]",
+          date: "2024.01.15",
+          bookmarkedDate: "2024.01.16",
+          views: 124,
+          comments: 21,
+        },
+        {
+          id: 2,
+          postId: 4,
+          category: "익명",
+          title: "회사 생활 처음인데 조언 구해요",
+          date: "2024.01.12",
+          bookmarkedDate: "2024.01.14",
+          views: 156,
+          comments: 8,
+        },
+        {
+          id: 3,
+          postId: 6,
+          category: "질문",
+          title: "신입이 물어보기 어려운 질문들 [3]",
+          date: "2024.01.10",
+          bookmarkedDate: "2024.01.13",
+          views: 234,
+          comments: 15,
+        },
+        {
+          id: 4,
+          postId: 8,
+          category: "자유",
+          title: "점심시간 맛집 추천 받아요!",
+          date: "2024.01.09",
+          bookmarkedDate: "2024.01.12",
+          views: 89,
+          comments: 12,
+        },
+        {
+          id: 5,
+          postId: 12,
+          category: "질문",
+          title: "이직 준비 어떻게 하셨나요?",
+          date: "2024.01.08",
+          bookmarkedDate: "2024.01.11",
+          views: 178,
+          comments: 23,
+        },
+      ];
+
+      setBookmarks(dummyBookmarks);
+      setIsLoading(false);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다."
+      );
+      setIsLoading(false);
+    }
+  };
+
+  // 초기 데이터 로딩
+  useEffect(() => {
+    loadBookmarks();
   }, []);
 
   // 컴포넌트 언마운트 시 타이머 정리
@@ -184,10 +221,7 @@ const MyBookmarks: React.FC = () => {
 
   // 뒤로가기 핸들러 (애니메이션 포함)
   const handleBackClick = () => {
-    // 1. 사라지는 애니메이션 시작
     setIsExiting(true);
-
-    // 2. 애니메이션 완료 후 페이지 이동
     setTimeout(() => {
       navigate("/mypage");
     }, 400);
@@ -196,8 +230,12 @@ const MyBookmarks: React.FC = () => {
   // 게시글 클릭 핸들러
   const handlePostClick = (postId: number) => {
     console.log(`게시글 ${postId}로 이동`);
-    // 추후 상세 페이지로 이동
     // navigate(`/post/${postId}`);
+  };
+
+  // 재시도 핸들러
+  const handleRetry = () => {
+    loadBookmarks();
   };
 
   // 체크박스 선택 핸들러
@@ -248,8 +286,6 @@ const MyBookmarks: React.FC = () => {
       ({ bookmark, index }) => {
         const timer = setTimeout(() => {
           performActualDelete(bookmark.id);
-
-          // 해당 아이템을 recentlyDeleted에서 제거하고 토스트 상태 업데이트
           setRecentlyDeleted((prev) => {
             const remaining = prev.filter((d) => d.item.id !== bookmark.id);
             if (remaining.length === 0) {
@@ -275,8 +311,6 @@ const MyBookmarks: React.FC = () => {
   // 실제 삭제 처리 (서버 API 호출)
   const performActualDelete = (bookmarkId: number) => {
     console.log(`북마크 ${bookmarkId} 실제 삭제됨 (서버 API 호출)`);
-    // 여기서 실제 서버 API 호출
-    // await deleteBookmarkAPI(bookmarkId);
   };
 
   // 실행 취소 핸들러
@@ -291,8 +325,6 @@ const MyBookmarks: React.FC = () => {
     // 모든 삭제된 아이템들을 원래 위치에 복원
     setBookmarks((prev) => {
       const newBookmarks = [...prev];
-
-      // originalIndex 순서대로 정렬해서 복원
       const sortedDeleted = [...recentlyDeleted].sort(
         (a, b) => a.originalIndex - b.originalIndex
       );
@@ -311,20 +343,15 @@ const MyBookmarks: React.FC = () => {
     // 상태 초기화
     setRecentlyDeleted([]);
     setShowUndoToast(false);
-
-    console.log(`${recentlyDeleted.length}개의 북마크가 복원됨`);
   };
 
   // 실행 취소 토스트 닫기 핸들러
   const handleUndoToastClose = () => {
     setShowUndoToast(false);
-
-    // 모든 삭제 예정 아이템들을 실제로 삭제
     recentlyDeleted.forEach((deleted) => {
       clearTimeout(deleted.timer);
       performActualDelete(deleted.item.id);
     });
-
     setRecentlyDeleted([]);
   };
 
@@ -370,9 +397,12 @@ const MyBookmarks: React.FC = () => {
             </h2>
           </div>
           <div className="flex items-center space-x-3">
-            <span className="text-xs sm:text-sm text-neutral-content">
-              총 {bookmarks.length}개
-            </span>
+            {/* 로딩이나 에러가 아닐 때만 개수 표시 */}
+            {!isLoading && !error && (
+              <span className="text-xs sm:text-sm text-neutral-content">
+                총 {bookmarks.length}개
+              </span>
+            )}
             <button
               onClick={handleBackClick}
               className="w-6 h-6 sm:w-8 sm:h-8 bg-primary rounded-full flex items-center justify-center hover:bg-primary-focus transition-all duration-200 group transform hover:scale-110"
@@ -385,87 +415,135 @@ const MyBookmarks: React.FC = () => {
           </div>
         </div>
 
-        {/* 선택 및 삭제 컨트롤 */}
-        <div
-          className={`flex items-center justify-between mb-4 p-3 bg-base-300/30 rounded-lg transition-all duration-500 ${
-            isExiting ? "opacity-0 scale-95" : "opacity-100 scale-100"
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isAllSelected}
-                ref={(input) => {
-                  if (input) input.indeterminate = isPartiallySelected;
-                }}
-                onChange={(e) => handleSelectAll(e.target.checked)}
-                className="checkbox checkbox-primary checkbox-sm border-white bg-transparent"
-              />
-              <span className="text-sm">전체 선택</span>
-            </label>
-            {selectedIds.size > 0 && (
-              <span className="text-xs text-primary">
-                {selectedIds.size}개 선택됨
-              </span>
-            )}
-          </div>
-
-          <button
-            onClick={handleDeleteSelected}
-            disabled={selectedIds.size === 0}
-            className={`px-3 py-1.5 rounded text-sm font-medium transition-all duration-200 ${
-              selectedIds.size > 0
-                ? "bg-error text-error-content hover:bg-error/80 transform hover:scale-105"
-                : "bg-base-300 text-neutral-content cursor-not-allowed"
-            }`}
-          >
-            선택 삭제 ({selectedIds.size})
-          </button>
-        </div>
-
-        {/* 안내 메시지 */}
-        <div
-          className={`mb-4 p-3 bg-info/10 rounded-lg transition-all duration-500 ${
-            isExiting ? "opacity-0 scale-95" : "opacity-100 scale-100"
-          }`}
-        >
-          <p className="text-sm text-info">
-            💡 체크박스로 북마크를 선택하고 "선택 삭제" 버튼으로 일괄 삭제할 수
-            있습니다. (5초 내 실행 취소 가능)
-          </p>
-        </div>
-
-        {/* 북마크 목록 */}
+        {/* 메인 컨텐츠 */}
         <div
           className={`bg-base-200 rounded-lg overflow-hidden transition-all duration-500 ${
             isExiting ? "opacity-0 scale-95" : "opacity-100 scale-100"
           }`}
         >
-          {bookmarks.length > 0 ? (
-            bookmarks.map((bookmark, index) => (
-              <BookmarkListItem
-                key={bookmark.id}
-                bookmark={bookmark}
-                onPostClick={() => handlePostClick(bookmark.postId)}
-                delay={isLoaded ? index * 50 : 0}
-                isSelected={selectedIds.has(bookmark.id)}
-                onSelectionChange={handleSelectionChange}
-              />
-            ))
-          ) : (
-            // 빈 상태
-            <div className="text-center py-12">
-              <div className="text-neutral-content text-4xl mb-4">🔖</div>
-              <p className="text-neutral-content text-sm">
-                북마크한 글이 없습니다.
+          {/* 로딩 상태 */}
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center py-12">
+              <span className="loading loading-spinner loading-primary loading-lg"></span>
+              <p className="text-neutral-content text-sm mt-4">
+                북마크를 불러오는 중...
               </p>
             </div>
           )}
+
+          {/* 에러 상태 */}
+          {error && (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🔖</div>
+              <h3 className="text-lg font-medium text-base-content mb-2">
+                문제가 발생했습니다
+              </h3>
+              <p className="text-neutral-content text-sm mb-6 max-w-md mx-auto">
+                {error}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <button
+                  onClick={handleBackClick}
+                  className="border border-primary text-primary hover:bg-primary hover:text-white px-6 py-2 rounded-md text-sm font-medium transition-colors duration-300"
+                >
+                  뒤로가기
+                </button>
+                <button
+                  onClick={handleRetry}
+                  className="bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-md text-sm font-medium transition-colors duration-300"
+                >
+                  다시 시도
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 정상 상태 - 북마크 목록 */}
+          {!isLoading && !error && (
+            <>
+              {/* 선택 및 삭제 컨트롤 */}
+              {bookmarks.length > 0 && (
+                <div className="flex items-center justify-between p-3 bg-base-300/30 border-b border-base-300">
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        ref={(input) => {
+                          if (input) input.indeterminate = isPartiallySelected;
+                        }}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="checkbox checkbox-primary checkbox-sm border-white bg-transparent"
+                      />
+                      <span className="text-sm">전체 선택</span>
+                    </label>
+                    {selectedIds.size > 0 && (
+                      <span className="text-xs text-primary">
+                        {selectedIds.size}개 선택됨
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={handleDeleteSelected}
+                    disabled={selectedIds.size === 0}
+                    className={`px-3 py-1.5 rounded text-sm font-medium transition-all duration-200 ${
+                      selectedIds.size > 0
+                        ? "bg-error text-error-content hover:bg-error/80 transform hover:scale-105"
+                        : "bg-base-300 text-neutral-content cursor-not-allowed"
+                    }`}
+                  >
+                    선택 삭제 ({selectedIds.size})
+                  </button>
+                </div>
+              )}
+
+              {/* 안내 메시지 */}
+              {bookmarks.length > 0 && (
+                <div className="p-3 bg-info/10 border-b border-base-300">
+                  <p className="text-sm text-info">
+                    💡 체크박스로 북마크를 선택하고 "선택 삭제" 버튼으로 일괄
+                    삭제할 수 있습니다. (5초 내 실행 취소 가능)
+                  </p>
+                </div>
+              )}
+
+              {/* 북마크 리스트 또는 빈 상태 */}
+              {bookmarks.length > 0 ? (
+                bookmarks.map((bookmark, index) => (
+                  <BookmarkListItem
+                    key={bookmark.id}
+                    bookmark={bookmark}
+                    onPostClick={() => handlePostClick(bookmark.postId)}
+                    delay={isLoaded ? index * 50 : 0}
+                    isSelected={selectedIds.has(bookmark.id)}
+                    onSelectionChange={handleSelectionChange}
+                  />
+                ))
+              ) : (
+                // 빈 상태
+                <div className="text-center py-12">
+                  <div className="text-neutral-content text-4xl mb-4">🔖</div>
+                  <h3 className="text-neutral-content text-lg font-medium mb-2">
+                    북마크한 글이 없습니다
+                  </h3>
+                  <p className="text-neutral-content text-sm mb-6">
+                    마음에 드는 글을 북마크해보세요!
+                  </p>
+                  <button
+                    onClick={() => navigate("/board")}
+                    className="bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-md text-sm font-medium transition-colors duration-300"
+                  >
+                    게시판 보기
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
-        {/* 페이지네이션 */}
-        {bookmarks.length > 0 && (
+        {/* 페이지네이션 - 데이터가 있을 때만 표시 */}
+        {!isLoading && !error && bookmarks.length > 0 && (
           <div
             className={`flex justify-center mt-8 transition-all duration-700 ${
               isLoaded && !isExiting

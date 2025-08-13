@@ -187,7 +187,7 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
       )}
 
       {/* 커스텀 애니메이션 CSS */}
-      <style jsx>{`
+      <style>{`
         .animate-gear-pulse {
           animation: growPulse 2s ease-in-out infinite;
         }
