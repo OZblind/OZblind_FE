@@ -2,7 +2,7 @@ import type { Ref } from "react";
 
 type ScrollSentinelProps = {
   className?: string;
-  ref?: Ref<HTMLDivElement>;
+  innerRef?: Ref<HTMLDivElement>;
 };
 
 /**
@@ -11,9 +11,13 @@ type ScrollSentinelProps = {
  */
 export default function ScrollSentinel({
   className,
-  ref,
+  innerRef,
 }: ScrollSentinelProps) {
   return (
-    <div ref={ref} aria-hidden="true" className={className ?? "h-1 w-full"} />
+    <div
+      ref={innerRef}
+      aria-hidden="true"
+      className={className ?? "h-1 w-full"}
+    />
   );
 }

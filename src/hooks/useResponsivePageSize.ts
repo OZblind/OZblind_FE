@@ -2,6 +2,10 @@ import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 
 export type Breakpoint = { maxWidth: number; size: number };
 
+type ElementRefLike<T extends HTMLElement = HTMLElement> =
+  | RefObject<T | null>
+  | { current: T | null };
+
 export type UseResponsivePageSizeOptions = {
   /**
    * 고정 개수 우선. 지정하면 반응형 로직은 무시됩니다.
@@ -14,7 +18,7 @@ export type UseResponsivePageSizeOptions = {
   /**
    * 컨테이너 기준으로 계산하고 싶으면 전달. 없으면 window.innerWidth 사용.
    */
-  containerRef?: RefObject<HTMLElement>;
+  containerRef?: ElementRefLike;
   /**
    * true면 "첫 계산값"을 세션 동안 고정합니다(리사이즈 무시).
    */
@@ -44,8 +48,13 @@ export function useResponsivePageSize({
   const isConstant = useMemo(() => typeof constant === "number", [constant]);
   const fixedRef = useRef<number | null>(null);
 
-  const getWidth = () =>
-    containerRef?.current?.clientWidth ?? window.innerWidth;
+  // SSR 안전가드: window가 없는 환경에서도 폭 계산 시 오류 방지
+  const getWidth = () => {
+    const w =
+      containerRef?.current?.clientWidth ??
+      (typeof window !== "undefined" ? window.innerWidth : 1024);
+    return w;
+  };
 
   const compute = () =>
     isConstant ? (constant as number) : pickByWidth(getWidth(), breakpoints);
@@ -60,8 +69,13 @@ export function useResponsivePageSize({
     if (isConstant || fixOnFirst) return;
 
     const onResize = () => setSize(compute());
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+
+    // SSR 안전가드
+    if (typeof window !== "undefined") {
+      window.addEventListener("resize", onResize);
+      return () => window.removeEventListener("resize", onResize);
+    }
+    return;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConstant, fixOnFirst, breakpoints, containerRef?.current]);
 
