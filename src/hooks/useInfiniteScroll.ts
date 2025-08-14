@@ -1,23 +1,24 @@
 import { useCallback, useEffect, useRef } from "react";
 
 export type UseInfiniteScrollOptions = {
-  root?: Element | null;
+  root?: Element | Document | null;
   rootMargin?: string;
-  threshold?: number;
+  /** 단일 값 또는 배열 모두 지원 */
+  threshold?: number | number[];
+  /**
+   * 교차 시 호출되는 핸들러.
+   * Promise를 반환하면 resolve될 때까지 중복 호출을 잠금(in-flight lock).
+   */
+  onIntersect: () => void | Promise<void>;
+  /** 로딩 중/더 없음 등 외부 가드 */
   disabled?: boolean;
-  onIntersect: () => void;
 };
 
 export type UseInfiniteScrollReturn = {
+  /** 관찰 대상(센티넬) ref 콜백 */
   sentinelRef: (el: HTMLDivElement | null) => void;
 };
 
-/**
- * IntersectionObserver 기반 무한 스크롤 훅
- * - root 변경, disabled 변경에 안전
- * - 최신 onIntersect 유지(closure 문제 방지)
- * - 동일 프레임/연속 교차 중복 호출 방지
- */
 export function useInfiniteScroll({
   root = null,
   rootMargin = "1000px 0px",
@@ -34,8 +35,8 @@ export function useInfiniteScroll({
     latestCbRef.current = onIntersect;
   }, [onIntersect]);
 
-  // 동일 프레임/진동 방지용 락
-  const pendingRef = useRef(false);
+  // 비동기/연속 교차 중복 호출 방지용 락
+  const inFlightRef = useRef(false);
 
   const cleanupObserver = useCallback(() => {
     if (observerRef.current) {
@@ -44,34 +45,36 @@ export function useInfiniteScroll({
     }
   }, []);
 
-  // 옵저버 생성/재생성
   useEffect(() => {
     cleanupObserver();
-
-    if (disabled) return; // 로딩 중/더 없음 등 가드
+    if (disabled) return;
 
     const obs = new IntersectionObserver(
       (entries) => {
         if (disabled) return;
-        const entry = entries[0];
-        if (!entry) return;
 
-        if (entry.isIntersecting && entry.intersectionRatio > 0) {
-          // 연속 교차로 인한 중복 호출 방지
-          if (pendingRef.current) return;
-          pendingRef.current = true;
-          // requestAnimationFrame으로 1프레임 뒤에 해제(브라우저 배치 타이밍 안정화)
-          queueMicrotask(() => {
-            try {
-              latestCbRef.current?.();
-            } finally {
-              // 다음 Paint(브라우저가 화면에 픽셀을 실제로 그리는 시점) 이후에 풀어주기
-              requestAnimationFrame(() => {
-                pendingRef.current = false;
-              });
-            }
-          });
-        }
+        // 하나라도 교차하면 트리거
+        const intersecting = entries.some(
+          (e) => e.isIntersecting && e.intersectionRatio > 0
+        );
+        if (!intersecting) return;
+
+        if (inFlightRef.current) return;
+        inFlightRef.current = true;
+
+        const run = async () => {
+          try {
+            // Promise면 대기, 아니면 즉시 반환
+            await Promise.resolve(latestCbRef.current?.());
+          } finally {
+            // 다음 페인트 이후 락 해제(진동 방지)
+            requestAnimationFrame(() => {
+              inFlightRef.current = false;
+            });
+          }
+        };
+
+        void run();
       },
       { root, rootMargin, threshold }
     );
@@ -92,7 +95,6 @@ export function useInfiniteScroll({
       const prev = targetRef.current;
       const obs = observerRef.current;
 
-      // 이전 타겟 unobserve
       if (prev && obs) {
         try {
           obs.unobserve(prev);
@@ -102,7 +104,6 @@ export function useInfiniteScroll({
       }
       targetRef.current = el;
 
-      // 새로운 타겟 observe
       if (el && obs && !disabled) {
         obs.observe(el);
       }
