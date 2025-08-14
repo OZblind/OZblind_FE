@@ -2,18 +2,24 @@ import { useMemo, useState } from "react";
 import PostList from "@components/Board/free/PostList";
 import type { FreeBoardItem } from "@components/Board/free/PostRow";
 import { useInfiniteScroll } from "@hooks/useInfiniteScroll";
+import { formatYyMmDd, formatYyyyMmDdHms } from "@utils/date";
 
-/** 샘플 아이템 생성기 */
+/** 샘플 아이템 생성기 (자정 기준, 하루 단위로 감소) */
 function makeMockItems(count: number, startIndex: number): FreeBoardItem[] {
-  const now = Date.now();
+  const DAY = 24 * 60 * 60 * 1000;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // 자정 고정
+  const baseTs = today.getTime();
+
   return Array.from({ length: count }, (_, i) => {
-    const n = startIndex + i + 1;
+    const idx = startIndex + i; // 0일부터 시작: idx일 전
+    const d = new Date(baseTs - idx * DAY);
     return {
-      id: `mock-${n}`,
-      no: n,
-      title: `샘플 게시글 제목 ${n} — 반응형/테이블·카드/무한스크롤 테스트`,
-      author: `사용자${(n % 7) + 1}`,
-      dateText: new Date(now - n * 60 * 60 * 1000).toLocaleString(), // n시간 전
+      id: `mock-${idx + 1}`,
+      no: idx + 1,
+      title: `샘플 게시글 제목 ${idx + 1} — 반응형/테이블·카드/무한스크롤 테스트`,
+      author: `사용자${((idx + 1) % 7) + 1}`,
+      dateText: formatYyMmDd(d), // ✅ YY.MM.DD
       views: Math.floor(Math.random() * 5000),
       likes: Math.floor(Math.random() * 200),
     };
@@ -30,8 +36,9 @@ export default function TestFreeBoardList() {
   );
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [lastLoadedAt, setLastLoadedAt] = useState<Date | string>(
-    new Date().toLocaleString()
+  // 상단 바 표기: YYYY.MM.DD HH:mm:ss
+  const [lastLoadedAt, setLastLoadedAt] = useState<string>(
+    formatYyyyMmDdHms(new Date())
   );
 
   const hasMore = useMemo(() => page < MAX_PAGES, [page]);
@@ -41,13 +48,12 @@ export default function TestFreeBoardList() {
     setBusy(true);
     setErr(null);
 
-    // 네트워크 지연 흉내
-    await new Promise((r) => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 500)); // 지연 흉내
 
     const nextPage = page + 1;
     setItems((prev) => [...prev, ...makeMockItems(PAGE_SIZE, prev.length)]);
     setPage(nextPage);
-    setLastLoadedAt(new Date().toLocaleString());
+    setLastLoadedAt(formatYyyyMmDdHms(new Date())); // ✅ 포맷 통일
     setBusy(false);
   };
 
@@ -60,11 +66,10 @@ export default function TestFreeBoardList() {
   });
 
   const handleRefresh = () => {
-    // UI 확인용: 타임스탬프만 갱신(실서비스에선 refetch)
-    setLastLoadedAt(new Date().toLocaleString());
+    setLastLoadedAt(formatYyyyMmDdHms(new Date())); // ✅ 포맷 통일
   };
 
-  // 테스트 컨트롤(빈/에러/리셋)
+  // 보조 컨트롤
   const clearItems = () => setItems([]);
   const toggleError = () => setErr((e) => (e ? null : "의도적 테스트 에러"));
   const resetAll = () => {
@@ -72,7 +77,7 @@ export default function TestFreeBoardList() {
     setItems(makeMockItems(PAGE_SIZE, 0));
     setBusy(false);
     setErr(null);
-    setLastLoadedAt(new Date().toLocaleString());
+    setLastLoadedAt(formatYyyyMmDdHms(new Date()));
   };
 
   return (
@@ -94,7 +99,7 @@ export default function TestFreeBoardList() {
             onClick={clearItems}
             className="rounded-md border px-3 py-1 hover:bg-base-200"
           >
-            비우기(Empty 상태)
+            비우기(Empty)
           </button>
           <button
             type="button"
@@ -110,7 +115,7 @@ export default function TestFreeBoardList() {
         <div className="text-xs opacity-70 mb-2">
           page: {page} / hasMore: {String(hasMore)} / busy: {String(busy)} /
           items: {items.length}
-          {err && <span className="ml-2 text-error">| error: {err}</span>}
+          {err && <span className="ml-2 text-red-500">| error: {err}</span>}
         </div>
 
         <PostList
@@ -122,6 +127,11 @@ export default function TestFreeBoardList() {
           isError={!!err}
           errorText={err ?? undefined}
           sentinelRef={sentinelRef}
+          empty={{
+            message: "조건에 맞는 게시글이 없습니다.",
+            actionLabel: "필터 초기화하고 다시 보기",
+            onAction: resetAll,
+          }}
         />
       </section>
     </div>

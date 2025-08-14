@@ -18,6 +18,7 @@ import Error500 from "@pages/error/500";
 import TestHub from "@pages/test/TestHub"; // /
 import TestPostWritePage from "@pages/test/TestPostWritePage"; // /test/write
 import TestSettingPage from "@pages/test/TestSettingPage"; // /test/setting
+import TestFreeBoardList from "@src/pages/test/BoardList/TestFreeBoardList"; // test/board/free-list
 
 import { useAuthBootstrap } from "@hooks/useAuthBootstrap";
 import { useAuthStore } from "@store/authStore";
@@ -76,7 +77,7 @@ function KeyVerifyPlaceholder() {
     } catch (err: unknown) {
       const msg =
         typeof err === "object" && err && "message" in err
-          ? (err as { message?: string }).message ?? "인증 실패"
+          ? ((err as { message?: string }).message ?? "인증 실패")
           : "인증 실패";
       push({ message: msg, type: "error" });
     }
@@ -189,6 +190,7 @@ export default function AppRouter() {
         <Route path={PATHS.ROOT} element={<TestHub />} />
         <Route path="/test/write" element={<TestPostWritePage />} />
         <Route path="/test/setting" element={<TestSettingPage />} />
+        <Route path="/test/board/free-list" element={<TestFreeBoardList />} />
 
         {/* 인증 로비(공개) */}
         <Route path={PATHS.AUTH} element={<LandingPage />} />

@@ -11,7 +11,7 @@ export function PostCard({ item, onClick, className }: Props) {
     <button
       type="button"
       onClick={() => onClick?.(item.id)}
-      className={`w-full text-left rounded-xl border p-3 hover:bg-neutral-50 dark:hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-accent ${className ?? ""}`}
+      className={`w-full text-left rounded-xl border p-3 hover:bg-neutral-50 dark:hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 ${className ?? ""}`}
       aria-label={`게시글 ${item.title}`}
     >
       <div className="flex items-start justify-between gap-2">
@@ -23,6 +23,7 @@ export function PostCard({ item, onClick, className }: Props) {
         >
           {item.title}
         </h3>
+        {/* 등록일 (YY.MM.DD) */}
         <div className="shrink-0 text-right text-xs text-neutral-500">
           {item.dateText}
         </div>

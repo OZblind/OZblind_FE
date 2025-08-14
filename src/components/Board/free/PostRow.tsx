@@ -3,7 +3,7 @@ export type FreeBoardItem = {
   no?: number; // 글 번호(선택)
   title: string;
   author: string;
-  dateText: string; // 포맷된 날짜 문자열
+  dateText: string; // YY.MM.DD 형식 문자열
   views: number;
   likes: number;
 };
@@ -19,7 +19,7 @@ export function PostRow({ item, onClick, className }: Props) {
     <button
       type="button"
       onClick={() => onClick?.(item.id)}
-      className={`group grid grid-cols-12 w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-accent ${className ?? ""}`}
+      className={`group grid grid-cols-12 w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 ${className ?? ""}`}
       aria-label={`게시글 ${item.title}`}
     >
       {/* 번호 */}
@@ -37,7 +37,7 @@ export function PostRow({ item, onClick, className }: Props) {
         {item.author}
       </span>
 
-      {/* 등록일 */}
+      {/* 등록일 (YY.MM.DD) */}
       <span className="col-span-2 text-neutral-500">{item.dateText}</span>
 
       {/* 조회 */}

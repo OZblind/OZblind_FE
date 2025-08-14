@@ -1,17 +1,10 @@
 type Props = {
-  lastLoadedAt?: string | Date;
+  lastLoadedAt?: string;
   onRefresh?: () => void;
   className?: string;
 };
 
 export function LastLoadedBar({ lastLoadedAt, onRefresh, className }: Props) {
-  const text =
-    typeof lastLoadedAt === "string"
-      ? lastLoadedAt
-      : lastLoadedAt
-        ? lastLoadedAt.toLocaleString()
-        : "-";
-
   return (
     <div
       className={`flex items-center justify-between py-2 text-xs text-neutral-500 dark:text-neutral-400 ${className ?? ""}`}
@@ -19,7 +12,7 @@ export function LastLoadedBar({ lastLoadedAt, onRefresh, className }: Props) {
       <span>
         마지막으로 게시글 불러온 시각:{" "}
         <strong className="text-neutral-700 dark:text-neutral-200">
-          {text}
+          {lastLoadedAt ?? "-"}
         </strong>
       </span>
       {onRefresh && (
