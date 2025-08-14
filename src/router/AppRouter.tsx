@@ -17,6 +17,7 @@ import Error500 from "@pages/error/500";
 
 import TestHub from "@pages/test/TestHub"; // /
 import TestPostWritePage from "@pages/test/TestPostWritePage"; // /test/write
+import TestSettingPage from "@pages/test/TestSettingPage"; // /test/setting
 
 import { useAuthBootstrap } from "@hooks/useAuthBootstrap";
 import { useAuthStore } from "@store/authStore";
@@ -75,7 +76,7 @@ function KeyVerifyPlaceholder() {
     } catch (err: unknown) {
       const msg =
         typeof err === "object" && err && "message" in err
-          ? ((err as { message?: string }).message ?? "인증 실패")
+          ? (err as { message?: string }).message ?? "인증 실패"
           : "인증 실패";
       push({ message: msg, type: "error" });
     }
@@ -105,7 +106,9 @@ function KeyVerifyPlaceholder() {
           <div className="card-actions justify-end mt-2">
             <button
               type="submit"
-              className={`btn btn-primary ${verifyMut.isPending ? "loading" : ""}`}
+              className={`btn btn-primary ${
+                verifyMut.isPending ? "loading" : ""
+              }`}
               disabled={verifyMut.isPending}
             >
               {verifyMut.isPending ? "인증 중..." : "인증하기"}
@@ -185,6 +188,7 @@ export default function AppRouter() {
         {/* 테스트 라우트 */}
         <Route path={PATHS.ROOT} element={<TestHub />} />
         <Route path="/test/write" element={<TestPostWritePage />} />
+        <Route path="/test/setting" element={<TestSettingPage />} />
 
         {/* 인증 로비(공개) */}
         <Route path={PATHS.AUTH} element={<LandingPage />} />
