@@ -53,3 +53,13 @@ export const ANIMATION_CLASSES = {
   ITEM_ENTER: "opacity-100 translate-x-0",
   ITEM_INITIAL: "opacity-0 translate-x-8",
 } as const;
+
+// Tailwind CSS duration 클래스 매핑 헬퍼
+export const getDurationClass = (ms: number): string => {
+  if (ms <= 150) return "duration-150";
+  if (ms <= 200) return "duration-200";
+  if (ms <= 300) return "duration-300";
+  if (ms <= 500) return "duration-500";
+  if (ms <= 700) return "duration-700";
+  return "duration-1000";
+};

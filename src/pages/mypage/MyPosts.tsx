@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "@src/components/commons/MyPage/PageHeader";
+import {
+  ANIMATION_TIMINGS,
+  ANIMATION_CLASSES,
+  getDurationClass,
+} from "@constants/animations";
 
 // 게시글 데이터 타입
 interface PostItem {
@@ -12,7 +17,7 @@ interface PostItem {
   comments?: number;
 }
 
-// 개별 게시글 아이템 컴포넌트 (변경 없음)
+// 개별 게시글 아이템 컴포넌트
 interface PostListItemProps {
   post: PostItem;
   onClick?: () => void;
@@ -36,8 +41,12 @@ const PostListItem: React.FC<PostListItemProps> = ({
 
   return (
     <div
-      className={`flex items-center py-4 px-2 border-b border-base-300 hover:bg-base-200 cursor-pointer transition-all duration-500 transform ${
-        isVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-8"
+      className={`flex items-center py-4 px-2 border-b border-base-300 hover:bg-base-200 cursor-pointer transition-all ${getDurationClass(
+        ANIMATION_TIMINGS.ITEM_APPEAR
+      )} transform ${
+        isVisible
+          ? ANIMATION_CLASSES.ITEM_ENTER
+          : ANIMATION_CLASSES.ITEM_INITIAL
       }`}
       onClick={onClick}
     >
@@ -50,7 +59,11 @@ const PostListItem: React.FC<PostListItemProps> = ({
 
       {/* 제목 */}
       <div className="flex-1 px-4">
-        <h3 className="text-base-content hover:text-primary transition-colors line-clamp-1">
+        <h3
+          className={`text-base-content hover:text-primary transition-colors ${getDurationClass(
+            ANIMATION_TIMINGS.HOVER_TRANSITION
+          )} line-clamp-1`}
+        >
           {post.title}
         </h3>
       </div>
@@ -68,7 +81,7 @@ const MyPosts: React.FC = () => {
   const [isExiting, setIsExiting] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // 간단한 상태 관리 추가
+  // 간단한 상태 관리
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,11 +98,12 @@ const MyPosts: React.FC = () => {
       setError(null);
 
       // 시뮬레이션: 네트워크 지연
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) =>
+        setTimeout(resolve, ANIMATION_TIMINGS.LOADING_DELAY_POSTS)
+      );
 
       // 시뮬레이션: 가끔 에러 발생 (테스트용)
       if (Math.random() < 0.1) {
-        // 10% 확률로 에러
         throw new Error("서버에서 데이터를 가져오는데 실패했습니다.");
       }
 
@@ -165,13 +179,12 @@ const MyPosts: React.FC = () => {
     setIsExiting(true);
     setTimeout(() => {
       navigate("/mypage");
-    }, 400);
+    }, ANIMATION_TIMINGS.PAGE_TRANSITION);
   };
 
   // 게시글 클릭 핸들러
   const handlePostClick = (postId: number) => {
     console.log(`게시글 ${postId} 클릭`);
-    // 추후 상세 페이지로 이동
     // navigate(`/post/${postId}`);
   };
 
@@ -182,15 +195,17 @@ const MyPosts: React.FC = () => {
 
   return (
     <div
-      className={`p-4 sm:p-6 transition-all duration-500 transform ${
+      className={`p-4 sm:p-6 transition-all ${getDurationClass(
+        ANIMATION_TIMINGS.ITEM_APPEAR
+      )} transform ${
         isLoaded && !isExiting
-          ? "opacity-100 translate-x-0"
+          ? ANIMATION_CLASSES.PAGE_ENTER
           : isExiting
-          ? "opacity-0 -translate-x-8"
-          : "opacity-0 translate-x-8"
+          ? ANIMATION_CLASSES.PAGE_EXIT
+          : ANIMATION_CLASSES.PAGE_INITIAL
       }`}
     >
-      {/* 기존 헤더 코드를 PageHeader 컴포넌트로 교체 */}
+      {/* PageHeader 컴포넌트 */}
       <PageHeader
         title="작성글"
         count={posts.length}
@@ -200,10 +215,14 @@ const MyPosts: React.FC = () => {
         hasError={!!error}
       />
 
-      {/* 메인 컨텐츠 - 나머지는 그대로 유지 */}
+      {/* 메인 컨텐츠 */}
       <div
-        className={`bg-base-200 rounded-lg overflow-hidden transition-all duration-500 ${
-          isExiting ? "opacity-0 scale-95" : "opacity-100 scale-100"
+        className={`bg-base-200 rounded-lg overflow-hidden transition-all ${getDurationClass(
+          ANIMATION_TIMINGS.ITEM_APPEAR
+        )} ${
+          isExiting
+            ? ANIMATION_CLASSES.CONTAINER_EXIT
+            : ANIMATION_CLASSES.CONTAINER_ENTER
         }`}
       >
         {/* 로딩 상태 */}
@@ -229,13 +248,17 @@ const MyPosts: React.FC = () => {
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
                 onClick={handleBackClick}
-                className="border border-primary text-primary hover:bg-primary hover:text-white px-6 py-2 rounded-md text-sm font-medium transition-colors duration-300"
+                className={`border border-primary text-primary hover:bg-primary hover:text-white px-6 py-2 rounded-md text-sm font-medium transition-colors ${getDurationClass(
+                  ANIMATION_TIMINGS.HOVER_TRANSITION
+                )}`}
               >
                 뒤로가기
               </button>
               <button
                 onClick={handleRetry}
-                className="bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-md text-sm font-medium transition-colors duration-300"
+                className={`bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-md text-sm font-medium transition-colors ${getDurationClass(
+                  ANIMATION_TIMINGS.HOVER_TRANSITION
+                )}`}
               >
                 다시 시도
               </button>
@@ -252,7 +275,9 @@ const MyPosts: React.FC = () => {
                   key={post.id}
                   post={post}
                   onClick={() => handlePostClick(post.id)}
-                  delay={isLoaded ? index * 50 : 0}
+                  delay={
+                    isLoaded ? index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE : 0
+                  }
                 />
               ))
             ) : (
@@ -267,7 +292,9 @@ const MyPosts: React.FC = () => {
                 </p>
                 <button
                   onClick={() => navigate("/write")}
-                  className="bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-md text-sm font-medium transition-colors duration-300"
+                  className={`bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-md text-sm font-medium transition-colors ${getDurationClass(
+                    ANIMATION_TIMINGS.HOVER_TRANSITION
+                  )}`}
                 >
                   글쓰기
                 </button>
@@ -287,14 +314,20 @@ const MyPosts: React.FC = () => {
           }`}
         >
           <div className="flex items-center space-x-1 sm:space-x-2">
-            <button className="w-8 h-8 flex items-center justify-center text-base-content hover:bg-base-300 rounded transition-colors transform hover:scale-110">
+            <button
+              className={`w-8 h-8 flex items-center justify-center text-base-content hover:bg-base-300 rounded transition-colors transform hover:scale-110 ${getDurationClass(
+                ANIMATION_TIMINGS.HOVER_TRANSITION
+              )}`}
+            >
               ‹
             </button>
 
             {[1, 2, 3, 4, 5].map((num) => (
               <button
                 key={num}
-                className={`w-8 h-8 rounded transition-all duration-200 transform hover:scale-110 ${
+                className={`w-8 h-8 rounded transition-all ${getDurationClass(
+                  ANIMATION_TIMINGS.HOVER_TRANSITION
+                )} transform hover:scale-110 ${
                   num === 1
                     ? "bg-primary text-primary-content"
                     : "bg-base-300 text-base-content hover:bg-primary hover:text-primary-content"
@@ -304,7 +337,11 @@ const MyPosts: React.FC = () => {
               </button>
             ))}
 
-            <button className="w-8 h-8 flex items-center justify-center text-base-content hover:bg-base-300 rounded transition-colors transform hover:scale-110">
+            <button
+              className={`w-8 h-8 flex items-center justify-center text-base-content hover:bg-base-300 rounded transition-colors transform hover:scale-110 ${getDurationClass(
+                ANIMATION_TIMINGS.HOVER_TRANSITION
+              )}`}
+            >
               ›
             </button>
           </div>

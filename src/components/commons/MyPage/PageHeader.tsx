@@ -1,5 +1,9 @@
-// components/common/MyPage/PageHeader.tsx
 import React from "react";
+import {
+  ANIMATION_TIMINGS,
+  ANIMATION_CLASSES,
+  getDurationClass,
+} from "@constants/animations";
 
 interface PageHeaderProps {
   title: string;
@@ -20,8 +24,12 @@ const PageHeader: React.FC<PageHeaderProps> = ({
 }) => {
   return (
     <div
-      className={`flex items-center justify-between mb-6 transition-all duration-300 ${
-        isExiting ? "opacity-0 -translate-y-4" : "opacity-100 translate-y-0"
+      className={`flex items-center justify-between mb-6 transition-all ${getDurationClass(
+        ANIMATION_TIMINGS.SCALE_TRANSITION
+      )} ${
+        isExiting
+          ? ANIMATION_CLASSES.HEADER_EXIT
+          : ANIMATION_CLASSES.HEADER_ENTER
       }`}
     >
       <div className="flex items-center">
@@ -38,10 +46,16 @@ const PageHeader: React.FC<PageHeaderProps> = ({
         )}
         <button
           onClick={onBackClick}
-          className="w-6 h-6 sm:w-8 sm:h-8 bg-primary rounded-full flex items-center justify-center hover:bg-primary-focus transition-all duration-200 group transform hover:scale-110"
+          className={`w-6 h-6 sm:w-8 sm:h-8 bg-primary rounded-full flex items-center justify-center hover:bg-primary-focus transition-all ${getDurationClass(
+            ANIMATION_TIMINGS.HOVER_TRANSITION
+          )} group transform hover:scale-110`}
           aria-label="뒤로가기"
         >
-          <span className="text-primary-content text-sm sm:text-lg font-bold group-hover:rotate-180 transition-transform duration-300">
+          <span
+            className={`text-primary-content text-sm sm:text-lg font-bold group-hover:rotate-180 transition-transform ${getDurationClass(
+              ANIMATION_TIMINGS.SCALE_TRANSITION
+            )}`}
+          >
             −
           </span>
         </button>
