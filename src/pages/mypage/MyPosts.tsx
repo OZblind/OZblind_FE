@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "@src/components/commons/MyPage/PageHeader";
+import Pagination from "@src/components/commons/MyPage/Pagination";
 import {
   ANIMATION_TIMINGS,
   ANIMATION_CLASSES,
@@ -85,6 +86,10 @@ const MyPosts: React.FC = () => {
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // 페이지네이션 상태
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = 5; // 임시로 5페이지로 설정
 
   // 컴포넌트 마운트 시 애니메이션
   useEffect(() => {
@@ -191,6 +196,14 @@ const MyPosts: React.FC = () => {
   // 재시도 핸들러
   const handleRetry = () => {
     loadPosts();
+  };
+
+  // 페이지 변경 핸들러
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    console.log(`페이지 ${page}로 이동`);
+    // 실제로는 여기서 해당 페이지 데이터를 로드
+    // loadPosts(page);
   };
 
   return (
@@ -306,46 +319,13 @@ const MyPosts: React.FC = () => {
 
       {/* 페이지네이션 - 데이터가 있을 때만 표시 */}
       {!isLoading && !error && posts.length > 0 && (
-        <div
-          className={`flex justify-center mt-8 transition-all duration-700 ${
-            isLoaded && !isExiting
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-4"
-          }`}
-        >
-          <div className="flex items-center space-x-1 sm:space-x-2">
-            <button
-              className={`w-8 h-8 flex items-center justify-center text-base-content hover:bg-base-300 rounded transition-colors transform hover:scale-110 ${getDurationClass(
-                ANIMATION_TIMINGS.HOVER_TRANSITION
-              )}`}
-            >
-              ‹
-            </button>
-
-            {[1, 2, 3, 4, 5].map((num) => (
-              <button
-                key={num}
-                className={`w-8 h-8 rounded transition-all ${getDurationClass(
-                  ANIMATION_TIMINGS.HOVER_TRANSITION
-                )} transform hover:scale-110 ${
-                  num === 1
-                    ? "bg-primary text-primary-content"
-                    : "bg-base-300 text-base-content hover:bg-primary hover:text-primary-content"
-                }`}
-              >
-                {num}
-              </button>
-            ))}
-
-            <button
-              className={`w-8 h-8 flex items-center justify-center text-base-content hover:bg-base-300 rounded transition-colors transform hover:scale-110 ${getDurationClass(
-                ANIMATION_TIMINGS.HOVER_TRANSITION
-              )}`}
-            >
-              ›
-            </button>
-          </div>
-        </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          isLoaded={isLoaded}
+          isExiting={isExiting}
+        />
       )}
     </div>
   );

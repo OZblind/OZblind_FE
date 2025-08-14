@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "@src/components/commons/MyPage/PageHeader";
+import Pagination from "@src/components/commons/MyPage/Pagination";
+import {
+  ANIMATION_TIMINGS,
+  ANIMATION_CLASSES,
+  getDurationClass,
+} from "@constants/animations";
 
 // 댓글 데이터 타입
 interface CommentItem {
@@ -12,7 +18,7 @@ interface CommentItem {
   postId: number;
 }
 
-// 개별 댓글 아이템 컴포넌트 (변경 없음)
+// 개별 댓글 아이템 컴포넌트
 interface CommentListItemProps {
   comment: CommentItem;
   onClick?: () => void;
@@ -35,8 +41,12 @@ const CommentListItem: React.FC<CommentListItemProps> = ({
 
   return (
     <div
-      className={`p-4 border-b border-base-300 hover:bg-base-200 cursor-pointer transition-all duration-500 transform ${
-        isVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-8"
+      className={`p-4 border-b border-base-300 hover:bg-base-200 cursor-pointer transition-all ${getDurationClass(
+        ANIMATION_TIMINGS.ITEM_APPEAR
+      )} transform ${
+        isVisible
+          ? ANIMATION_CLASSES.ITEM_ENTER
+          : ANIMATION_CLASSES.ITEM_INITIAL
       }`}
       onClick={onClick}
     >
@@ -71,6 +81,10 @@ const MyComments: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 페이지네이션 상태
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = 3; // 임시로 3페이지로 설정
+
   // 컴포넌트 마운트 시 애니메이션
   useEffect(() => {
     setIsLoaded(true);
@@ -83,11 +97,12 @@ const MyComments: React.FC = () => {
       setError(null);
 
       // 시뮬레이션: 네트워크 지연
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      await new Promise((resolve) =>
+        setTimeout(resolve, ANIMATION_TIMINGS.LOADING_DELAY)
+      );
 
       // 시뮬레이션: 가끔 에러 발생 (테스트용)
       if (Math.random() < 0.1) {
-        // 10% 확률로 에러
         throw new Error("댓글 데이터를 불러오는데 실패했습니다.");
       }
 
@@ -166,7 +181,7 @@ const MyComments: React.FC = () => {
     setIsExiting(true);
     setTimeout(() => {
       navigate("/mypage");
-    }, 400);
+    }, ANIMATION_TIMINGS.PAGE_TRANSITION);
   };
 
   // 댓글 클릭 핸들러 (원글로 이동)
@@ -180,17 +195,27 @@ const MyComments: React.FC = () => {
     loadComments();
   };
 
+  // 페이지 변경 핸들러
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    console.log(`댓글 페이지 ${page}로 이동`);
+    // 실제로는 여기서 해당 페이지 데이터를 로드
+    // loadComments(page);
+  };
+
   return (
     <div
-      className={`p-4 sm:p-6 transition-all duration-500 transform ${
+      className={`p-4 sm:p-6 transition-all ${getDurationClass(
+        ANIMATION_TIMINGS.ITEM_APPEAR
+      )} transform ${
         isLoaded && !isExiting
-          ? "opacity-100 translate-x-0"
+          ? ANIMATION_CLASSES.PAGE_ENTER
           : isExiting
-          ? "opacity-0 -translate-x-8"
-          : "opacity-0 translate-x-8"
+          ? ANIMATION_CLASSES.PAGE_EXIT
+          : ANIMATION_CLASSES.PAGE_INITIAL
       }`}
     >
-      {/* 기존 헤더 코드를 PageHeader 컴포넌트로 교체 */}
+      {/* PageHeader 컴포넌트 */}
       <PageHeader
         title="작성댓글"
         count={comments.length}
@@ -200,10 +225,14 @@ const MyComments: React.FC = () => {
         hasError={!!error}
       />
 
-      {/* 메인 컨텐츠 - 나머지는 그대로 유지 */}
+      {/* 메인 컨텐츠 */}
       <div
-        className={`bg-base-200 rounded-lg overflow-hidden transition-all duration-500 ${
-          isExiting ? "opacity-0 scale-95" : "opacity-100 scale-100"
+        className={`bg-base-200 rounded-lg overflow-hidden transition-all ${getDurationClass(
+          ANIMATION_TIMINGS.ITEM_APPEAR
+        )} ${
+          isExiting
+            ? ANIMATION_CLASSES.CONTAINER_EXIT
+            : ANIMATION_CLASSES.CONTAINER_ENTER
         }`}
       >
         {/* 로딩 상태 */}
@@ -229,13 +258,17 @@ const MyComments: React.FC = () => {
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
                 onClick={handleBackClick}
-                className="border border-primary text-primary hover:bg-primary hover:text-white px-6 py-2 rounded-md text-sm font-medium transition-colors duration-300"
+                className={`border border-primary text-primary hover:bg-primary hover:text-white px-6 py-2 rounded-md text-sm font-medium transition-colors ${getDurationClass(
+                  ANIMATION_TIMINGS.HOVER_TRANSITION
+                )}`}
               >
                 뒤로가기
               </button>
               <button
                 onClick={handleRetry}
-                className="bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-md text-sm font-medium transition-colors duration-300"
+                className={`bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-md text-sm font-medium transition-colors ${getDurationClass(
+                  ANIMATION_TIMINGS.HOVER_TRANSITION
+                )}`}
               >
                 다시 시도
               </button>
@@ -252,7 +285,9 @@ const MyComments: React.FC = () => {
                   key={comment.id}
                   comment={comment}
                   onClick={() => handleCommentClick(comment.postId)}
-                  delay={isLoaded ? index * 50 : 0}
+                  delay={
+                    isLoaded ? index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE : 0
+                  }
                 />
               ))
             ) : (
@@ -267,7 +302,9 @@ const MyComments: React.FC = () => {
                 </p>
                 <button
                   onClick={() => navigate("/board")}
-                  className="bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-md text-sm font-medium transition-colors duration-300"
+                  className={`bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-md text-sm font-medium transition-colors ${getDurationClass(
+                    ANIMATION_TIMINGS.HOVER_TRANSITION
+                  )}`}
                 >
                   게시판 보기
                 </button>
@@ -279,36 +316,13 @@ const MyComments: React.FC = () => {
 
       {/* 페이지네이션 - 데이터가 있을 때만 표시 */}
       {!isLoading && !error && comments.length > 0 && (
-        <div
-          className={`flex justify-center mt-8 transition-all duration-700 ${
-            isLoaded && !isExiting
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-4"
-          }`}
-        >
-          <div className="flex items-center space-x-1 sm:space-x-2">
-            <button className="w-8 h-8 flex items-center justify-center text-base-content hover:bg-base-300 rounded transition-colors transform hover:scale-110">
-              ‹
-            </button>
-
-            {[1, 2, 3, 4, 5].map((num) => (
-              <button
-                key={num}
-                className={`w-8 h-8 rounded transition-all duration-200 transform hover:scale-110 ${
-                  num === 1
-                    ? "bg-primary text-primary-content"
-                    : "bg-base-300 text-base-content hover:bg-primary hover:text-primary-content"
-                }`}
-              >
-                {num}
-              </button>
-            ))}
-
-            <button className="w-8 h-8 flex items-center justify-center text-base-content hover:bg-base-300 rounded transition-colors transform hover:scale-110">
-              ›
-            </button>
-          </div>
-        </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          isLoaded={isLoaded}
+          isExiting={isExiting}
+        />
       )}
     </div>
   );
