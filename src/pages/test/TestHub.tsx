@@ -5,7 +5,7 @@ import { useAuthStore } from "@store/authStore";
 import { useLogoutMutation } from "@hooks/useAuthQueries";
 import { useToastStore } from "@store/toastStore";
 import { NotificationModal } from "@components/Notice";
-import InfiniteScrollSmokeTest from "./TestInfiniteScroll";
+// import InfiniteScrollSmokeTest from "./TestInfiniteScroll";
 
 export default function TestHub() {
   const [noticeOpen, setNoticeOpen] = useState(false);
