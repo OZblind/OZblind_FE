@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { PATHS } from "@constants/paths";
 
 // 카드 데이터 타입 정의
 interface CardData {
@@ -218,7 +219,11 @@ const MyPageMain: React.FC = () => {
           title: "비슷한 경험 있어요. 저는 먼저 다가가서...",
           date: "01.14",
         },
-        { id: 3, title: "김치전 추천이요! 오늘 날씨에 딱...", date: "01.13" },
+        {
+          id: 3,
+          title: "김치전 추천이요! 오늘 날씨에 딱...",
+          date: "01.13",
+        },
         {
           id: 4,
           title: "처음엔 다들 그래요. 너무 조급해하지...",
@@ -254,7 +259,7 @@ const MyPageMain: React.FC = () => {
     },
   ];
 
-  // 카드 클릭 핸들러 (두루마리 펼치기 애니메이션)
+  // 카드 클릭 핸들러 (두루마리 펼치기 애니메이션) - PATHS 상수 사용
   const handleCardClick = (path: string) => {
     // 1. 클릭된 카드 표시
     setClickedCard(path);
@@ -262,9 +267,10 @@ const MyPageMain: React.FC = () => {
     // 2. 확장 애니메이션 시작
     setIsExpanding(true);
 
-    // 3. 애니메이션 완료 후 페이지 이동 (700ms → 400ms)
+    // 3. 애니메이션 완료 후 페이지 이동 - PATHS 상수 사용
     setTimeout(() => {
-      navigate(`/mypage/${path}`);
+      const targetPath = `${PATHS.MYPAGE}/${path}`;
+      navigate(targetPath);
     }, 400);
   };
 

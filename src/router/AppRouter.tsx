@@ -1,5 +1,4 @@
-// 라우팅 + 부팅 훅 + 가드 분기
-
+// router/AppRouter.tsx - 마이페이지 라우트 추가 버전
 import {
   Routes,
   Route,
@@ -17,6 +16,13 @@ import Error500 from "@pages/error/500";
 
 import TestHub from "@pages/test/TestHub"; // /
 import TestPostWritePage from "@pages/test/TestPostWritePage"; // /test/write
+
+// 마이페이지 관련 import 추가
+import MyPageLayout from "@pages/mypage/MyPageLayout";
+import MyPageMain from "@pages/mypage/MyPageMain";
+import MyPosts from "@pages/mypage/MyPosts";
+import MyComments from "@pages/mypage/MyComments";
+import MyBookmarks from "@pages/mypage/MyBookmarks";
 
 import { useAuthBootstrap } from "@hooks/useAuthBootstrap";
 import { useAuthStore } from "@store/authStore";
@@ -75,7 +81,7 @@ function KeyVerifyPlaceholder() {
     } catch (err: unknown) {
       const msg =
         typeof err === "object" && err && "message" in err
-          ? ((err as { message?: string }).message ?? "인증 실패")
+          ? (err as { message?: string }).message ?? "인증 실패"
           : "인증 실패";
       push({ message: msg, type: "error" });
     }
@@ -105,7 +111,9 @@ function KeyVerifyPlaceholder() {
           <div className="card-actions justify-end mt-2">
             <button
               type="submit"
-              className={`btn btn-primary ${verifyMut.isPending ? "loading" : ""}`}
+              className={`btn btn-primary ${
+                verifyMut.isPending ? "loading" : ""
+              }`}
               disabled={verifyMut.isPending}
             >
               {verifyMut.isPending ? "인증 중..." : "인증하기"}
@@ -202,6 +210,26 @@ export default function AppRouter() {
             )
           }
         />
+
+        {/* 보호: 마이페이지 (JWT + 인증 완료) */}
+        <Route
+          path={PATHS.MYPAGE}
+          element={
+            isAuthed && isOzAuthenticated === true ? (
+              <MyPageLayout />
+            ) : isAuthed && isOzAuthenticated === false ? (
+              <Navigate to={PATHS.KEY_VERIFY} replace />
+            ) : (
+              redirectWithIntent(PATHS.AUTH, location)
+            )
+          }
+        >
+          {/* 마이페이지 중첩 라우팅 */}
+          <Route index element={<MyPageMain />} />
+          <Route path="posts" element={<MyPosts />} />
+          <Route path="comments" element={<MyComments />} />
+          <Route path="bookmarks" element={<MyBookmarks />} />
+        </Route>
 
         {/* 보호: /key-verify (JWT + 미인증) */}
         <Route
