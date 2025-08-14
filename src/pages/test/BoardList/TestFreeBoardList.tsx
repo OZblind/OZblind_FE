@@ -3,32 +3,35 @@ import PostList from "@components/Board/free/PostList";
 import type { FreeBoardItem } from "@components/Board/free/PostRow";
 import { useInfiniteScroll } from "@hooks/useInfiniteScroll";
 import { formatYyMmDd, formatYyyyMmDdHms } from "@utils/date";
-import { BoardTopBar } from "@components/Board/common/BoardTopBar";
-
-function makeMockItems(count: number, startIndex: number): FreeBoardItem[] {
-  const DAY = 24 * 60 * 60 * 1000;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const baseTs = today.getTime();
-
-  return Array.from({ length: count }, (_, i) => {
-    const idx = startIndex + i;
-    const d = new Date(baseTs - idx * DAY);
-    return {
-      id: `mock-${idx + 1}`,
-      no: idx + 1,
-      title: `샘플 게시글 제목 ${idx + 1} — 반응형/테이블·카드/무한스크롤 테스트`,
-      author: `사용자${((idx + 1) % 7) + 1}`,
-      dateText: formatYyMmDd(d),
-      views: Math.floor(Math.random() * 5000),
-      likes: Math.floor(Math.random() * 200),
-    };
-  });
-}
 
 export default function TestFreeBoardList() {
   const PAGE_SIZE = 15;
   const MAX_PAGES = 4;
+  const MOCK_TOTAL = PAGE_SIZE * MAX_PAGES; // 전체 개수(번호 역순 생성용)
+
+  const makeMockItems = (
+    count: number,
+    startIndex: number
+  ): FreeBoardItem[] => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const baseTs = today.getTime();
+
+    return Array.from({ length: count }, (_, i) => {
+      const idx = startIndex + i;
+      const d = new Date(baseTs - idx * DAY);
+      return {
+        id: `mock-${idx + 1}`,
+        no: MOCK_TOTAL - idx,
+        title: `샘플 게시글 제목 ${idx + 1} — 반응형/테이블·카드/무한스크롤 테스트`,
+        author: `사용자${((idx + 1) % 7) + 1}`,
+        dateText: formatYyMmDd(d),
+        views: Math.floor(Math.random() * 5000),
+        likes: Math.floor(Math.random() * 200),
+      };
+    });
+  };
 
   const [page, setPage] = useState(1);
   const [items, setItems] = useState<FreeBoardItem[]>(() =>
@@ -63,7 +66,6 @@ export default function TestFreeBoardList() {
   });
 
   const handleRefresh = () => setLastLoadedAt(formatYyyyMmDdHms(new Date()));
-
   const clearItems = () => setItems([]);
   const toggleError = () => setErr((e) => (e ? null : "의도적 테스트 에러"));
   const resetAll = () => {
@@ -76,14 +78,6 @@ export default function TestFreeBoardList() {
 
   return (
     <div className="p-4 max-w-3xl mx-auto space-y-4">
-      {/* 🧱 상단 한 줄: 게시판명 · 정렬/태그 아이콘 · 글쓰기 */}
-      <BoardTopBar
-        boardName="자유 게시판"
-        onOpenSort={() => console.log("정렬 필터 열기")}
-        onOpenTag={() => console.log("태그 필터 열기")}
-        onWrite={() => console.log("글쓰기 이동")}
-      />
-
       <header className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-semibold">
           Free/Job/Info 리스트 본문 — 테스트
@@ -108,7 +102,7 @@ export default function TestFreeBoardList() {
             onClick={toggleError}
             className="rounded-md border px-3 py-1 hover:bg-base-200"
           >
-            에러 상태 토글(테스트용)
+            에러 상태 토글
           </button>
         </div>
       </header>
@@ -123,6 +117,12 @@ export default function TestFreeBoardList() {
         <PostList
           items={items}
           onItemClick={(id) => console.log("go detail:", id)}
+          topBar={{
+            boardName: "자유 게시판",
+            onOpenSort: () => console.log("정렬 필터 열기"),
+            onOpenTag: () => console.log("태그 필터 열기"),
+            onWrite: () => console.log("글쓰기 이동"),
+          }}
           lastLoadedAt={lastLoadedAt}
           onRefresh={handleRefresh}
           isLoading={busy}

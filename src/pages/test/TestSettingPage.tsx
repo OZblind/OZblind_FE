@@ -1,5 +1,5 @@
-import { SettingsPage } from "@components/commons/SettingModal/SettingsPage";
-import { ThemeInitializer } from "@src/components/commons/SettingModal/ThemeInitializer";
+import { SettingsPage } from "@src/components/SettingModal/SettingsPage";
+import { ThemeInitializer } from "@src/components/SettingModal/ThemeInitializer";
 import { useState } from "react";
 
 export default function TestSettingPage() {

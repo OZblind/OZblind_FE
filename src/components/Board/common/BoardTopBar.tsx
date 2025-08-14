@@ -1,11 +1,13 @@
+import React from "react";
 import { FilterIconButton } from "./FilterIconButton";
-import { WriteButton } from "./WriteButton";
+import WriteButton from "./WriteButton";
 
 type Props = {
-  boardName: string; // 예: "자유 게시판"
-  onOpenSort?: () => void; // 정렬 필터 열기
-  onOpenTag?: () => void; // 태그 필터 열기
-  onWrite?: () => void; // 글쓰기
+  boardName: string; // 게시판명
+  onOpenSort?: () => void; // 정렬 필터
+  onOpenTag?: () => void; // 태그 필터
+  onWrite?: () => void; // 글쓰기 버튼
+  meta?: React.ReactNode;
   className?: string;
 };
 
@@ -14,18 +16,39 @@ export function BoardTopBar({
   onOpenSort,
   onOpenTag,
   onWrite,
+  meta,
   className,
 }: Props) {
   return (
-    <div
-      className={`flex items-center justify-between gap-2 ${className ?? ""}`}
-    >
-      <h2 className="text-base font-medium">{boardName}</h2>
-      <div className="inline-flex items-center gap-2">
-        <FilterIconButton kind="sort" onClick={onOpenSort} />
-        <FilterIconButton kind="tag" onClick={onOpenTag} />
-        <WriteButton onClick={onWrite} />
+    <div className={`space-y-0.5 ${className ?? ""}`}>
+      {/* 1행: 제목 · 버튼들 */}
+      <div className="flex items-center justify-between gap-2">
+        {/* 제목 너비 확보 + 잘림 방지 */}
+        <h2 className="flex-1 min-w-0 truncate pr-2 text-base font-semibold leading-tight">
+          {boardName}
+        </h2>
+
+        {/* 버튼군: 기본 36px, ≤380px 28px */}
+        <div className="inline-flex items-center gap-2 max-[380px]:gap-1">
+          <FilterIconButton
+            kind="sort"
+            onClick={onOpenSort}
+            className="h-9 w-9 p-2 max-[380px]:size-7 max-[380px]:p-1"
+          />
+          <FilterIconButton
+            kind="tag"
+            onClick={onOpenTag}
+            className="h-9 w-9 p-2 max-[380px]:size-7 max-[380px]:p-1"
+          />
+          <WriteButton
+            onClick={onWrite}
+            className="h-9 max-[380px]:size-7 max-[380px]:p-1"
+          />
+        </div>
       </div>
+
+      {/* 2행: meta(LastLoadedBar 등) */}
+      {meta && <div className="mt-0.5">{meta}</div>}
     </div>
   );
 }

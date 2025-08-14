@@ -7,40 +7,56 @@ type Props = {
 };
 
 export function PostCard({ item, onClick, className }: Props) {
+  const views = Math.max(0, item.views ?? 0); // 음수/null/undefined → 0
+  const likes = Math.max(0, item.likes ?? 0);
+
   return (
     <button
       type="button"
       onClick={() => onClick?.(item.id)}
-      className={`w-full text-left rounded-xl border p-3 hover:bg-neutral-50 dark:hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 ${className ?? ""}`}
+      className={[
+        "w-full rounded-2xl border bg-base-100/40 hover:bg-base-200/40",
+        "focus:outline-none focus:ring-2 focus:ring-primary/40",
+        "p-3 md:p-4 text-left max-[380px]:p-2",
+        className ?? "",
+      ].join(" ")}
       aria-label={`게시글 ${item.title}`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <h3
-          className="
-            font-medium leading-6
-            [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical] overflow-hidden
-          "
-        >
+      {/* 제목 + 날짜 */}
+      <div className="flex items-baseline justify-between gap-2">
+        <h3 className="min-w-0 font-semibold text-sm leading-tight line-clamp-2 max-[380px]:line-clamp-1 max-[380px]:text-[13px]">
           {item.title}
         </h3>
-        {/* 등록일 (YY.MM.DD) */}
-        <div className="shrink-0 text-right text-xs text-neutral-500">
+        <span className="shrink-0 text-[10px] text-neutral-400">
           {item.dateText}
-        </div>
+        </span>
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-neutral-600 dark:text-neutral-300">
-        <span className="truncate max-w-[40%]">{item.author}</span>
-        <span aria-hidden>•</span>
-        <span>조회 {item.views}</span>
-        <span aria-hidden>•</span>
-        <span>추천 {item.likes}</span>
-        {typeof item.no !== "undefined" && (
-          <>
-            <span aria-hidden>•</span>
-            <span className="text-neutral-500">No.{item.no}</span>
-          </>
-        )}
+      {/* 메타: [No · 작성자] / [추천 · 조회] 2열 그리드 */}
+      <div className="mt-2 grid grid-cols-2 items-start gap-x-3 gap-y-1 text-xs max-[380px]:text-[11px] max-[380px]:mt-1">
+        {/* 좌: No, 작성자 */}
+        <div className="space-y-0.5">
+          {item.no != null && (
+            <div className="truncate text-neutral-400">No.{item.no}</div>
+          )}
+          <div className="truncate text-neutral-300">{item.author}</div>
+        </div>
+
+        {/* 우: 추천, 조회 (값 강조, 우측 정렬) */}
+        <div className="space-y-0.5 text-right">
+          <div className="truncate">
+            <span className="text-neutral-400">추천 </span>
+            <span className="font-medium text-neutral-100">
+              {String(likes)}
+            </span>
+          </div>
+          <div className="truncate">
+            <span className="text-neutral-400">조회 </span>
+            <span className="font-medium text-neutral-100">
+              {String(views)}
+            </span>
+          </div>
+        </div>
       </div>
     </button>
   );
