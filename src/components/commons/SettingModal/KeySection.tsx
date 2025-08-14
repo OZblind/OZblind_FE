@@ -24,7 +24,13 @@ export function KeySection() {
           이미 인증된 사용자입니다.
         </div>
       ) : (
-        <div className="flex justify-between">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleLogin();
+          }}
+          className="flex justify-between"
+        >
           <input
             type="text"
             placeholder="발급받은 인증 키를 입력해 주세요."
@@ -33,12 +39,12 @@ export function KeySection() {
             className="flex-1 min-w-0 bg-base-300 border border-base-200 p-2 focus:outline-none focus:border-primary rounded"
           />
           <button
-            onClick={handleLogin}
+            type="submit"
             className="px-4 bg-primary text-white py-2 rounded hover:bg-secondary transition"
           >
             인증
           </button>
-        </div>
+        </form>
       )}
       {error && <p className="text-error font-thin">{error}</p>}
     </div>
