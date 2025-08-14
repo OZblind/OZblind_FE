@@ -1,11 +1,14 @@
 type Theme = "oz_dark" | "oz_light";
 
-type Props = {
+interface ThemeToggleSectionProps {
   theme: Theme;
   setTheme: (theme: Theme) => void;
-};
+}
 
-export default function ThemeToggleSection({ theme, setTheme }: Props) {
+export default function ThemeToggleSection({
+  theme,
+  setTheme,
+}: ThemeToggleSectionProps) {
   const toggleTheme = () => {
     const newTheme = theme === "oz_dark" ? "oz_light" : "oz_dark";
     document.documentElement.setAttribute("data-theme", newTheme);

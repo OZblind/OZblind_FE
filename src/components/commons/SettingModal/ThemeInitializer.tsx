@@ -2,11 +2,11 @@ import { useEffect } from "react";
 
 type Theme = "oz_dark" | "oz_light";
 
-type Props = {
+interface ThemeInitializerProps {
   setTheme: (theme: Theme) => void;
-};
+}
 
-export function ThemeInitializer({ setTheme }: Props) {
+export function ThemeInitializer({ setTheme }: ThemeInitializerProps) {
   // 초기 로드 시 테마 설정
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") as

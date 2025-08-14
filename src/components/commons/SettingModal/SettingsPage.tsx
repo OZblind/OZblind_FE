@@ -3,14 +3,19 @@ import { SettingPopup } from "./SettingsPopup";
 
 type Theme = "oz_dark" | "oz_light";
 
-type Props = {
+interface SettingsPageProps {
   isOpen: boolean;
   setIsOpen: Dispatch<SetStateAction<boolean>>;
   theme: Theme;
   setTheme: Dispatch<SetStateAction<Theme>>;
-};
+}
 
-export function SettingsPage({ isOpen, setIsOpen, theme, setTheme }: Props) {
+export function SettingsPage({
+  isOpen,
+  setIsOpen,
+  theme,
+  setTheme,
+}: SettingsPageProps) {
   return (
     <>
       {isOpen && (

@@ -5,13 +5,17 @@ import { AccountDeletionSection } from "./AccountDeletionSection";
 
 type Theme = "oz_dark" | "oz_light";
 
-type Props = {
+interface SettingPopupProps {
   setIsOpen: Dispatch<SetStateAction<boolean>>;
   theme: Theme;
   setTheme: Dispatch<SetStateAction<Theme>>;
-};
+}
 
-export function SettingPopup({ setIsOpen, theme, setTheme }: Props) {
+export function SettingPopup({
+  setIsOpen,
+  theme,
+  setTheme,
+}: SettingPopupProps) {
   const isAuthenticated = true; // 오즈키 인증 상태(임시)
   return (
     <div className="relative bg-base-200 rounded-md p-6 max-w-md w-full h-[500px]">
