@@ -3,23 +3,23 @@ import PostList from "@components/Board/free/PostList";
 import type { FreeBoardItem } from "@components/Board/free/PostRow";
 import { useInfiniteScroll } from "@hooks/useInfiniteScroll";
 import { formatYyMmDd, formatYyyyMmDdHms } from "@utils/date";
+import { BoardTopBar } from "@components/Board/common/BoardTopBar";
 
-/** 샘플 아이템 생성기 (자정 기준, 하루 단위로 감소) */
 function makeMockItems(count: number, startIndex: number): FreeBoardItem[] {
   const DAY = 24 * 60 * 60 * 1000;
   const today = new Date();
-  today.setHours(0, 0, 0, 0); // 자정 고정
+  today.setHours(0, 0, 0, 0);
   const baseTs = today.getTime();
 
   return Array.from({ length: count }, (_, i) => {
-    const idx = startIndex + i; // 0일부터 시작: idx일 전
+    const idx = startIndex + i;
     const d = new Date(baseTs - idx * DAY);
     return {
       id: `mock-${idx + 1}`,
       no: idx + 1,
       title: `샘플 게시글 제목 ${idx + 1} — 반응형/테이블·카드/무한스크롤 테스트`,
       author: `사용자${((idx + 1) % 7) + 1}`,
-      dateText: formatYyMmDd(d), // ✅ YY.MM.DD
+      dateText: formatYyMmDd(d),
       views: Math.floor(Math.random() * 5000),
       likes: Math.floor(Math.random() * 200),
     };
@@ -36,7 +36,6 @@ export default function TestFreeBoardList() {
   );
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  // 상단 바 표기: YYYY.MM.DD HH:mm:ss
   const [lastLoadedAt, setLastLoadedAt] = useState<string>(
     formatYyyyMmDdHms(new Date())
   );
@@ -47,13 +46,11 @@ export default function TestFreeBoardList() {
     if (busy || !hasMore) return;
     setBusy(true);
     setErr(null);
-
-    await new Promise((r) => setTimeout(r, 500)); // 지연 흉내
-
+    await new Promise((r) => setTimeout(r, 500));
     const nextPage = page + 1;
     setItems((prev) => [...prev, ...makeMockItems(PAGE_SIZE, prev.length)]);
     setPage(nextPage);
-    setLastLoadedAt(formatYyyyMmDdHms(new Date())); // ✅ 포맷 통일
+    setLastLoadedAt(formatYyyyMmDdHms(new Date()));
     setBusy(false);
   };
 
@@ -65,11 +62,8 @@ export default function TestFreeBoardList() {
     onIntersect: loadMore,
   });
 
-  const handleRefresh = () => {
-    setLastLoadedAt(formatYyyyMmDdHms(new Date())); // ✅ 포맷 통일
-  };
+  const handleRefresh = () => setLastLoadedAt(formatYyyyMmDdHms(new Date()));
 
-  // 보조 컨트롤
   const clearItems = () => setItems([]);
   const toggleError = () => setErr((e) => (e ? null : "의도적 테스트 에러"));
   const resetAll = () => {
@@ -82,6 +76,14 @@ export default function TestFreeBoardList() {
 
   return (
     <div className="p-4 max-w-3xl mx-auto space-y-4">
+      {/* 🧱 상단 한 줄: 게시판명 · 정렬/태그 아이콘 · 글쓰기 */}
+      <BoardTopBar
+        boardName="자유 게시판"
+        onOpenSort={() => console.log("정렬 필터 열기")}
+        onOpenTag={() => console.log("태그 필터 열기")}
+        onWrite={() => console.log("글쓰기 이동")}
+      />
+
       <header className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-semibold">
           Free/Job/Info 리스트 본문 — 테스트
@@ -106,7 +108,7 @@ export default function TestFreeBoardList() {
             onClick={toggleError}
             className="rounded-md border px-3 py-1 hover:bg-base-200"
           >
-            에러 토글
+            에러 상태 토글(테스트용)
           </button>
         </div>
       </header>
@@ -129,7 +131,7 @@ export default function TestFreeBoardList() {
           sentinelRef={sentinelRef}
           empty={{
             message: "조건에 맞는 게시글이 없습니다.",
-            actionLabel: "필터 초기화하고 다시 보기",
+            actionLabel: "초기화",
             onAction: resetAll,
           }}
         />

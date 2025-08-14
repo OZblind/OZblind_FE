@@ -4,14 +4,14 @@ import {
   EmptyState,
   type EmptyStateProps,
 } from "@components/Board/common/EmptyState";
-import { PostRow, type FreeBoardItem } from "./PostRow";
+import { PostRow, type FreeBoardItem, FREE_LIST_GRID } from "./PostRow";
 import { PostCard } from "./PostCard";
 
 export type PostListProps = {
   items: FreeBoardItem[];
   onItemClick?: (id: FreeBoardItem["id"]) => void;
 
-  lastLoadedAt?: string; // YYYY.MM.DD HH:mm:ss 문자열 권장
+  lastLoadedAt?: string;
   onRefresh?: () => void;
 
   isLoading?: boolean;
@@ -21,8 +21,6 @@ export type PostListProps = {
   sentinelRef?: (el: HTMLDivElement | null) => void;
 
   noMoreText?: string;
-
-  /** 공용 빈 상태 UI 설정 */
   empty?: EmptyStateProps;
 
   className?: string;
@@ -49,13 +47,16 @@ export default function PostList({
 
       {/* 데스크톱(테이블) */}
       <div className="hidden md:block">
-        <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-medium text-neutral-500">
-          <div className="col-span-1 text-center">번호</div>
-          <div className="col-span-5">제목</div>
-          <div className="col-span-2">글쓴이</div>
-          <div className="col-span-2">등록일</div>
-          <div className="col-span-1 text-right">조회</div>
-          <div className="col-span-1 text-right">추천</div>
+        {/* 헤더: 행과 동일한 고정 그리드 트랙 사용 */}
+        <div
+          className={`${FREE_LIST_GRID} gap-2 px-3 py-2 text-xs font-medium text-neutral-500`}
+        >
+          <div className="text-center">번호</div>
+          <div>제목</div>
+          <div>글쓴이</div>
+          <div>등록일</div>
+          <div className="text-right tabular-nums">조회</div>
+          <div className="text-right tabular-nums">추천</div>
         </div>
 
         {!isEmpty && (
@@ -69,7 +70,6 @@ export default function PostList({
         )}
 
         {isEmpty && !isLoading && !isError && <EmptyState {...empty} />}
-
         {isError && (
           <div className="py-10 text-center text-sm text-red-500">
             {errorText ?? "오류가 발생했습니다."}
@@ -93,7 +93,6 @@ export default function PostList({
         )}
 
         {isEmpty && !isLoading && !isError && <EmptyState {...empty} />}
-
         {isError && (
           <div className="py-10 text-center text-sm text-red-500">
             {errorText ?? "오류가 발생했습니다."}

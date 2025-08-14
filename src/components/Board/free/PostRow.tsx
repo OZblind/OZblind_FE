@@ -1,9 +1,11 @@
+export const FREE_LIST_GRID = "grid grid-cols-[64px_1fr_160px_100px_80px_80px]"; // 번호/제목/글쓴이/등록일/조회/추천
+
 export type FreeBoardItem = {
   id: string | number;
-  no?: number; // 글 번호(선택)
+  no?: number;
   title: string;
   author: string;
-  dateText: string; // YY.MM.DD 형식 문자열
+  dateText: string; // YY.MM.DD
   views: number;
   likes: number;
 };
@@ -19,32 +21,18 @@ export function PostRow({ item, onClick, className }: Props) {
     <button
       type="button"
       onClick={() => onClick?.(item.id)}
-      className={`group grid grid-cols-12 w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 ${className ?? ""}`}
+      className={`${FREE_LIST_GRID} w-full items-center gap-2 rounded-md px-3 py-2 text-sm
+                  hover:bg-neutral-50 dark:hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 ${className ?? ""}`}
       aria-label={`게시글 ${item.title}`}
     >
-      {/* 번호 */}
-      <span className="col-span-1 text-center text-neutral-500">
-        {item.no ?? "-"}
-      </span>
-
-      {/* 제목 */}
-      <span className="col-span-5 truncate font-medium text-left">
-        {item.title}
-      </span>
-
-      {/* 글쓴이 */}
-      <span className="col-span-2 truncate text-neutral-700 dark:text-neutral-200">
+      <span className="text-center text-neutral-500">{item.no ?? "-"}</span>
+      <span className="truncate font-medium text-left">{item.title}</span>
+      <span className="truncate text-neutral-700 dark:text-neutral-200">
         {item.author}
       </span>
-
-      {/* 등록일 (YY.MM.DD) */}
-      <span className="col-span-2 text-neutral-500">{item.dateText}</span>
-
-      {/* 조회 */}
-      <span className="col-span-1 text-right tabular-nums">{item.views}</span>
-
-      {/* 추천 */}
-      <span className="col-span-1 text-right tabular-nums">{item.likes}</span>
+      <span className="text-neutral-500">{item.dateText}</span>
+      <span className="text-right tabular-nums">{item.views}</span>
+      <span className="text-right tabular-nums">{item.likes}</span>
     </button>
   );
 }
