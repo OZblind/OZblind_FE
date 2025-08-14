@@ -12,11 +12,15 @@ type Props = {
 };
 
 export function SettingPopup({ setIsOpen, theme, setTheme }: Props) {
+  const isAuthenticated = true; // 오즈키 인증 상태(임시)
   return (
     <div className="relative bg-base-200 rounded-md p-6 max-w-md w-full h-[500px]">
       <button
         className="absolute top-4 right-4 px-4 text-base-content py-2 rounded-full hover:bg-base-300 transition"
-        onClick={() => setIsOpen(false)}
+        onClick={() => {
+          if (!isAuthenticated) return;
+          setIsOpen(false);
+        }}
       >
         X
       </button>
