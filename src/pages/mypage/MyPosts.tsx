@@ -1,4 +1,3 @@
-// pages/MyPosts.tsx - 기존 코드에 간단한 에러 처리만 추가
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 

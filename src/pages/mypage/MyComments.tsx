@@ -1,4 +1,3 @@
-// pages/MyComments.tsx - 에러 처리 적용 버전
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
