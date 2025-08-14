@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import UndoToast from "@src/components/commons/Toast/UndoToast";
+import PageHeader from "@src/components/commons/MyPage/PageHeader";
 
 // 북마크 데이터 타입
 interface BookmarkItem {
@@ -21,7 +22,7 @@ interface DeletedItem {
   originalIndex: number;
 }
 
-// 개별 북마크 아이템 컴포넌트
+// 개별 북마크 아이템 컴포넌트 (변경 없음)
 interface BookmarkListItemProps {
   bookmark: BookmarkItem;
   onPostClick?: () => void;
@@ -384,35 +385,15 @@ const MyBookmarks: React.FC = () => {
             : "opacity-0 translate-x-8"
         }`}
       >
-        {/* 헤더 */}
-        <div
-          className={`flex items-center justify-between mb-6 transition-all duration-300 ${
-            isExiting ? "opacity-0 -translate-y-4" : "opacity-100 translate-y-0"
-          }`}
-        >
-          <div className="flex items-center">
-            <h2 className="text-lg sm:text-xl font-semibold text-base-content">
-              북마크
-            </h2>
-          </div>
-          <div className="flex items-center space-x-3">
-            {/* 로딩이나 에러가 아닐 때만 개수 표시 */}
-            {!isLoading && !error && (
-              <span className="text-xs sm:text-sm text-neutral-content">
-                총 {bookmarks.length}개
-              </span>
-            )}
-            <button
-              onClick={handleBackClick}
-              className="w-6 h-6 sm:w-8 sm:h-8 bg-primary rounded-full flex items-center justify-center hover:bg-primary-focus transition-all duration-200 group transform hover:scale-110"
-              aria-label="뒤로가기"
-            >
-              <span className="text-primary-content text-sm sm:text-lg font-bold group-hover:rotate-180 transition-transform duration-300">
-                −
-              </span>
-            </button>
-          </div>
-        </div>
+        {/* 기존 헤더 코드를 PageHeader 컴포넌트로 교체 */}
+        <PageHeader
+          title="북마크"
+          count={bookmarks.length}
+          onBackClick={handleBackClick}
+          isExiting={isExiting}
+          isLoading={isLoading}
+          hasError={!!error}
+        />
 
         {/* 메인 컨텐츠 */}
         <div
