@@ -18,38 +18,28 @@ interface PostItem {
   comments?: number;
 }
 
-// 개별 게시글 아이템 컴포넌트
 interface PostListItemProps {
   post: PostItem;
   onClick?: () => void;
-  delay?: number;
+  index?: number; // delay 대신 index 사용 (CSS로 처리)
+  isExiting?: boolean; // 네비게이션 가드용 추가
 }
 
 const PostListItem: React.FC<PostListItemProps> = ({
   post,
   onClick,
-  delay = 0,
+  index = 0,
+  isExiting = false,
 }) => {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsVisible(true);
-    }, delay);
-
-    return () => clearTimeout(timer);
-  }, [delay]);
-
   return (
     <div
-      className={`flex items-center py-4 px-2 border-b border-base-300 hover:bg-base-200 cursor-pointer transition-all ${getDurationClass(
-        ANIMATION_TIMINGS.ITEM_APPEAR
-      )} transform ${
-        isVisible
-          ? ANIMATION_CLASSES.ITEM_ENTER
-          : ANIMATION_CLASSES.ITEM_INITIAL
-      }`}
-      onClick={onClick}
+      className={`flex items-center py-4 px-2 border-b border-base-300 hover:bg-base-200 cursor-pointer transition-all duration-500 transform opacity-0 translate-x-8 animate-slide-in`}
+      style={{
+        // CSS로 순차 등장 효과 구현 (JavaScript 타이머 불필요)
+        transitionDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
+        animationDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
+      }}
+      onClick={() => !isExiting && onClick?.()} // 네비게이션 중복 방지
     >
       {/* 카테고리 */}
       <div className="w-16 flex-shrink-0">
@@ -89,7 +79,7 @@ const MyPosts: React.FC = () => {
 
   // 페이지네이션 상태
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = 5; // 임시로 5페이지로 설정
+  const totalPages = 5;
 
   // 컴포넌트 마운트 시 애니메이션
   useEffect(() => {
@@ -102,17 +92,14 @@ const MyPosts: React.FC = () => {
       setIsLoading(true);
       setError(null);
 
-      // 시뮬레이션: 네트워크 지연
       await new Promise((resolve) =>
         setTimeout(resolve, ANIMATION_TIMINGS.LOADING_DELAY_POSTS)
       );
 
-      // 시뮬레이션: 가끔 에러 발생 (테스트용)
       if (Math.random() < 0.1) {
         throw new Error("서버에서 데이터를 가져오는데 실패했습니다.");
       }
 
-      // 임시 게시글 데이터
       const dummyPosts: PostItem[] = [
         {
           id: 1,
@@ -174,12 +161,10 @@ const MyPosts: React.FC = () => {
     }
   };
 
-  // 초기 데이터 로딩
   useEffect(() => {
     loadPosts();
   }, []);
 
-  // 뒤로가기 핸들러 (애니메이션 포함)
   const handleBackClick = () => {
     setIsExiting(true);
     setTimeout(() => {
@@ -187,147 +172,153 @@ const MyPosts: React.FC = () => {
     }, ANIMATION_TIMINGS.PAGE_TRANSITION);
   };
 
-  // 게시글 클릭 핸들러
   const handlePostClick = (postId: number) => {
     console.log(`게시글 ${postId} 클릭`);
     // navigate(`/post/${postId}`);
   };
 
-  // 재시도 핸들러
   const handleRetry = () => {
     loadPosts();
   };
 
-  // 페이지 변경 핸들러
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     console.log(`페이지 ${page}로 이동`);
-    // 실제로는 여기서 해당 페이지 데이터를 로드
-    // loadPosts(page);
   };
 
   return (
-    <div
-      className={`p-4 sm:p-6 transition-all ${getDurationClass(
-        ANIMATION_TIMINGS.ITEM_APPEAR
-      )} transform ${
-        isLoaded && !isExiting
-          ? ANIMATION_CLASSES.PAGE_ENTER
-          : isExiting
-          ? ANIMATION_CLASSES.PAGE_EXIT
-          : ANIMATION_CLASSES.PAGE_INITIAL
-      }`}
-    >
-      {/* PageHeader 컴포넌트 */}
-      <PageHeader
-        title="작성글"
-        count={posts.length}
-        onBackClick={handleBackClick}
-        isExiting={isExiting}
-        isLoading={isLoading}
-        hasError={!!error}
-      />
-
-      {/* 메인 컨텐츠 */}
+    <>
       <div
-        className={`bg-base-200 rounded-lg overflow-hidden transition-all ${getDurationClass(
+        className={`p-4 sm:p-6 transition-all ${getDurationClass(
           ANIMATION_TIMINGS.ITEM_APPEAR
-        )} ${
-          isExiting
-            ? ANIMATION_CLASSES.CONTAINER_EXIT
-            : ANIMATION_CLASSES.CONTAINER_ENTER
+        )} transform ${
+          isLoaded && !isExiting
+            ? ANIMATION_CLASSES.PAGE_ENTER
+            : isExiting
+            ? ANIMATION_CLASSES.PAGE_EXIT
+            : ANIMATION_CLASSES.PAGE_INITIAL
         }`}
       >
-        {/* 로딩 상태 */}
-        {isLoading && (
-          <div className="flex flex-col items-center justify-center py-12">
-            <span className="loading loading-spinner loading-primary loading-lg"></span>
-            <p className="text-neutral-content text-sm mt-4">
-              게시글을 불러오는 중...
-            </p>
-          </div>
-        )}
+        <PageHeader
+          title="작성글"
+          count={posts.length}
+          onBackClick={handleBackClick}
+          isExiting={isExiting}
+          isLoading={isLoading}
+          hasError={!!error}
+        />
 
-        {/* 에러 상태 */}
-        {error && (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">⚠️</div>
-            <h3 className="text-lg font-medium text-base-content mb-2">
-              문제가 발생했습니다
-            </h3>
-            <p className="text-neutral-content text-sm mb-6 max-w-md mx-auto">
-              {error}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <button
-                onClick={handleBackClick}
-                className={`border border-primary text-primary hover:bg-primary hover:text-white px-6 py-2 rounded-md text-sm font-medium transition-colors ${getDurationClass(
-                  ANIMATION_TIMINGS.HOVER_TRANSITION
-                )}`}
-              >
-                뒤로가기
-              </button>
-              <button
-                onClick={handleRetry}
-                className={`bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-md text-sm font-medium transition-colors ${getDurationClass(
-                  ANIMATION_TIMINGS.HOVER_TRANSITION
-                )}`}
-              >
-                다시 시도
-              </button>
+        <div
+          className={`bg-base-200 rounded-lg overflow-hidden transition-all ${getDurationClass(
+            ANIMATION_TIMINGS.ITEM_APPEAR
+          )} ${
+            isExiting
+              ? ANIMATION_CLASSES.CONTAINER_EXIT
+              : ANIMATION_CLASSES.CONTAINER_ENTER
+          }`}
+        >
+          {/* 로딩 상태 */}
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center py-12">
+              <span className="loading loading-spinner loading-primary loading-lg"></span>
+              <p className="text-neutral-content text-sm mt-4">
+                게시글을 불러오는 중...
+              </p>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* 정상 상태 - 게시글 목록 */}
-        {!isLoading && !error && (
-          <>
-            {posts.length > 0 ? (
-              posts.map((post, index) => (
-                <PostListItem
-                  key={post.id}
-                  post={post}
-                  onClick={() => handlePostClick(post.id)}
-                  delay={
-                    isLoaded ? index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE : 0
-                  }
-                />
-              ))
-            ) : (
-              // 빈 상태
-              <div className="text-center py-12">
-                <div className="text-neutral-content text-4xl mb-4">📝</div>
-                <h3 className="text-neutral-content text-lg font-medium mb-2">
-                  작성한 글이 없습니다
-                </h3>
-                <p className="text-neutral-content text-sm mb-6">
-                  첫 번째 글을 작성해보세요!
-                </p>
+          {/* 에러 상태 */}
+          {error && (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h3 className="text-lg font-medium text-base-content mb-2">
+                문제가 발생했습니다
+              </h3>
+              <p className="text-neutral-content text-sm mb-6 max-w-md mx-auto">
+                {error}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <button
-                  onClick={() => navigate("/write")}
+                  onClick={handleBackClick}
+                  className={`border border-primary text-primary hover:bg-primary hover:text-white px-6 py-2 rounded-md text-sm font-medium transition-colors ${getDurationClass(
+                    ANIMATION_TIMINGS.HOVER_TRANSITION
+                  )}`}
+                >
+                  뒤로가기
+                </button>
+                <button
+                  onClick={handleRetry}
                   className={`bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-md text-sm font-medium transition-colors ${getDurationClass(
                     ANIMATION_TIMINGS.HOVER_TRANSITION
                   )}`}
                 >
-                  글쓰기
+                  다시 시도
                 </button>
               </div>
-            )}
-          </>
+            </div>
+          )}
+
+          {/* 정상 상태 - 게시글 목록 */}
+          {!isLoading && !error && (
+            <>
+              {posts.length > 0 ? (
+                posts.map((post, index) => (
+                  <PostListItem
+                    key={post.id}
+                    post={post}
+                    onClick={() => handlePostClick(post.id)}
+                    index={index} // delay 대신 index 전달
+                    isExiting={isExiting} // 네비게이션 가드 전달
+                  />
+                ))
+              ) : (
+                <div className="text-center py-12">
+                  <div className="text-neutral-content text-4xl mb-4">📝</div>
+                  <h3 className="text-neutral-content text-lg font-medium mb-2">
+                    작성한 글이 없습니다
+                  </h3>
+                  <p className="text-neutral-content text-sm mb-6">
+                    첫 번째 글을 작성해보세요!
+                  </p>
+                  <button
+                    onClick={() => navigate("/write")}
+                    className={`bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-md text-sm font-medium transition-colors ${getDurationClass(
+                      ANIMATION_TIMINGS.HOVER_TRANSITION
+                    )}`}
+                  >
+                    글쓰기
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {!isLoading && !error && posts.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            isLoaded={isLoaded}
+            isExiting={isExiting}
+          />
         )}
       </div>
 
-      {/* 페이지네이션 - 데이터가 있을 때만 표시 */}
-      {!isLoading && !error && posts.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-          isLoaded={isLoaded}
-          isExiting={isExiting}
-        />
-      )}
-    </div>
+      {/* CSS 애니메이션 - 전역 스타일에 추가하거나 styled-components 사용 */}
+      <style>{`
+        @keyframes slide-in {
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        .animate-slide-in {
+          animation: slide-in 0.5s ease-out forwards;
+        }
+      `}</style>
+    </>
   );
 };
 
