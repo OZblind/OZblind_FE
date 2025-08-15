@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Outlet } from "react-router-dom";
 
 // 사용자 프로필 타입 정의
@@ -17,7 +17,7 @@ interface MyPageLayoutProps {
 const MyPageLayout: React.FC<MyPageLayoutProps> = ({
   userProfile = {
     nickname: "익명",
-    userId: "FE001", // 예시: 백엔드에서 받을 실제 사용자 ID
+    userId: "FE001",
     hasKey: false,
   },
   className,
@@ -29,49 +29,41 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
     setIsSettingsOpen(true);
   };
 
-  // 사용자 ID에서 FE/BE 구분하는 함수
-  const getUserType = (userId: string) => {
+  // useMemo로 계산값 최적화
+  const userType = useMemo(() => {
+    const userId = userProfile.userId || "";
     if (userId.startsWith("FE")) return "FE";
     if (userId.startsWith("BE")) return "BE";
     return "FE"; // 기본값
-  };
+  }, [userProfile.userId]);
 
-  // 사용자 ID에서 기수 추출하는 함수 (예: FE001 → 11기, BE002 → 12기)
-  const getUserGeneration = (userId: string) => {
-    // 실제로는 백엔드에서 기수 정보를 별도로 받거나, ID 패턴에 따라 결정
-    // 예시: 임시로 홀수는 11기, 짝수는 12기로 설정
+  const userGeneration = useMemo(() => {
+    const userId = userProfile.userId || "";
     const idNumber = parseInt(userId.slice(-1)) || 1;
     return idNumber % 2 === 1 ? "11기" : "12기";
-  };
+  }, [userProfile.userId]);
 
-  // 타입별 색상 설정
-  const getTypeColor = (type: string) => {
-    switch (type) {
+  const typeColor = useMemo(() => {
+    switch (userType) {
       case "FE":
-        return "bg-gradient-to-r from-blue-500 to-purple-600"; // 클래식 블루-퍼플
+        return "bg-gradient-to-r from-blue-500 to-purple-600";
       case "BE":
-        return "bg-gradient-to-r from-green-500 to-teal-600"; // 그린-틸
+        return "bg-gradient-to-r from-green-500 to-teal-600";
       default:
         return "bg-gradient-to-r from-blue-500 to-purple-600";
     }
-  };
+  }, [userType]);
 
-  // 기수별 색상 설정
-  const getGenerationColor = (generation: string) => {
-    switch (generation) {
+  const generationColor = useMemo(() => {
+    switch (userGeneration) {
       case "11기":
-        return "bg-gradient-to-r from-orange-500 to-red-500"; // 오렌지-레드
+        return "bg-gradient-to-r from-orange-500 to-red-500";
       case "12기":
-        return "bg-gradient-to-r from-purple-500 to-pink-500"; // 퍼플-핑크
+        return "bg-gradient-to-r from-purple-500 to-pink-500";
       default:
-        return "bg-gradient-to-r from-gray-500 to-gray-600"; // 기본값
+        return "bg-gradient-to-r from-gray-500 to-gray-600";
     }
-  };
-
-  const userType = getUserType(userProfile.userId || "");
-  const userGeneration = getUserGeneration(userProfile.userId || "");
-  const typeColor = getTypeColor(userType);
-  const generationColor = getGenerationColor(userGeneration);
+  }, [userGeneration]);
 
   return (
     <div className={`min-h-screen bg-base-100 ${className || ""}`}>
@@ -79,7 +71,7 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
         {/* 프로필 섹션 */}
         <div className="bg-base-200 rounded-lg shadow-sm p-4 sm:p-6 mb-6">
           <div className="flex flex-col items-center text-center">
-            {/* 프로필 이미지 - 호버 시 톱니바퀴로 변경 */}
+            {/* 프로필 이미지 */}
             <div className="relative mb-4">
               <button
                 onClick={handleProfileClick}
@@ -142,7 +134,7 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
               )}
             </div>
 
-            {/* 사용자 정보 - 태그들로만 구성 */}
+            {/* 사용자 정보 - 최적화된 태그들 */}
             <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
               {/* 기수 태그 */}
               <div
@@ -178,15 +170,7 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
         </div>
       </div>
 
-      {/* 팀원이 만든 설정 모달 - 임시 주석 처리 */}
-      {/* {isSettingsOpen && (
-        <UserSetting
-          isOpen={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
-        />
-      )} */}
-
-      {/* 임시 설정 모달 - UserSetting 컴포넌트 대신 사용 */}
+      {/* 임시 설정 모달 */}
       {isSettingsOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-base-100 p-6 rounded-lg max-w-md w-full mx-4">
