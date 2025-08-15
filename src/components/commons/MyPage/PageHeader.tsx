@@ -44,8 +44,9 @@ const PageHeader: React.FC<PageHeaderProps> = ({
             총 {count}개
           </span>
         )}
+        {/* 뒤로가기 버튼 - 안전성 개선 */}
         <button
-          onClick={onBackClick}
+          onClick={() => onBackClick?.()} // 안전한 호출
           className={`w-6 h-6 sm:w-8 sm:h-8 bg-primary rounded-full flex items-center justify-center hover:bg-primary-focus transition-all ${getDurationClass(
             ANIMATION_TIMINGS.HOVER_TRANSITION
           )} group transform hover:scale-110`}

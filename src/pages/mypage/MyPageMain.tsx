@@ -50,7 +50,7 @@ const Card: React.FC<CardProps> = ({
       case "북마크":
         return "북마크한 글이 없습니다.";
       default:
-        return `${title}이 없습니다.`;
+        return `${title ?? "항목"}이 없습니다.`;
     }
   };
 
