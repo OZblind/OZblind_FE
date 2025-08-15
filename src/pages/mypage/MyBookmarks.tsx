@@ -21,30 +21,33 @@ interface BookmarkItem {
   comments?: number;
 }
 
-// 개별 북마크 아이템 컴포넌트
+// ========================================
+// 최적화된 BookmarkListItem 컴포넌트
+// ========================================
+
 interface BookmarkListItemProps {
   bookmark: BookmarkItem;
   onPostClick?: () => void;
-  delay?: number;
+  index?: number; // delay 대신 index 사용 (CSS로 처리)
   isSelected: boolean;
   onSelectionChange: (id: number, checked: boolean) => void;
+  isExiting?: boolean; // 네비게이션 가드용 추가
 }
 
 const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
   bookmark,
   onPostClick,
-  delay = 0,
+  index = 0,
   isSelected,
   onSelectionChange,
+  isExiting = false,
 }) => {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsVisible(true);
-    }, delay);
-    return () => clearTimeout(timer);
-  }, [delay]);
+  // ❌ 기존: useState + useEffect + setTimeout 제거
+  // const [isVisible, setIsVisible] = useState(false);
+  // useEffect(() => {
+  //   const timer = setTimeout(() => setIsVisible(true), delay);
+  //   return () => clearTimeout(timer);
+  // }, [delay]);
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
@@ -52,19 +55,24 @@ const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
   };
 
   const handleRowClick = () => {
-    onPostClick?.();
+    if (!isExiting) {
+      // 네비게이션 가드
+      onPostClick?.();
+    }
   };
 
+  // ✅ 개선: CSS transition-delay + animation-delay 사용
   return (
     <div
-      className={`flex items-center py-4 px-2 border-b border-base-300 hover:bg-base-200 cursor-pointer transition-all ${getDurationClass(
-        ANIMATION_TIMINGS.ITEM_APPEAR
-      )} transform ${
-        isVisible
-          ? ANIMATION_CLASSES.ITEM_ENTER
-          : ANIMATION_CLASSES.ITEM_INITIAL
-      } ${isSelected ? "bg-primary/10" : ""}`}
-      onClick={handleRowClick}
+      className={`flex items-center py-4 px-2 border-b border-base-300 hover:bg-base-200 cursor-pointer transition-all duration-500 transform opacity-0 translate-x-8 animate-slide-in ${
+        isSelected ? "bg-primary/10" : ""
+      }`}
+      style={{
+        // CSS로 순차 등장 효과 구현 (JavaScript 타이머 불필요)
+        transitionDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
+        animationDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
+      }}
+      onClick={handleRowClick} // 네비게이션 가드 적용됨
     >
       {/* 체크박스 */}
       <div className="w-8 flex-shrink-0 flex items-center justify-center">
@@ -320,181 +328,196 @@ const MyBookmarks: React.FC = () => {
     selectedIds.size > 0 && selectedIds.size < bookmarks.length;
 
   return (
-    <div
-      className={`p-4 sm:p-6 transition-all ${getDurationClass(
-        ANIMATION_TIMINGS.ITEM_APPEAR
-      )} transform ${
-        isLoaded && !isExiting
-          ? ANIMATION_CLASSES.PAGE_ENTER
-          : isExiting
-          ? ANIMATION_CLASSES.PAGE_EXIT
-          : ANIMATION_CLASSES.PAGE_INITIAL
-      }`}
-    >
-      {/* PageHeader 컴포넌트 */}
-      <PageHeader
-        title="북마크"
-        count={bookmarks.length}
-        onBackClick={handleBackClick}
-        isExiting={isExiting}
-        isLoading={isLoading}
-        hasError={!!error}
-      />
-
-      {/* 메인 컨텐츠 */}
+    <>
       <div
-        className={`bg-base-200 rounded-lg overflow-hidden transition-all ${getDurationClass(
+        className={`p-4 sm:p-6 transition-all ${getDurationClass(
           ANIMATION_TIMINGS.ITEM_APPEAR
-        )} ${
-          isExiting
-            ? ANIMATION_CLASSES.CONTAINER_EXIT
-            : ANIMATION_CLASSES.CONTAINER_ENTER
+        )} transform ${
+          isLoaded && !isExiting
+            ? ANIMATION_CLASSES.PAGE_ENTER
+            : isExiting
+            ? ANIMATION_CLASSES.PAGE_EXIT
+            : ANIMATION_CLASSES.PAGE_INITIAL
         }`}
       >
-        {/* 로딩 상태 */}
-        {isLoading && (
-          <div className="flex flex-col items-center justify-center py-12">
-            <span className="loading loading-spinner loading-primary loading-lg"></span>
-            <p className="text-neutral-content text-sm mt-4">
-              북마크를 불러오는 중...
-            </p>
-          </div>
-        )}
+        {/* PageHeader 컴포넌트 */}
+        <PageHeader
+          title="북마크"
+          count={bookmarks.length}
+          onBackClick={handleBackClick}
+          isExiting={isExiting}
+          isLoading={isLoading}
+          hasError={!!error}
+        />
 
-        {/* 에러 상태 */}
-        {error && (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">🔖</div>
-            <h3 className="text-lg font-medium text-base-content mb-2">
-              문제가 발생했습니다
-            </h3>
-            <p className="text-neutral-content text-sm mb-6 max-w-md mx-auto">
-              {error}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <button
-                onClick={handleBackClick}
-                className={`border border-primary text-primary hover:bg-primary hover:text-white px-6 py-2 rounded-md text-sm font-medium transition-colors ${getDurationClass(
-                  ANIMATION_TIMINGS.HOVER_TRANSITION
-                )}`}
-              >
-                뒤로가기
-              </button>
-              <button
-                onClick={handleRetry}
-                className={`bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-md text-sm font-medium transition-colors ${getDurationClass(
-                  ANIMATION_TIMINGS.HOVER_TRANSITION
-                )}`}
-              >
-                다시 시도
-              </button>
+        {/* 메인 컨텐츠 */}
+        <div
+          className={`bg-base-200 rounded-lg overflow-hidden transition-all ${getDurationClass(
+            ANIMATION_TIMINGS.ITEM_APPEAR
+          )} ${
+            isExiting
+              ? ANIMATION_CLASSES.CONTAINER_EXIT
+              : ANIMATION_CLASSES.CONTAINER_ENTER
+          }`}
+        >
+          {/* 로딩 상태 */}
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center py-12">
+              <span className="loading loading-spinner loading-primary loading-lg"></span>
+              <p className="text-neutral-content text-sm mt-4">
+                북마크를 불러오는 중...
+              </p>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* 정상 상태 - 북마크 목록 */}
-        {!isLoading && !error && (
-          <>
-            {/* 선택 및 삭제 컨트롤 */}
-            {bookmarks.length > 0 && (
-              <div className="flex items-center justify-between p-3 bg-base-300/30 border-b border-base-300">
-                <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={isAllSelected}
-                      ref={(input) => {
-                        if (input) input.indeterminate = isPartiallySelected;
-                      }}
-                      onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="checkbox checkbox-primary checkbox-sm border-white bg-transparent"
-                    />
-                    <span className="text-sm">전체 선택</span>
-                  </label>
-                  {selectedIds.size > 0 && (
-                    <span className="text-xs text-primary">
-                      {selectedIds.size}개 선택됨
-                    </span>
-                  )}
-                </div>
-
+          {/* 에러 상태 */}
+          {error && (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🔖</div>
+              <h3 className="text-lg font-medium text-base-content mb-2">
+                문제가 발생했습니다
+              </h3>
+              <p className="text-neutral-content text-sm mb-6 max-w-md mx-auto">
+                {error}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <button
-                  onClick={handleDeleteSelected}
-                  disabled={selectedIds.size === 0}
-                  className={`px-3 py-1.5 rounded text-sm font-medium transition-all ${getDurationClass(
+                  onClick={handleBackClick}
+                  className={`border border-primary text-primary hover:bg-primary hover:text-white px-6 py-2 rounded-md text-sm font-medium transition-colors ${getDurationClass(
                     ANIMATION_TIMINGS.HOVER_TRANSITION
-                  )} ${
-                    selectedIds.size > 0
-                      ? "bg-error text-error-content hover:bg-error/80 transform hover:scale-105"
-                      : "bg-base-300 text-neutral-content cursor-not-allowed"
-                  }`}
+                  )}`}
                 >
-                  선택 삭제 ({selectedIds.size})
+                  뒤로가기
                 </button>
-              </div>
-            )}
-
-            {/* 안내 메시지 */}
-            {bookmarks.length > 0 && (
-              <div className="p-3 bg-info/10 border-b border-base-300">
-                <p className="text-sm text-info">
-                  💡 체크박스로 북마크를 선택하고 "선택 삭제" 버튼으로 일괄
-                  삭제할 수 있습니다.
-                </p>
-              </div>
-            )}
-
-            {/* 북마크 리스트 또는 빈 상태 */}
-            {bookmarks.length > 0 ? (
-              bookmarks.map((bookmark, index) => (
-                <BookmarkListItem
-                  key={bookmark.id}
-                  bookmark={bookmark}
-                  onPostClick={() => handlePostClick(bookmark.postId)}
-                  delay={
-                    isLoaded ? index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE : 0
-                  }
-                  isSelected={selectedIds.has(bookmark.id)}
-                  onSelectionChange={handleSelectionChange}
-                />
-              ))
-            ) : (
-              // 빈 상태
-              <div className="text-center py-12">
-                <div className="text-neutral-content text-4xl mb-4">🔖</div>
-                <h3 className="text-neutral-content text-lg font-medium mb-2">
-                  북마크한 글이 없습니다
-                </h3>
-                <p className="text-neutral-content text-sm mb-6">
-                  마음에 드는 글을 북마크해보세요!
-                </p>
                 <button
-                  onClick={() => navigate("/board")}
+                  onClick={handleRetry}
                   className={`bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-md text-sm font-medium transition-colors ${getDurationClass(
                     ANIMATION_TIMINGS.HOVER_TRANSITION
                   )}`}
                 >
-                  게시판 보기
+                  다시 시도
                 </button>
               </div>
-            )}
-          </>
+            </div>
+          )}
+
+          {/* 정상 상태 - 북마크 목록 */}
+          {!isLoading && !error && (
+            <>
+              {/* 선택 및 삭제 컨트롤 */}
+              {bookmarks.length > 0 && (
+                <div className="flex items-center justify-between p-3 bg-base-300/30 border-b border-base-300">
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        ref={(input) => {
+                          if (input) input.indeterminate = isPartiallySelected;
+                        }}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="checkbox checkbox-primary checkbox-sm border-white bg-transparent"
+                      />
+                      <span className="text-sm">전체 선택</span>
+                    </label>
+                    {selectedIds.size > 0 && (
+                      <span className="text-xs text-primary">
+                        {selectedIds.size}개 선택됨
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={handleDeleteSelected}
+                    disabled={selectedIds.size === 0}
+                    className={`px-3 py-1.5 rounded text-sm font-medium transition-all ${getDurationClass(
+                      ANIMATION_TIMINGS.HOVER_TRANSITION
+                    )} ${
+                      selectedIds.size > 0
+                        ? "bg-error text-error-content hover:bg-error/80 transform hover:scale-105"
+                        : "bg-base-300 text-neutral-content cursor-not-allowed"
+                    }`}
+                  >
+                    선택 삭제 ({selectedIds.size})
+                  </button>
+                </div>
+              )}
+
+              {/* 안내 메시지 */}
+              {bookmarks.length > 0 && (
+                <div className="p-3 bg-info/10 border-b border-base-300">
+                  <p className="text-sm text-info">
+                    💡 체크박스로 북마크를 선택하고 "선택 삭제" 버튼으로 일괄
+                    삭제할 수 있습니다.
+                  </p>
+                </div>
+              )}
+
+              {/* 북마크 리스트 또는 빈 상태 */}
+              {bookmarks.length > 0 ? (
+                bookmarks.map((bookmark, index) => (
+                  <BookmarkListItem
+                    key={bookmark.id}
+                    bookmark={bookmark}
+                    onPostClick={() => handlePostClick(bookmark.postId)}
+                    index={index} // delay 대신 index 전달
+                    isSelected={selectedIds.has(bookmark.id)}
+                    onSelectionChange={handleSelectionChange}
+                    isExiting={isExiting} // 네비게이션 가드 전달
+                  />
+                ))
+              ) : (
+                // 빈 상태
+                <div className="text-center py-12">
+                  <div className="text-neutral-content text-4xl mb-4">🔖</div>
+                  <h3 className="text-neutral-content text-lg font-medium mb-2">
+                    북마크한 글이 없습니다
+                  </h3>
+                  <p className="text-neutral-content text-sm mb-6">
+                    마음에 드는 글을 북마크해보세요!
+                  </p>
+                  <button
+                    onClick={() => navigate("/board")}
+                    className={`bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-md text-sm font-medium transition-colors ${getDurationClass(
+                      ANIMATION_TIMINGS.HOVER_TRANSITION
+                    )}`}
+                  >
+                    게시판 보기
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* 페이지네이션 - 데이터가 있을 때만 표시 */}
+        {!isLoading && !error && bookmarks.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            isLoaded={isLoaded}
+            isExiting={isExiting}
+          />
         )}
       </div>
 
-      {/* 페이지네이션 - 데이터가 있을 때만 표시 */}
-      {!isLoading && !error && bookmarks.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-          isLoaded={isLoaded}
-          isExiting={isExiting}
-        />
-      )}
+      {/* CSS 애니메이션 - MyPosts와 동일 */}
+      <style>{`
+        @keyframes slide-in {
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        .animate-slide-in {
+          animation: slide-in 0.5s ease-out forwards;
+        }
+      `}</style>
 
       {/* 기존 UndoToast 완전 제거됨 */}
-    </div>
+    </>
   );
 };
 
