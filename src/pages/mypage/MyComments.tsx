@@ -16,6 +16,13 @@ import {
   EMPTY_MESSAGES,
   BUTTON_TEXT,
 } from "@src/constants/ui";
+import {
+  safeCallback,
+  normalizeError,
+  safeParseInt,
+  safeString,
+  isValidArray,
+} from "@src/utils/errorUtils";
 
 // 댓글 데이터 타입
 interface CommentItem {
@@ -34,37 +41,53 @@ interface CommentListItemProps {
   isExiting?: boolean;
 }
 
-// ✅ CSS transition-delay로 순차 등장 (setTimeout 제거)
+// CSS transition-delay로 순차 등장 (setTimeout 제거)
 const CommentListItem: React.FC<CommentListItemProps> = ({
   comment,
   onClick,
   index = 0,
   isExiting = false,
 }) => {
+  // 안전한 콜백 처리
+  const handleClick = safeCallback(onClick);
+
+  // 안전한 데이터 처리
+  const safeComment = {
+    id: safeParseInt(comment?.id, 0),
+    postTitle: safeString(comment?.postTitle, "제목 없음"),
+    postCategory: safeString(comment?.postCategory, "일반"),
+    commentContent: safeString(comment?.commentContent, "내용 없음"),
+    date: safeString(comment?.date, "날짜 없음"),
+    postId: safeParseInt(comment?.postId, 0),
+  };
+
+  const safeIndex = Math.max(0, safeParseInt(index, 0));
+
   return (
     <div
       className={`p-4 border-b border-base-300 hover:bg-base-200 cursor-pointer transition-all duration-500 transform opacity-0 translate-x-8 animate-slide-in`}
       style={{
-        transitionDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
-        animationDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
+        // CSS로 순차 등장 효과 구현 (JavaScript 타이머 불필요)
+        transitionDelay: `${safeIndex * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
+        animationDelay: `${safeIndex * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
       }}
-      onClick={() => !isExiting && onClick?.()} // 네비게이션 중복 방지
+      onClick={() => !isExiting && handleClick && handleClick()} // 네비게이션 중복 방지
     >
       {/* 원글 정보 */}
       <div className="flex items-center gap-2 mb-2">
         <span className="bg-base-300 text-base-content text-xs px-2 py-1 rounded">
-          {comment.postCategory}
+          {safeComment.postCategory}
         </span>
         <h4 className="text-sm text-base-content font-medium line-clamp-1 flex-1">
-          {comment.postTitle}
+          {safeComment.postTitle}
         </h4>
-        <span className="text-xs text-neutral-content">{comment.date}</span>
+        <span className="text-xs text-neutral-content">{safeComment.date}</span>
       </div>
 
       {/* 댓글 내용 */}
       <div className="pl-4 border-l-2 border-primary/30">
         <p className="text-base-content text-sm line-clamp-2">
-          {comment.commentContent}
+          {safeComment.commentContent}
         </p>
       </div>
     </div>
@@ -139,10 +162,13 @@ const MyComments: React.FC = () => {
         },
       ];
 
-      setComments(dummyComments);
+      // 안전한 데이터 검증
+      const validComments = isValidArray(dummyComments) ? dummyComments : [];
+      setComments(validComments);
       setIsLoading(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : ERROR_MESSAGES.UNKNOWN);
+      const errorMessage = normalizeError(err);
+      setError(errorMessage);
       setIsLoading(false);
     }
   };
@@ -170,21 +196,32 @@ const MyComments: React.FC = () => {
     };
   }, []);
 
-  // 댓글 클릭 핸들러 (원글로 이동)
+  // 댓글 클릭 핸들러 (원글로 이동) - 안전성 개선
   const handleCommentClick = (postId: number) => {
-    console.log(`원글 ${postId}로 이동`);
-    // navigate(`/post/${postId}`);
+    const safePostId = safeParseInt(postId, 0);
+    if (safePostId > 0) {
+      console.log(`원글 ${safePostId}로 이동`);
+      // navigate(`/post/${safePostId}`);
+    }
   };
 
-  // 재시도 핸들러
-  const handleRetry = () => {
-    loadComments();
+  // 재시도 핸들러 (안전한 에러 처리)
+  const handleRetry = async () => {
+    try {
+      await loadComments();
+    } catch (error) {
+      console.error("재시도 중 오류 발생:", error);
+      setError(normalizeError(error));
+    }
   };
 
-  // 페이지 변경 핸들러
+  // 페이지 변경 핸들러 (안전성 개선)
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    console.log(`댓글 페이지 ${page}로 이동`);
+    const safePage = safeParseInt(page, 1);
+    if (safePage >= 1 && safePage <= totalPages) {
+      setCurrentPage(safePage);
+      console.log(`댓글 페이지 ${safePage}로 이동`);
+    }
   };
 
   return (
@@ -264,12 +301,12 @@ const MyComments: React.FC = () => {
           {/* 정상 상태 - 댓글 목록 */}
           {!isLoading && !error && (
             <>
-              {comments.length > 0 ? (
+              {comments && comments.length > 0 ? (
                 comments.map((comment, index) => (
                   <CommentListItem
-                    key={comment.id}
+                    key={comment?.id || index}
                     comment={comment}
-                    onClick={() => handleCommentClick(comment.postId)}
+                    onClick={() => handleCommentClick(comment?.postId)}
                     index={index}
                     isExiting={isExiting}
                   />

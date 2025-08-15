@@ -15,7 +15,14 @@ import {
   LOADING_MESSAGES,
   EMPTY_MESSAGES,
   BUTTON_TEXT,
-} from "@constants/ui";
+} from "@src/constants/ui";
+import {
+  safeCallback,
+  normalizeError,
+  safeParseInt,
+  safeString,
+  isValidArray,
+} from "@src/utils/errorUtils";
 
 // 게시글 데이터 타입
 interface PostItem {
@@ -41,20 +48,35 @@ const PostListItem: React.FC<PostListItemProps> = ({
   index = 0,
   isExiting = false,
 }) => {
+  // 안전한 콜백 처리
+  const handleClick = safeCallback(onClick);
+
+  // 안전한 데이터 처리
+  const safePost = {
+    id: safeParseInt(post?.id, 0),
+    category: safeString(post?.category, "일반"),
+    title: safeString(post?.title, "제목 없음"),
+    date: safeString(post?.date, "날짜 없음"),
+    views: safeParseInt(post?.views, 0),
+    comments: safeParseInt(post?.comments, 0),
+  };
+
+  const safeIndex = Math.max(0, safeParseInt(index, 0));
+
   return (
     <div
       className={`flex items-center py-4 px-2 border-b border-base-300 hover:bg-base-200 cursor-pointer transition-all duration-500 transform opacity-0 translate-x-8 animate-slide-in`}
       style={{
         // CSS로 순차 등장 효과 구현 (JavaScript 타이머 불필요)
-        transitionDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
-        animationDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
+        transitionDelay: `${safeIndex * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
+        animationDelay: `${safeIndex * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
       }}
-      onClick={() => !isExiting && onClick?.()} // 네비게이션 중복 방지
+      onClick={() => !isExiting && handleClick && handleClick()} // 네비게이션 중복 방지
     >
       {/* 카테고리 */}
       <div className="w-16 flex-shrink-0">
         <span className="bg-base-300 text-base-content text-xs px-2 py-1 rounded">
-          {post.category}
+          {safePost.category}
         </span>
       </div>
 
@@ -65,13 +87,13 @@ const PostListItem: React.FC<PostListItemProps> = ({
             ANIMATION_TIMINGS.HOVER_TRANSITION
           )} line-clamp-1`}
         >
-          {post.title}
+          {safePost.title}
         </h3>
       </div>
 
       {/* 날짜 */}
       <div className="w-20 sm:w-24 text-right text-xs sm:text-sm text-neutral-content">
-        {post.date}
+        {safePost.date}
       </div>
     </div>
   );
@@ -118,7 +140,7 @@ const MyPosts: React.FC = () => {
         {
           id: 1,
           category: "자유",
-          title: "아프면 병원을가! [21]",
+          title: "아프면 병원을가 [21]",
           date: "2024.01.15",
           views: 124,
           comments: 21,
@@ -165,10 +187,13 @@ const MyPosts: React.FC = () => {
         },
       ];
 
-      setPosts(dummyPosts);
+      // 안전한 데이터 검증
+      const validPosts = isValidArray(dummyPosts) ? dummyPosts : [];
+      setPosts(validPosts);
       setIsLoading(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : ERROR_MESSAGES.UNKNOWN);
+      const errorMessage = normalizeError(err);
+      setError(errorMessage);
       setIsLoading(false);
     }
   };
@@ -185,7 +210,7 @@ const MyPosts: React.FC = () => {
     }, ANIMATION_TIMINGS.PAGE_TRANSITION);
   };
 
-  // ✅ 컴포넌트 언마운트 시 setTimeout 정리
+  // 컴포넌트 언마운트 시 setTimeout 정리
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
@@ -328,7 +353,7 @@ const MyPosts: React.FC = () => {
         )}
       </div>
 
-      {/* ✅ 공통 CSS 애니메이션 컴포넌트 사용 */}
+      {/*  공통 CSS 애니메이션 컴포넌트 사용 */}
       <SlideInStyles />
     </>
   );
