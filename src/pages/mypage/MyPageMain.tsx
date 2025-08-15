@@ -7,7 +7,7 @@ import { ANIMATION_TIMINGS } from "@constants/animations";
 interface CardData {
   title: string;
   count: number;
-  icon: React.ReactNode; // string → React.ReactNode로 변경
+  icon: React.ReactNode;
   path: string;
   items: Array<{
     id: number;
@@ -17,11 +17,11 @@ interface CardData {
   }>;
 }
 
-// 개별 카드 컴포넌트 - icon 타입 변경
+// 개별 카드 컴포넌트
 interface CardProps {
   title: string;
   count: number;
-  icon: React.ReactNode; // string → React.ReactNode로 변경
+  icon: React.ReactNode;
   items?: Array<{
     id: number;
     title: string;
@@ -51,7 +51,7 @@ const Card: React.FC<CardProps> = ({
       case "북마크":
         return "북마크한 글이 없습니다.";
       default:
-        return `${title ?? "항목"}이 없습니다.`; // 안전성 개선
+        return `${title ?? "항목"}이 없습니다.`;
     }
   };
 
@@ -171,15 +171,15 @@ const MyPageMain: React.FC = () => {
   const [isExpanding, setIsExpanding] = useState(false);
   const [clickedCard, setClickedCard] = useState<string | null>(null);
 
-  // 안정적인 네비게이션을 위한 ref
+  // setTimeout 대신 pendingPath로 안전한 네비게이션 관리
   const pendingPathRef = useRef<string | null>(null);
 
-  // 카드 데이터 - ReactNode로 아이콘 변경
+  // 카드 데이터
   const cardData: CardData[] = [
     {
       title: "작성글",
       count: 12,
-      icon: "📝", // 여전히 이모지 사용 가능
+      icon: "📝",
       path: "posts",
       items: [
         {
@@ -188,7 +188,6 @@ const MyPageMain: React.FC = () => {
           date: "01.15",
           category: "자유",
         },
-        // ... 더 많은 아이템들
       ],
     },
     {
@@ -196,34 +195,22 @@ const MyPageMain: React.FC = () => {
       count: 45,
       icon: "💬",
       path: "comments",
-      items: [
-        // ... 아이템들
-      ],
+      items: [],
     },
     {
       title: "북마크",
       count: 8,
       icon: "🔖",
       path: "bookmarks",
-      items: [
-        // ... 아이템들
-      ],
+      items: [],
     },
   ];
-
-  // 안정적인 카드 클릭 핸들러
   const handleCardClick = (path: string) => {
-    // 1. 클릭된 카드 표시
     setClickedCard(path);
-
-    // 2. 확장 애니메이션 시작
     setIsExpanding(true);
-
-    // 3. setTimeout 대신 pendingPath 설정
     pendingPathRef.current = `${PATHS.MYPAGE}/${path}`;
   };
 
-  // 오버레이 애니메이션 종료 시 네비게이션
   const handleOverlayAnimationEnd = () => {
     if (pendingPathRef.current) {
       navigate(pendingPathRef.current);
@@ -265,7 +252,7 @@ const MyPageMain: React.FC = () => {
         </div>
       </div>
 
-      {/* 두루마리 펼치기 효과 오버레이 - 안정적인 애니메이션 종료 처리 */}
+      {/* ✅ setTimeout 제거: onAnimationEnd 이벤트로 안정적 네비게이션 */}
       {isExpanding && (
         <div
           className="fixed inset-0 bg-base-100 z-30"
@@ -273,7 +260,7 @@ const MyPageMain: React.FC = () => {
             animation: `expandFromCenter ${ANIMATION_TIMINGS.CARD_EXPAND}ms cubic-bezier(0.4, 0, 0.2, 1) forwards`,
             clipPath: "polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%)",
           }}
-          onAnimationEnd={handleOverlayAnimationEnd} // setTimeout 대신 이벤트 사용
+          onAnimationEnd={handleOverlayAnimationEnd}
         />
       )}
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@src/components/commons/MyPage/PageHeader";
 import Pagination from "@src/components/commons/MyPage/Pagination";
@@ -21,10 +21,9 @@ interface CommentItem {
 interface CommentListItemProps {
   comment: CommentItem;
   onClick?: () => void;
-  index?: number; // delay 대신 index 사용 (CSS로 처리)
-  isExiting?: boolean; // 네비게이션 가드용 추가
+  index?: number;
+  isExiting?: boolean;
 }
-
 const CommentListItem: React.FC<CommentListItemProps> = ({
   comment,
   onClick,
@@ -35,7 +34,7 @@ const CommentListItem: React.FC<CommentListItemProps> = ({
     <div
       className={`p-4 border-b border-base-300 hover:bg-base-200 cursor-pointer transition-all duration-500 transform opacity-0 translate-x-8 animate-slide-in`}
       style={{
-        // CSS로 순차 등장 효과 구현 (JavaScript 타이머 불필요)
+        // ✅ CSS로 순차 등장 효과 구현 (JavaScript 타이머 불필요)
         transitionDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
         animationDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
       }}
@@ -74,7 +73,10 @@ const MyComments: React.FC = () => {
 
   // 페이지네이션 상태
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = 3; // 임시로 3페이지로 설정
+  const totalPages = 3;
+
+  // ✅ setTimeout 정리를 위한 ref
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 컴포넌트 마운트 시 애니메이션
   useEffect(() => {
@@ -104,31 +106,6 @@ const MyComments: React.FC = () => {
           postTitle: "권권 후후 르르 ㅎㅎ ㅎㅎㅎ",
           postCategory: "자유",
           commentContent: "권후르 권후르~",
-          date: "2024.01.15",
-          postId: 1,
-        },
-        {
-          id: 2,
-          postTitle: "권후르~",
-          postCategory: "질문",
-          commentContent: "권후르가 밥사줌",
-          date: "2024.01.14",
-          postId: 2,
-        },
-        {
-          id: 3,
-          postTitle: "점심 뭐 먹을까 고민입니다",
-          postCategory: "자유",
-          commentContent: "불닭 볶음면",
-          date: "2024.01.13",
-          postId: 3,
-        },
-        {
-          id: 4,
-          postTitle: "회사 생활 처음인데 조언 구해요",
-          postCategory: "익명",
-          commentContent:
-            "처음엔 다들 그래요. 너무 조급해하지 마시고 천천히 적응하시면 될 거예요. 화이팅!",
           date: "2024.01.12",
           postId: 4,
         },
@@ -166,14 +143,20 @@ const MyComments: React.FC = () => {
   useEffect(() => {
     loadComments();
   }, []);
-
-  // 뒤로가기 핸들러 (애니메이션 포함)
   const handleBackClick = () => {
     setIsExiting(true);
-    setTimeout(() => {
+    timeoutRef.current = setTimeout(() => {
       navigate("/mypage");
     }, ANIMATION_TIMINGS.PAGE_TRANSITION);
   };
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, []);
 
   // 댓글 클릭 핸들러 (원글로 이동)
   const handleCommentClick = (postId: number) => {
@@ -275,8 +258,8 @@ const MyComments: React.FC = () => {
                     key={comment.id}
                     comment={comment}
                     onClick={() => handleCommentClick(comment.postId)}
-                    index={index} // delay 대신 index 전달
-                    isExiting={isExiting} // 네비게이션 가드 전달
+                    index={index}
+                    isExiting={isExiting}
                   />
                 ))
               ) : (
@@ -315,7 +298,7 @@ const MyComments: React.FC = () => {
         )}
       </div>
 
-      {/* CSS 애니메이션 - MyPosts와 동일 */}
+      {/* ✅ CSS 애니메이션으로 순차 등장 효과 구현 */}
       <style>{`
         @keyframes slide-in {
           to {

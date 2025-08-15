@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@src/components/commons/MyPage/PageHeader";
 import Pagination from "@src/components/commons/MyPage/Pagination";
@@ -21,10 +21,11 @@ interface PostItem {
 interface PostListItemProps {
   post: PostItem;
   onClick?: () => void;
-  index?: number; // delay 대신 index 사용 (CSS로 처리)
-  isExiting?: boolean; // 네비게이션 가드용 추가
+  index?: number;
+  isExiting?: boolean;
 }
 
+// ✅ CSS transition-delay로 순차 등장 (setTimeout 제거)
 const PostListItem: React.FC<PostListItemProps> = ({
   post,
   onClick,
@@ -35,7 +36,7 @@ const PostListItem: React.FC<PostListItemProps> = ({
     <div
       className={`flex items-center py-4 px-2 border-b border-base-300 hover:bg-base-200 cursor-pointer transition-all duration-500 transform opacity-0 translate-x-8 animate-slide-in`}
       style={{
-        // CSS로 순차 등장 효과 구현 (JavaScript 타이머 불필요)
+        // ✅ CSS로 순차 등장 효과 구현 (JavaScript 타이머 불필요)
         transitionDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
         animationDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
       }}
@@ -80,6 +81,9 @@ const MyPosts: React.FC = () => {
   // 페이지네이션 상태
   const [currentPage, setCurrentPage] = useState(1);
   const totalPages = 5;
+
+  // ✅ setTimeout 정리를 위한 ref
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 컴포넌트 마운트 시 애니메이션
   useEffect(() => {
@@ -167,10 +171,19 @@ const MyPosts: React.FC = () => {
 
   const handleBackClick = () => {
     setIsExiting(true);
-    setTimeout(() => {
+    timeoutRef.current = setTimeout(() => {
       navigate("/mypage");
     }, ANIMATION_TIMINGS.PAGE_TRANSITION);
   };
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const handlePostClick = (postId: number) => {
     console.log(`게시글 ${postId} 클릭`);
@@ -267,8 +280,8 @@ const MyPosts: React.FC = () => {
                     key={post.id}
                     post={post}
                     onClick={() => handlePostClick(post.id)}
-                    index={index} // delay 대신 index 전달
-                    isExiting={isExiting} // 네비게이션 가드 전달
+                    index={index}
+                    isExiting={isExiting}
                   />
                 ))
               ) : (
@@ -305,7 +318,7 @@ const MyPosts: React.FC = () => {
         )}
       </div>
 
-      {/* CSS 애니메이션 - 전역 스타일에 추가하거나 styled-components 사용 */}
+      {/* ✅ CSS 애니메이션으로 순차 등장 효과 구현 */}
       <style>{`
         @keyframes slide-in {
           to {

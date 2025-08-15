@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToastStore } from "@src/store/toastStore";
 import { PageHeader } from "@src/components/commons/MyPage/PageHeader";
@@ -24,12 +24,11 @@ interface BookmarkItem {
 interface BookmarkListItemProps {
   bookmark: BookmarkItem;
   onPostClick?: () => void;
-  index?: number; // delay 대신 index 사용 (CSS로 처리)
+  index?: number;
   isSelected: boolean;
   onSelectionChange: (id: number, checked: boolean) => void;
-  isExiting?: boolean; // 네비게이션 가드용 추가
+  isExiting?: boolean;
 }
-
 const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
   bookmark,
   onPostClick,
@@ -38,13 +37,6 @@ const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
   onSelectionChange,
   isExiting = false,
 }) => {
-  // ❌ 기존: useState + useEffect + setTimeout 제거
-  // const [isVisible, setIsVisible] = useState(false);
-  // useEffect(() => {
-  //   const timer = setTimeout(() => setIsVisible(true), delay);
-  //   return () => clearTimeout(timer);
-  // }, [delay]);
-
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
     onSelectionChange(bookmark.id, e.target.checked);
@@ -52,20 +44,21 @@ const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
 
   const handleRowClick = () => {
     if (!isExiting) {
-      // 네비게이션 가드
       onPostClick?.();
     }
   };
+
   return (
     <div
       className={`flex items-center py-4 px-2 border-b border-base-300 hover:bg-base-200 cursor-pointer transition-all duration-500 transform opacity-0 translate-x-8 animate-slide-in ${
         isSelected ? "bg-primary/10" : ""
       }`}
       style={{
+        // ✅ CSS로 순차 등장 효과 구현 (JavaScript 타이머 불필요)
         transitionDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
         animationDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
       }}
-      onClick={handleRowClick} // 네비게이션 가드 적용됨
+      onClick={handleRowClick}
     >
       {/* 체크박스 */}
       <div className="w-8 flex-shrink-0 flex items-center justify-center">
@@ -127,7 +120,9 @@ const MyBookmarks: React.FC = () => {
 
   // 페이지네이션 상태
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = 4; // 임시로 4페이지로 설정
+  const totalPages = 4;
+
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 컴포넌트 마운트 시 애니메이션
   useEffect(() => {
@@ -218,14 +213,20 @@ const MyBookmarks: React.FC = () => {
   useEffect(() => {
     loadBookmarks();
   }, []);
-
-  // 뒤로가기 핸들러 (애니메이션 포함)
   const handleBackClick = () => {
     setIsExiting(true);
-    setTimeout(() => {
+    timeoutRef.current = setTimeout(() => {
       navigate("/mypage");
     }, ANIMATION_TIMINGS.PAGE_TRANSITION);
   };
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, []);
 
   // 게시글 클릭 핸들러
   const handlePostClick = (postId: number) => {
@@ -266,11 +267,10 @@ const MyBookmarks: React.FC = () => {
     }
   };
 
-  // 선택된 북마크들 삭제 핸들러 - 간단한 확인 후 즉시 삭제
+  // 선택된 북마크들 삭제 핸들러
   const handleDeleteSelected = () => {
     if (selectedIds.size === 0) return;
 
-    // 확인 대화상자
     const count = selectedIds.size;
     const message =
       count === 1
@@ -279,7 +279,6 @@ const MyBookmarks: React.FC = () => {
 
     if (!confirm(message)) return;
 
-    // 선택된 북마크들의 제목 수집 (토스트 메시지용)
     const selectedBookmarks = bookmarks.filter((b) => selectedIds.has(b.id));
     const deleteMessage =
       count === 1
@@ -289,13 +288,9 @@ const MyBookmarks: React.FC = () => {
           )}..." 북마크가 삭제되었습니다`
         : `${count}개의 북마크가 삭제되었습니다`;
 
-    // UI에서 즉시 제거
     setBookmarks((prev) => prev.filter((b) => !selectedIds.has(b.id)));
-
-    // 서버 API 호출 (실제 삭제)
     performActualDelete(Array.from(selectedIds));
 
-    // 삭제 완료 토스트 표시
     useToastStore.getState().push({
       message: deleteMessage,
       type: "success",
@@ -308,8 +303,6 @@ const MyBookmarks: React.FC = () => {
   // 실제 삭제 처리 (서버 API 호출)
   const performActualDelete = (bookmarkIds: number[]) => {
     console.log(`북마크 ${bookmarkIds.join(", ")} 삭제됨 (서버 API 호출)`);
-    // 실제로는 여기서 서버 API 호출
-    // api.deleteBookmarks(bookmarkIds);
   };
 
   // 전체 선택 상태 계산
@@ -451,14 +444,13 @@ const MyBookmarks: React.FC = () => {
                     key={bookmark.id}
                     bookmark={bookmark}
                     onPostClick={() => handlePostClick(bookmark.postId)}
-                    index={index} // delay 대신 index 전달
+                    index={index}
                     isSelected={selectedIds.has(bookmark.id)}
                     onSelectionChange={handleSelectionChange}
-                    isExiting={isExiting} // 네비게이션 가드 전달
+                    isExiting={isExiting}
                   />
                 ))
               ) : (
-                // 빈 상태
                 <div className="text-center py-12">
                   <div className="text-neutral-content text-4xl mb-4">🔖</div>
                   <h3 className="text-neutral-content text-lg font-medium mb-2">
@@ -493,7 +485,7 @@ const MyBookmarks: React.FC = () => {
         )}
       </div>
 
-      {/* CSS 애니메이션 - MyPosts와 동일 */}
+      {/* ✅ CSS 애니메이션으로 순차 등장 효과 구현 */}
       <style>{`
         @keyframes slide-in {
           to {
@@ -506,8 +498,6 @@ const MyBookmarks: React.FC = () => {
           animation: slide-in 0.5s ease-out forwards;
         }
       `}</style>
-
-      {/* 기존 UndoToast 완전 제거됨 */}
     </>
   );
 };
