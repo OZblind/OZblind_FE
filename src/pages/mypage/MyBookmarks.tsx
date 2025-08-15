@@ -222,7 +222,7 @@ const MyBookmarks: React.FC = () => {
     }, ANIMATION_TIMINGS.PAGE_TRANSITION);
   };
 
-  // ✅ 컴포넌트 언마운트 시 setTimeout 정리
+  // 컴포넌트 언마운트 시 setTimeout 정리
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
@@ -489,7 +489,7 @@ const MyBookmarks: React.FC = () => {
         )}
       </div>
 
-      {/* ✅ 공통 CSS 애니메이션 컴포넌트 사용 */}
+      {/* 공통 CSS 애니메이션 컴포넌트 사용 */}
       <SlideInStyles />
     </>
   );

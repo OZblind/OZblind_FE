@@ -8,6 +8,14 @@ import {
   getDurationClass,
   SlideInStyles,
 } from "@constants/animations";
+import {
+  PAGINATION,
+  SIMULATION,
+  ERROR_MESSAGES,
+  LOADING_MESSAGES,
+  EMPTY_MESSAGES,
+  BUTTON_TEXT,
+} from "@constants/ui";
 
 // 게시글 데이터 타입
 interface PostItem {
@@ -26,6 +34,7 @@ interface PostListItemProps {
   isExiting?: boolean;
 }
 
+// CSS transition-delay로 순차 등장 (setTimeout 제거)
 const PostListItem: React.FC<PostListItemProps> = ({
   post,
   onClick,
@@ -36,6 +45,7 @@ const PostListItem: React.FC<PostListItemProps> = ({
     <div
       className={`flex items-center py-4 px-2 border-b border-base-300 hover:bg-base-200 cursor-pointer transition-all duration-500 transform opacity-0 translate-x-8 animate-slide-in`}
       style={{
+        // CSS로 순차 등장 효과 구현 (JavaScript 타이머 불필요)
         transitionDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
         animationDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
       }}
@@ -78,8 +88,10 @@ const MyPosts: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // 페이지네이션 상태
-  const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = 5;
+  const [currentPage, setCurrentPage] = useState(PAGINATION.DEFAULT_PAGE);
+  const totalPages = PAGINATION.DEFAULT_TOTAL_PAGES.POSTS;
+
+  // setTimeout 정리를 위한 ref
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 컴포넌트 마운트 시 애니메이션
@@ -97,15 +109,16 @@ const MyPosts: React.FC = () => {
         setTimeout(resolve, ANIMATION_TIMINGS.LOADING_DELAY_POSTS)
       );
 
-      if (Math.random() < 0.1) {
-        throw new Error("서버에서 데이터를 가져오는데 실패했습니다.");
+      // 시뮬레이션: 가끔 에러 발생 (테스트용)
+      if (Math.random() < SIMULATION.ERROR_PROBABILITY) {
+        throw new Error(ERROR_MESSAGES.LOAD_POSTS);
       }
 
       const dummyPosts: PostItem[] = [
         {
           id: 1,
           category: "자유",
-          title: "안녕하세요 처음 가입했어요 ㅎㅎ ㅎㅎㅎ [21]",
+          title: "아프면 병원을가! [21]",
           date: "2024.01.15",
           views: 124,
           comments: 21,
@@ -155,9 +168,7 @@ const MyPosts: React.FC = () => {
       setPosts(dummyPosts);
       setIsLoading(false);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다."
-      );
+      setError(err instanceof Error ? err.message : ERROR_MESSAGES.UNKNOWN);
       setIsLoading(false);
     }
   };
@@ -166,7 +177,7 @@ const MyPosts: React.FC = () => {
     loadPosts();
   }, []);
 
-  // ✅ setTimeout 정리가 포함된 뒤로가기 핸들러
+  // setTimeout 정리가 포함된 뒤로가기 핸들러
   const handleBackClick = () => {
     setIsExiting(true);
     timeoutRef.current = setTimeout(() => {
@@ -174,6 +185,7 @@ const MyPosts: React.FC = () => {
     }, ANIMATION_TIMINGS.PAGE_TRANSITION);
   };
 
+  // ✅ 컴포넌트 언마운트 시 setTimeout 정리
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
@@ -233,7 +245,7 @@ const MyPosts: React.FC = () => {
             <div className="flex flex-col items-center justify-center py-12">
               <span className="loading loading-spinner loading-primary loading-lg"></span>
               <p className="text-neutral-content text-sm mt-4">
-                게시글을 불러오는 중...
+                {LOADING_MESSAGES.POSTS}
               </p>
             </div>
           )}
@@ -243,7 +255,7 @@ const MyPosts: React.FC = () => {
             <div className="text-center py-12">
               <div className="text-6xl mb-4">⚠️</div>
               <h3 className="text-lg font-medium text-base-content mb-2">
-                문제가 발생했습니다
+                {ERROR_MESSAGES.GENERAL}
               </h3>
               <p className="text-neutral-content text-sm mb-6 max-w-md mx-auto">
                 {error}
@@ -255,7 +267,7 @@ const MyPosts: React.FC = () => {
                     ANIMATION_TIMINGS.HOVER_TRANSITION
                   )}`}
                 >
-                  뒤로가기
+                  {BUTTON_TEXT.BACK}
                 </button>
                 <button
                   onClick={handleRetry}
@@ -263,7 +275,7 @@ const MyPosts: React.FC = () => {
                     ANIMATION_TIMINGS.HOVER_TRANSITION
                   )}`}
                 >
-                  다시 시도
+                  {BUTTON_TEXT.RETRY}
                 </button>
               </div>
             </div>
@@ -286,7 +298,7 @@ const MyPosts: React.FC = () => {
                 <div className="text-center py-12">
                   <div className="text-neutral-content text-4xl mb-4">📝</div>
                   <h3 className="text-neutral-content text-lg font-medium mb-2">
-                    작성한 글이 없습니다
+                    {EMPTY_MESSAGES.POSTS}
                   </h3>
                   <p className="text-neutral-content text-sm mb-6">
                     첫 번째 글을 작성해보세요!
@@ -297,7 +309,7 @@ const MyPosts: React.FC = () => {
                       ANIMATION_TIMINGS.HOVER_TRANSITION
                     )}`}
                   >
-                    글쓰기
+                    {BUTTON_TEXT.WRITE}
                   </button>
                 </div>
               )}

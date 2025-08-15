@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { PATHS } from "@constants/paths";
 import { ANIMATION_TIMINGS, ANIMATION_KEYFRAMES } from "@constants/animations";
+import { LIST_SETTINGS, EMPTY_MESSAGES } from "@constants/ui";
 
 // 카드 데이터 타입 정의 - icon을 ReactNode로 변경
 interface CardData {
@@ -45,11 +46,11 @@ const Card: React.FC<CardProps> = ({
   const getEmptyMessage = (title: string) => {
     switch (title) {
       case "작성글":
-        return "작성한 글이 없습니다.";
+        return EMPTY_MESSAGES.POSTS;
       case "작성댓글":
-        return "작성한 댓글이 없습니다.";
+        return EMPTY_MESSAGES.COMMENTS;
       case "북마크":
-        return "북마크한 글이 없습니다.";
+        return EMPTY_MESSAGES.BOOKMARKS;
       default:
         return `${title ?? "항목"}이 없습니다.`;
     }
@@ -117,7 +118,7 @@ const Card: React.FC<CardProps> = ({
       {/* 카드 내용 */}
       <div className="space-y-3">
         {items && items.length > 0 ? (
-          items.slice(0, 4).map((item) => (
+          items.slice(0, LIST_SETTINGS.PREVIEW_ITEMS).map((item) => (
             <div
               key={item.id}
               className="p-3 bg-base-200 rounded-lg hover:bg-base-100 transition-colors cursor-pointer"
@@ -154,10 +155,10 @@ const Card: React.FC<CardProps> = ({
         )}
 
         {/* 더보기 표시 */}
-        {items && items.length > 4 && (
+        {items && items.length > LIST_SETTINGS.PREVIEW_ITEMS && (
           <div className="text-center py-2">
             <span className="text-xs text-neutral-content">
-              외 {items.length - 4}개 더...
+              외 {items.length - LIST_SETTINGS.PREVIEW_ITEMS}개 더...
             </span>
           </div>
         )}
@@ -184,7 +185,7 @@ const MyPageMain: React.FC = () => {
       items: [
         {
           id: 1,
-          title: "안녕하세요 처음 가입했어요 ㅎㅎ ㅎㅎㅎ [21]",
+          title: "아프면 병원좀가!!! [21]",
           date: "01.15",
           category: "자유",
         },
@@ -206,6 +207,7 @@ const MyPageMain: React.FC = () => {
     },
   ];
 
+  // setTimeout 제거: 애니메이션 이벤트 기반으로 네비게이션
   const handleCardClick = (path: string) => {
     // 1. 클릭된 카드 표시
     setClickedCard(path);
@@ -217,6 +219,7 @@ const MyPageMain: React.FC = () => {
     pendingPathRef.current = `${PATHS.MYPAGE}/${path}`;
   };
 
+  // 오버레이 애니메이션 종료 시 네비게이션 (setTimeout 대신)
   const handleOverlayAnimationEnd = () => {
     if (pendingPathRef.current) {
       navigate(pendingPathRef.current);
@@ -270,7 +273,7 @@ const MyPageMain: React.FC = () => {
         />
       )}
 
-      {/* ✅ 공통 애니메이션 스타일 사용 */}
+      {/* 공통 애니메이션 스타일 사용 */}
       {React.createElement("style", {
         dangerouslySetInnerHTML: {
           __html: ANIMATION_KEYFRAMES.EXPAND_FROM_CENTER,

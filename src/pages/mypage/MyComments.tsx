@@ -8,6 +8,14 @@ import {
   getDurationClass,
   SlideInStyles,
 } from "@constants/animations";
+import {
+  PAGINATION,
+  SIMULATION,
+  ERROR_MESSAGES,
+  LOADING_MESSAGES,
+  EMPTY_MESSAGES,
+  BUTTON_TEXT,
+} from "@src/constants/ui";
 
 // 댓글 데이터 타입
 interface CommentItem {
@@ -26,6 +34,7 @@ interface CommentListItemProps {
   isExiting?: boolean;
 }
 
+// ✅ CSS transition-delay로 순차 등장 (setTimeout 제거)
 const CommentListItem: React.FC<CommentListItemProps> = ({
   comment,
   onClick,
@@ -73,8 +82,10 @@ const MyComments: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // 페이지네이션 상태
-  const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = 3;
+  const [currentPage, setCurrentPage] = useState(PAGINATION.DEFAULT_PAGE);
+  const totalPages = PAGINATION.DEFAULT_TOTAL_PAGES.COMMENTS;
+
+  // setTimeout 정리를 위한 ref
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 컴포넌트 마운트 시 애니메이션
@@ -94,8 +105,8 @@ const MyComments: React.FC = () => {
       );
 
       // 시뮬레이션: 가끔 에러 발생 (테스트용)
-      if (Math.random() < 0.1) {
-        throw new Error("댓글 데이터를 불러오는데 실패했습니다.");
+      if (Math.random() < SIMULATION.ERROR_PROBABILITY) {
+        throw new Error(ERROR_MESSAGES.LOAD_COMMENTS);
       }
 
       // 임시 댓글 데이터
@@ -131,9 +142,7 @@ const MyComments: React.FC = () => {
       setComments(dummyComments);
       setIsLoading(false);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다."
-      );
+      setError(err instanceof Error ? err.message : ERROR_MESSAGES.UNKNOWN);
       setIsLoading(false);
     }
   };
@@ -143,6 +152,7 @@ const MyComments: React.FC = () => {
     loadComments();
   }, []);
 
+  // setTimeout 정리가 포함된 뒤로가기 핸들러
   const handleBackClick = () => {
     setIsExiting(true);
     timeoutRef.current = setTimeout(() => {
@@ -150,6 +160,7 @@ const MyComments: React.FC = () => {
     }, ANIMATION_TIMINGS.PAGE_TRANSITION);
   };
 
+  // 컴포넌트 언마운트 시 setTimeout 정리
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
@@ -214,7 +225,7 @@ const MyComments: React.FC = () => {
             <div className="flex flex-col items-center justify-center py-12">
               <span className="loading loading-spinner loading-primary loading-lg"></span>
               <p className="text-neutral-content text-sm mt-4">
-                댓글을 불러오는 중...
+                {LOADING_MESSAGES.COMMENTS}
               </p>
             </div>
           )}
@@ -224,7 +235,7 @@ const MyComments: React.FC = () => {
             <div className="text-center py-12">
               <div className="text-6xl mb-4">💬</div>
               <h3 className="text-lg font-medium text-base-content mb-2">
-                문제가 발생했습니다
+                {ERROR_MESSAGES.GENERAL}
               </h3>
               <p className="text-neutral-content text-sm mb-6 max-w-md mx-auto">
                 {error}
@@ -236,7 +247,7 @@ const MyComments: React.FC = () => {
                     ANIMATION_TIMINGS.HOVER_TRANSITION
                   )}`}
                 >
-                  뒤로가기
+                  {BUTTON_TEXT.BACK}
                 </button>
                 <button
                   onClick={handleRetry}
@@ -244,7 +255,7 @@ const MyComments: React.FC = () => {
                     ANIMATION_TIMINGS.HOVER_TRANSITION
                   )}`}
                 >
-                  다시 시도
+                  {BUTTON_TEXT.RETRY}
                 </button>
               </div>
             </div>
@@ -268,7 +279,7 @@ const MyComments: React.FC = () => {
                 <div className="text-center py-12">
                   <div className="text-neutral-content text-4xl mb-4">💬</div>
                   <h3 className="text-neutral-content text-lg font-medium mb-2">
-                    작성한 댓글이 없습니다
+                    {EMPTY_MESSAGES.COMMENTS}
                   </h3>
                   <p className="text-neutral-content text-sm mb-6">
                     다른 사람의 글에 댓글을 남겨보세요!
@@ -279,7 +290,7 @@ const MyComments: React.FC = () => {
                       ANIMATION_TIMINGS.HOVER_TRANSITION
                     )}`}
                   >
-                    게시판 보기
+                    {BUTTON_TEXT.VIEW_BOARD}
                   </button>
                 </div>
               )}
@@ -299,7 +310,7 @@ const MyComments: React.FC = () => {
         )}
       </div>
 
-      {/* ✅ 공통 CSS 애니메이션 컴포넌트 사용 */}
+      {/* 공통 CSS 애니메이션 컴포넌트 사용 */}
       <SlideInStyles />
     </>
   );
