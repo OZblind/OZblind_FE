@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import PageHeader from "@src/components/commons/MyPage/PageHeader";
+import { PageHeader } from "@src/components/commons/MyPage/PageHeader";
 import Pagination from "@src/components/commons/MyPage/Pagination";
 import {
   ANIMATION_TIMINGS,
