@@ -26,11 +26,11 @@ export function PostRow({ item, onClick, className }: Props) {
       type="button"
       onClick={() => onClick?.(item.id)}
       className={`${FREE_LIST_GRID} w-full items-center gap-2 rounded-md px-0 py-2 text-sm
-                  hover:bg-neutral-50 dark:hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-blue-500 ${className ?? ""}`}
+                  hover:bg-base-200/60 focus:outline-none focus:ring-2 focus:ring-primary/40 ${className ?? ""}`}
       aria-label={`게시글 ${item.title}`}
     >
       {/* 번호 */}
-      <span className="block w-full text-center text-neutral-500">
+      <span className="block w-full text-center text-base-content/60">
         {item.no ?? "-"}
       </span>
 
@@ -40,20 +40,20 @@ export function PostRow({ item, onClick, className }: Props) {
       </span>
 
       {/* 글쓴이 */}
-      <span className="block w-full truncate text-center text-neutral-700 dark:text-neutral-200">
+      <span className="block w-full truncate text-center text-base-content">
         {item.author}
       </span>
 
       {/* 등록일 */}
-      <span className="block w-full text-center text-neutral-500">
+      <span className="block w-full text-center text-base-content/60">
         {item.dateText}
       </span>
 
       {/* 조회 / 추천 */}
-      <span className="block w-full text-center tabular-nums">
+      <span className="block w-full text-center tabular-nums text-base-content">
         {String(views)}
       </span>
-      <span className="block w-full text-center tabular-nums">
+      <span className="block w-full text-center tabular-nums text-base-content">
         {String(likes)}
       </span>
     </button>

@@ -64,7 +64,7 @@ export function FilterIconButton(props: Props) {
       type="button"
       onClick={onClick}
       aria-label={label}
-      className={`inline-flex items-center justify-center rounded-md border p-1.5 hover:bg-base-200 ${className ?? ""}`}
+      className={`inline-flex items-center justify-center rounded-md border border-base-300 p-1.5 hover:bg-base-200/60 ${className ?? ""}`}
     >
       <img src={src} alt="" className="h-5 w-5" />
     </button>

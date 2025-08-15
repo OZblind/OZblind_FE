@@ -17,15 +17,11 @@ export function LastLoadedBar({
 }: Props) {
   return (
     <div
-      className={`flex items-center gap-2 ${compact ? "py-1 text-xs" : "py-2 text-xs"} ${
-        className ?? ""
-      } text-neutral-500 dark:text-neutral-400`}
+      className={`flex items-center gap-2 ${compact ? "py-1 text-xs" : "py-2 text-xs"} ${className ?? ""} text-base-content/60`}
     >
       <span>
         마지막으로 게시글 불러온 시각:{" "}
-        <strong className="text-neutral-700 dark:text-neutral-200">
-          {lastLoadedAt ?? "-"}
-        </strong>
+        <strong className="text-base-content">{lastLoadedAt ?? "-"}</strong>
       </span>
 
       {onRefresh && (
@@ -35,8 +31,8 @@ export function LastLoadedBar({
           aria-label="새로고침"
           className={
             iconOnly
-              ? "inline-flex h-4.5 w-4.5 items-center justify-center rounded-full border hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200"
-              : "inline-flex items-center gap-1 rounded-md border px-2 py-1 hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200"
+              ? "inline-flex h-4.5 w-4.5 items-center justify-center rounded-full border border-base-300 hover:bg-base-200/60 text-base-content"
+              : "inline-flex items-center gap-1 rounded-md border border-base-300 px-2 py-1 hover:bg-base-200/60 text-base-content"
           }
         >
           <svg

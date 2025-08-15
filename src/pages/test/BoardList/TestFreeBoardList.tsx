@@ -59,7 +59,7 @@ export default function TestFreeBoardList() {
 
   const { sentinelRef } = useInfiniteScroll({
     root: null,
-    rootMargin: "600px 0px",
+    rootMargin: "1000px 0px",
     threshold: 0,
     disabled: busy || !hasMore || !!err,
     onIntersect: loadMore,

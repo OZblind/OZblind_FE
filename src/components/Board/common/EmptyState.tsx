@@ -17,12 +17,12 @@ export function EmptyState({
     <div className={`py-10 text-center ${className ?? ""}`}>
       <div className="mx-auto inline-flex flex-col items-center gap-3">
         {icon}
-        <div className="text-sm text-neutral-500">{message}</div>
+        <div className="text-sm text-base-content/60">{message}</div>
         {actionLabel && onAction && (
           <button
             type="button"
             onClick={onAction}
-            className="rounded-md border px-3 py-1 text-sm hover:bg-base-200"
+            className="rounded-md border border-base-300 px-3 py-1 text-sm hover:bg-base-200/60"
           >
             {actionLabel}
           </button>

@@ -15,7 +15,7 @@ export function PostCard({ item, onClick, className }: Props) {
       type="button"
       onClick={() => onClick?.(item.id)}
       className={[
-        "w-full rounded-2xl border bg-base-100/40 hover:bg-base-200/40",
+        "w-full rounded-2xl border border-base-300 bg-base-100/40 hover:bg-base-200/40",
         "focus:outline-none focus:ring-2 focus:ring-primary/40",
         "p-3 md:p-4 text-left max-[380px]:p-2",
         className ?? "",
@@ -27,7 +27,7 @@ export function PostCard({ item, onClick, className }: Props) {
         <h3 className="min-w-0 font-semibold text-sm leading-tight line-clamp-2 max-[380px]:line-clamp-1 max-[380px]:text-[13px]">
           {item.title}
         </h3>
-        <span className="shrink-0 text-[10px] text-neutral-400">
+        <span className="shrink-0 text-[10px] text-base-content/60">
           {item.dateText}
         </span>
       </div>
@@ -37,22 +37,22 @@ export function PostCard({ item, onClick, className }: Props) {
         {/* 좌: No, 작성자 */}
         <div className="space-y-0.5">
           {item.no != null && (
-            <div className="truncate text-neutral-400">No.{item.no}</div>
+            <div className="truncate text-base-content/60">No.{item.no}</div>
           )}
-          <div className="truncate text-neutral-300">{item.author}</div>
+          <div className="truncate text-base-content/60">{item.author}</div>
         </div>
 
         {/* 우: 추천, 조회 (값 강조, 우측 정렬) */}
         <div className="space-y-0.5 text-right">
           <div className="truncate">
-            <span className="text-neutral-400">추천 </span>
-            <span className="font-medium text-neutral-100">
+            <span className="text-base-content/60">추천 </span>
+            <span className="font-medium text-base-content">
               {String(likes)}
             </span>
           </div>
           <div className="truncate">
-            <span className="text-neutral-400">조회 </span>
-            <span className="font-medium text-neutral-100">
+            <span className="text-base-content/60">조회 </span>
+            <span className="font-medium text-base-content">
               {String(views)}
             </span>
           </div>

@@ -77,7 +77,7 @@ export default function PostList({
         <div className="hidden md:block">
           {/* 모든 헤더 컬럼 중앙 정렬 */}
           <div
-            className={`${FREE_LIST_GRID} gap-2 py-2 text-xs font-medium text-neutral-500`}
+            className={`${FREE_LIST_GRID} gap-2 py-2 text-xs font-medium text-base-content/60`}
           >
             <div className="text-center">번호</div>
             <div className="text-center">제목</div>
@@ -88,7 +88,7 @@ export default function PostList({
           </div>
 
           {!isEmpty && (
-            <ul className="divide-y divide-neutral-200 dark:divide-neutral-800">
+            <ul className="divide-y divide-base-300">
               {items.map((it) => (
                 <li key={String(it.id)}>
                   <PostRow item={it} onClick={onItemClick} />
@@ -138,7 +138,7 @@ export default function PostList({
           </div>
         )}
         {!isLoading && !isEmpty && (
-          <div className="py-6 text-center text-xs text-neutral-500">
+          <div className="py-6 text-center text-xs text-base-content/60">
             {noMoreText}
           </div>
         )}

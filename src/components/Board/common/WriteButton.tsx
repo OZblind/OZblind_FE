@@ -12,7 +12,7 @@ export function WriteButton({ onClick, className, label = "글쓰기" }: Props) 
       aria-label={label}
       className={[
         // 기본 높이 36px (다른 아이콘 버튼과 동일)
-        "inline-flex h-9 items-center gap-2 rounded-md border px-3 hover:bg-base-200/60",
+        "inline-flex h-9 items-center gap-2 rounded-md border border-base-300 px-3 hover:bg-base-200/60",
         // ⬇380px 이하는 아이콘-only 28px 정사각
         "max-[380px]:size-7 max-[380px]:justify-center max-[380px]:p-1",
         className ?? "",
