@@ -8,13 +8,13 @@ import {
 interface PageHeaderProps {
   title: string;
   count?: number;
-  onBackClick: () => void;
+  onBackClick?: () => void; // 선택적 속성으로 변경
   isExiting?: boolean;
   isLoading?: boolean;
   hasError?: boolean;
 }
 
-const PageHeader: React.FC<PageHeaderProps> = ({
+export const PageHeader: React.FC<PageHeaderProps> = ({
   title,
   count,
   onBackClick,
@@ -46,7 +46,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
         )}
         {/* 뒤로가기 버튼 - 안전성 개선 */}
         <button
-          onClick={() => onBackClick?.()} // 안전한 호출
+          onClick={() => onBackClick?.()}
           className={`w-6 h-6 sm:w-8 sm:h-8 bg-primary rounded-full flex items-center justify-center hover:bg-primary-focus transition-all ${getDurationClass(
             ANIMATION_TIMINGS.HOVER_TRANSITION
           )} group transform hover:scale-110`}
@@ -64,5 +64,3 @@ const PageHeader: React.FC<PageHeaderProps> = ({
     </div>
   );
 };
-
-export default PageHeader;
