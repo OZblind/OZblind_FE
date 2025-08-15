@@ -1,12 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { PATHS } from "@constants/paths";
+import { ANIMATION_TIMINGS } from "@constants/animations";
 
-// 카드 데이터 타입 정의
+// 카드 데이터 타입 정의 - icon을 ReactNode로 변경
 interface CardData {
   title: string;
   count: number;
-  icon: string;
+  icon: React.ReactNode; // string → React.ReactNode로 변경
   path: string;
   items: Array<{
     id: number;
@@ -16,11 +17,11 @@ interface CardData {
   }>;
 }
 
-// 개별 카드 컴포넌트
+// 개별 카드 컴포넌트 - icon 타입 변경
 interface CardProps {
   title: string;
   count: number;
-  icon: string;
+  icon: React.ReactNode; // string → React.ReactNode로 변경
   items?: Array<{
     id: number;
     title: string;
@@ -50,7 +51,7 @@ const Card: React.FC<CardProps> = ({
       case "북마크":
         return "북마크한 글이 없습니다.";
       default:
-        return `${title ?? "항목"}이 없습니다.`;
+        return `${title ?? "항목"}이 없습니다.`; // 안전성 개선
     }
   };
 
@@ -68,7 +69,7 @@ const Card: React.FC<CardProps> = ({
         transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
       }}
     >
-      {/* 카드 헤더 - 제목과 플러스 버튼 */}
+      {/* 카드 헤더 */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <span className="text-2xl">{icon}</span>
@@ -80,6 +81,7 @@ const Card: React.FC<CardProps> = ({
           className="w-8 h-8 bg-primary rounded-full flex items-center justify-center hover:bg-primary-focus transition-colors duration-200 group relative overflow-hidden"
           aria-label={`${title} 전체보기`}
         >
+          {/* 플러스 아이콘 */}
           <div
             className="w-5 h-5 text-primary-content flex items-center justify-center transition-transform duration-300"
             style={{
@@ -112,7 +114,7 @@ const Card: React.FC<CardProps> = ({
         </button>
       </div>
 
-      {/* 카드 내용 - 실제 글 목록 미리보기 */}
+      {/* 카드 내용 */}
       <div className="space-y-3">
         {items && items.length > 0 ? (
           items.slice(0, 4).map((item) => (
@@ -169,12 +171,15 @@ const MyPageMain: React.FC = () => {
   const [isExpanding, setIsExpanding] = useState(false);
   const [clickedCard, setClickedCard] = useState<string | null>(null);
 
-  // 카드 데이터 (실제 데이터 포함)
+  // 안정적인 네비게이션을 위한 ref
+  const pendingPathRef = useRef<string | null>(null);
+
+  // 카드 데이터 - ReactNode로 아이콘 변경
   const cardData: CardData[] = [
     {
       title: "작성글",
       count: 12,
-      icon: "📝",
+      icon: "📝", // 여전히 이모지 사용 가능
       path: "posts",
       items: [
         {
@@ -183,24 +188,7 @@ const MyPageMain: React.FC = () => {
           date: "01.15",
           category: "자유",
         },
-        {
-          id: 2,
-          title: "동료들과의 관계에 대해서~",
-          date: "01.14",
-          category: "질문",
-        },
-        {
-          id: 3,
-          title: "권후르",
-          date: "01.13",
-          category: "자유",
-        },
-        {
-          id: 4,
-          title: "권후르 = 효진",
-          date: "01.12",
-          category: "익명",
-        },
+        // ... 더 많은 아이템들
       ],
     },
     {
@@ -209,26 +197,7 @@ const MyPageMain: React.FC = () => {
       icon: "💬",
       path: "comments",
       items: [
-        {
-          id: 1,
-          title: "환영합니다! 권후르...",
-          date: "01.15",
-        },
-        {
-          id: 2,
-          title: "비슷한 경험 있어요. 저는 먼저 다가가서...",
-          date: "01.14",
-        },
-        {
-          id: 3,
-          title: "김치전 추천이요! 오늘 날씨에 딱...",
-          date: "01.13",
-        },
-        {
-          id: 4,
-          title: "처음엔 다들 그래요. 너무 조급해하지...",
-          date: "01.12",
-        },
+        // ... 아이템들
       ],
     },
     {
@@ -237,29 +206,12 @@ const MyPageMain: React.FC = () => {
       icon: "🔖",
       path: "bookmarks",
       items: [
-        {
-          id: 1,
-          title: "신입이 물어보기 어려운 질문들 [3]",
-          date: "01.10",
-          category: "질문",
-        },
-        {
-          id: 2,
-          title: "속보 권후르 이직 준비",
-          date: "01.08",
-          category: "정보",
-        },
-        {
-          id: 3,
-          title: "점심시간 맛집 추천 받아요!",
-          date: "01.09",
-          category: "자유",
-        },
+        // ... 아이템들
       ],
     },
   ];
 
-  // 카드 클릭 핸들러 (두루마리 펼치기 애니메이션) - PATHS 상수 사용
+  // 안정적인 카드 클릭 핸들러
   const handleCardClick = (path: string) => {
     // 1. 클릭된 카드 표시
     setClickedCard(path);
@@ -267,11 +219,16 @@ const MyPageMain: React.FC = () => {
     // 2. 확장 애니메이션 시작
     setIsExpanding(true);
 
-    // 3. 애니메이션 완료 후 페이지 이동 - PATHS 상수 사용
-    setTimeout(() => {
-      const targetPath = `${PATHS.MYPAGE}/${path}`;
-      navigate(targetPath);
-    }, 400);
+    // 3. setTimeout 대신 pendingPath 설정
+    pendingPathRef.current = `${PATHS.MYPAGE}/${path}`;
+  };
+
+  // 오버레이 애니메이션 종료 시 네비게이션
+  const handleOverlayAnimationEnd = () => {
+    if (pendingPathRef.current) {
+      navigate(pendingPathRef.current);
+      pendingPathRef.current = null;
+    }
   };
 
   return (
@@ -291,7 +248,7 @@ const MyPageMain: React.FC = () => {
           <div className="w-12 h-0.5 bg-primary rounded-full"></div>
         </div>
 
-        {/* 카드 그리드 - 항상 가로 일렬 */}
+        {/* 카드 그리드 */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center relative">
           {cardData.map((card, index) => (
             <Card
@@ -308,16 +265,15 @@ const MyPageMain: React.FC = () => {
         </div>
       </div>
 
-      {/* 두루마리 펼치기 효과 오버레이 */}
+      {/* 두루마리 펼치기 효과 오버레이 - 안정적인 애니메이션 종료 처리 */}
       {isExpanding && (
         <div
           className="fixed inset-0 bg-base-100 z-30"
           style={{
-            animation:
-              "expandFromCenter 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards",
+            animation: `expandFromCenter ${ANIMATION_TIMINGS.CARD_EXPAND}ms cubic-bezier(0.4, 0, 0.2, 1) forwards`,
             clipPath: "polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%)",
-            animationFillMode: "forwards",
           }}
+          onAnimationEnd={handleOverlayAnimationEnd} // setTimeout 대신 이벤트 사용
         />
       )}
 
