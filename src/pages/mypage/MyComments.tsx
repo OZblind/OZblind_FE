@@ -18,10 +18,6 @@ interface CommentItem {
   postId: number;
 }
 
-// ========================================
-// 최적화된 CommentListItem 컴포넌트
-// ========================================
-
 interface CommentListItemProps {
   comment: CommentItem;
   onClick?: () => void;
@@ -35,14 +31,6 @@ const CommentListItem: React.FC<CommentListItemProps> = ({
   index = 0,
   isExiting = false,
 }) => {
-  // ❌ 기존: useState + useEffect + setTimeout 제거
-  // const [isVisible, setIsVisible] = useState(false);
-  // useEffect(() => {
-  //   const timer = setTimeout(() => setIsVisible(true), delay);
-  //   return () => clearTimeout(timer);
-  // }, [delay]);
-
-  // ✅ 개선: CSS transition-delay + animation-delay 사용
   return (
     <div
       className={`p-4 border-b border-base-300 hover:bg-base-200 cursor-pointer transition-all duration-500 transform opacity-0 translate-x-8 animate-slide-in`}
@@ -202,8 +190,6 @@ const MyComments: React.FC = () => {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     console.log(`댓글 페이지 ${page}로 이동`);
-    // 실제로는 여기서 해당 페이지 데이터를 로드
-    // loadComments(page);
   };
 
   return (

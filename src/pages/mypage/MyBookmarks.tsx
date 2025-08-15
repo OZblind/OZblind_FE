@@ -60,15 +60,12 @@ const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
       onPostClick?.();
     }
   };
-
-  // ✅ 개선: CSS transition-delay + animation-delay 사용
   return (
     <div
       className={`flex items-center py-4 px-2 border-b border-base-300 hover:bg-base-200 cursor-pointer transition-all duration-500 transform opacity-0 translate-x-8 animate-slide-in ${
         isSelected ? "bg-primary/10" : ""
       }`}
       style={{
-        // CSS로 순차 등장 효과 구현 (JavaScript 타이머 불필요)
         transitionDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
         animationDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
       }}
@@ -249,8 +246,6 @@ const MyBookmarks: React.FC = () => {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     console.log(`북마크 페이지 ${page}로 이동`);
-    // 실제로는 여기서 해당 페이지 데이터를 로드
-    // loadBookmarks(page);
   };
 
   // 체크박스 선택 핸들러
