@@ -6,6 +6,7 @@ import {
   ANIMATION_TIMINGS,
   ANIMATION_CLASSES,
   getDurationClass,
+  SlideInStyles,
 } from "@constants/animations";
 
 // 게시글 데이터 타입
@@ -25,7 +26,6 @@ interface PostListItemProps {
   isExiting?: boolean;
 }
 
-// ✅ CSS transition-delay로 순차 등장 (setTimeout 제거)
 const PostListItem: React.FC<PostListItemProps> = ({
   post,
   onClick,
@@ -36,7 +36,6 @@ const PostListItem: React.FC<PostListItemProps> = ({
     <div
       className={`flex items-center py-4 px-2 border-b border-base-300 hover:bg-base-200 cursor-pointer transition-all duration-500 transform opacity-0 translate-x-8 animate-slide-in`}
       style={{
-        // ✅ CSS로 순차 등장 효과 구현 (JavaScript 타이머 불필요)
         transitionDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
         animationDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
       }}
@@ -81,8 +80,6 @@ const MyPosts: React.FC = () => {
   // 페이지네이션 상태
   const [currentPage, setCurrentPage] = useState(1);
   const totalPages = 5;
-
-  // ✅ setTimeout 정리를 위한 ref
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 컴포넌트 마운트 시 애니메이션
@@ -169,6 +166,7 @@ const MyPosts: React.FC = () => {
     loadPosts();
   }, []);
 
+  // ✅ setTimeout 정리가 포함된 뒤로가기 핸들러
   const handleBackClick = () => {
     setIsExiting(true);
     timeoutRef.current = setTimeout(() => {
@@ -318,19 +316,8 @@ const MyPosts: React.FC = () => {
         )}
       </div>
 
-      {/* ✅ CSS 애니메이션으로 순차 등장 효과 구현 */}
-      <style>{`
-        @keyframes slide-in {
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        .animate-slide-in {
-          animation: slide-in 0.5s ease-out forwards;
-        }
-      `}</style>
+      {/* ✅ 공통 CSS 애니메이션 컴포넌트 사용 */}
+      <SlideInStyles />
     </>
   );
 };

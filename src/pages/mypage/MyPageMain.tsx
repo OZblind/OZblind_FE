@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { PATHS } from "@constants/paths";
-import { ANIMATION_TIMINGS } from "@constants/animations";
+import { ANIMATION_TIMINGS, ANIMATION_KEYFRAMES } from "@constants/animations";
 
 // 카드 데이터 타입 정의 - icon을 ReactNode로 변경
 interface CardData {
@@ -205,9 +205,15 @@ const MyPageMain: React.FC = () => {
       items: [],
     },
   ];
+
   const handleCardClick = (path: string) => {
+    // 1. 클릭된 카드 표시
     setClickedCard(path);
+
+    // 2. 확장 애니메이션 시작
     setIsExpanding(true);
+
+    // 3. setTimeout 대신 pendingPath 설정
     pendingPathRef.current = `${PATHS.MYPAGE}/${path}`;
   };
 
@@ -264,27 +270,12 @@ const MyPageMain: React.FC = () => {
         />
       )}
 
-      {/* 전역 CSS 애니메이션 */}
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-          @keyframes expandFromCenter {
-            0% {
-              clip-path: polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%);
-              transform: scale(0);
-            }
-            50% {
-              clip-path: polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%);
-              transform: scale(1);
-            }
-            100% {
-              clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
-              transform: scale(1);
-            }
-          }
-        `,
-        }}
-      />
+      {/* ✅ 공통 애니메이션 스타일 사용 */}
+      {React.createElement("style", {
+        dangerouslySetInnerHTML: {
+          __html: ANIMATION_KEYFRAMES.EXPAND_FROM_CENTER,
+        },
+      })}
     </>
   );
 };

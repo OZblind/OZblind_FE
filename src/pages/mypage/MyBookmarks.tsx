@@ -7,6 +7,7 @@ import {
   ANIMATION_TIMINGS,
   ANIMATION_CLASSES,
   getDurationClass,
+  SlideInStyles,
 } from "@constants/animations";
 
 // 북마크 데이터 타입
@@ -29,6 +30,7 @@ interface BookmarkListItemProps {
   onSelectionChange: (id: number, checked: boolean) => void;
   isExiting?: boolean;
 }
+
 const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
   bookmark,
   onPostClick,
@@ -54,7 +56,6 @@ const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
         isSelected ? "bg-primary/10" : ""
       }`}
       style={{
-        // ✅ CSS로 순차 등장 효과 구현 (JavaScript 타이머 불필요)
         transitionDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
         animationDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
       }}
@@ -213,12 +214,15 @@ const MyBookmarks: React.FC = () => {
   useEffect(() => {
     loadBookmarks();
   }, []);
+
   const handleBackClick = () => {
     setIsExiting(true);
     timeoutRef.current = setTimeout(() => {
       navigate("/mypage");
     }, ANIMATION_TIMINGS.PAGE_TRANSITION);
   };
+
+  // ✅ 컴포넌트 언마운트 시 setTimeout 정리
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
@@ -485,19 +489,8 @@ const MyBookmarks: React.FC = () => {
         )}
       </div>
 
-      {/* ✅ CSS 애니메이션으로 순차 등장 효과 구현 */}
-      <style>{`
-        @keyframes slide-in {
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        .animate-slide-in {
-          animation: slide-in 0.5s ease-out forwards;
-        }
-      `}</style>
+      {/* ✅ 공통 CSS 애니메이션 컴포넌트 사용 */}
+      <SlideInStyles />
     </>
   );
 };

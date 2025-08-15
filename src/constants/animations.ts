@@ -1,4 +1,6 @@
-// constants/animations.ts
+// constants/animations.ts - 통합된 애니메이션 상수 파일
+import React from "react";
+
 export const ANIMATION_TIMINGS = {
   // 페이지 전환 애니메이션
   PAGE_TRANSITION: 400, // MyPosts, MyComments, MyBookmarks 페이지 전환
@@ -54,6 +56,52 @@ export const ANIMATION_CLASSES = {
   ITEM_INITIAL: "opacity-0 translate-x-8",
 } as const;
 
+// CSS 애니메이션 키프레임 상수
+export const ANIMATION_KEYFRAMES = {
+  // 슬라이드 인 애니메이션 CSS
+  SLIDE_IN: `
+    @keyframes slide-in {
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+  `,
+
+  // 확장 애니메이션 CSS (MyPageMain용)
+  EXPAND_FROM_CENTER: `
+    @keyframes expandFromCenter {
+      0% {
+        clip-path: polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%);
+        transform: scale(0);
+      }
+      50% {
+        clip-path: polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%);
+        transform: scale(1);
+      }
+      100% {
+        clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+        transform: scale(1);
+      }
+    }
+  `,
+
+  // 기어 펄스 애니메이션 CSS (MyPageLayout용)
+  GEAR_PULSE: `
+    @keyframes growPulse {
+      0% {
+        transform: scale(1.2);
+      }
+      50% {
+        transform: scale(1.5);
+      }
+      100% {
+        transform: scale(1.2);
+      }
+    }
+  `,
+} as const;
+
 // Tailwind CSS duration 클래스 매핑 헬퍼
 export const getDurationClass = (ms: number): string => {
   if (ms <= 150) return "duration-150";
@@ -62,4 +110,18 @@ export const getDurationClass = (ms: number): string => {
   if (ms <= 500) return "duration-500";
   if (ms <= 700) return "duration-700";
   return "duration-1000";
+};
+
+// 슬라이드 인 애니메이션 스타일 컴포넌트
+export const SlideInStyles: React.FC = () => {
+  return React.createElement("style", {
+    dangerouslySetInnerHTML: {
+      __html: `
+        ${ANIMATION_KEYFRAMES.SLIDE_IN}
+        .animate-slide-in {
+          animation: slide-in 0.5s ease-out forwards;
+        }
+      `,
+    },
+  });
 };

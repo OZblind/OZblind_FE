@@ -6,6 +6,7 @@ import {
   ANIMATION_TIMINGS,
   ANIMATION_CLASSES,
   getDurationClass,
+  SlideInStyles,
 } from "@constants/animations";
 
 // 댓글 데이터 타입
@@ -24,6 +25,7 @@ interface CommentListItemProps {
   index?: number;
   isExiting?: boolean;
 }
+
 const CommentListItem: React.FC<CommentListItemProps> = ({
   comment,
   onClick,
@@ -34,7 +36,6 @@ const CommentListItem: React.FC<CommentListItemProps> = ({
     <div
       className={`p-4 border-b border-base-300 hover:bg-base-200 cursor-pointer transition-all duration-500 transform opacity-0 translate-x-8 animate-slide-in`}
       style={{
-        // ✅ CSS로 순차 등장 효과 구현 (JavaScript 타이머 불필요)
         transitionDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
         animationDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
       }}
@@ -74,8 +75,6 @@ const MyComments: React.FC = () => {
   // 페이지네이션 상태
   const [currentPage, setCurrentPage] = useState(1);
   const totalPages = 3;
-
-  // ✅ setTimeout 정리를 위한 ref
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 컴포넌트 마운트 시 애니메이션
@@ -143,12 +142,14 @@ const MyComments: React.FC = () => {
   useEffect(() => {
     loadComments();
   }, []);
+
   const handleBackClick = () => {
     setIsExiting(true);
     timeoutRef.current = setTimeout(() => {
       navigate("/mypage");
     }, ANIMATION_TIMINGS.PAGE_TRANSITION);
   };
+
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
@@ -298,19 +299,8 @@ const MyComments: React.FC = () => {
         )}
       </div>
 
-      {/* ✅ CSS 애니메이션으로 순차 등장 효과 구현 */}
-      <style>{`
-        @keyframes slide-in {
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        .animate-slide-in {
-          animation: slide-in 0.5s ease-out forwards;
-        }
-      `}</style>
+      {/* ✅ 공통 CSS 애니메이션 컴포넌트 사용 */}
+      <SlideInStyles />
     </>
   );
 };
