@@ -4,6 +4,7 @@ import { NotificationModal } from "@components/Notice";
 import { useState } from "react";
 import ProfileSection from "./ProfileSection";
 import PostListSection from "./PostListSection";
+import LogoutSection from "./LogoutSection";
 
 export function SidebarOpen({ onToggle }: { onToggle: () => void }) {
   const [noticeOpen, setNoticeOpen] = useState(false);
@@ -15,21 +16,29 @@ export function SidebarOpen({ onToggle }: { onToggle: () => void }) {
       : icons.notifications.light;
 
   return (
-    <div className="flex flex-col items-center w-full h-full bg-base-200 p-6">
-      <NotificationModal
-        open={noticeOpen}
-        onClose={() => setNoticeOpen(false)}
-      />
-      <div className="flex justify-between w-[260px] h-[24px]">
-        <button onClick={() => setNoticeOpen(true)}>
-          <img src={notificationsIcon} alt="notificationsIcon" />
-        </button>
-        <button onClick={onToggle}>
-          <img src={menuIcon} alt="menuIcon" />
-        </button>
+    <div className="flex flex-col justify-between h-full bg-base-200 p-6">
+      <div className="flex flex-col items-center">
+        <div>
+          <NotificationModal
+            open={noticeOpen}
+            onClose={() => setNoticeOpen(false)}
+          />
+          <div className="flex justify-between w-[260px] h-[24px]">
+            <button onClick={() => setNoticeOpen(true)}>
+              <img src={notificationsIcon} alt="notificationsIcon" />
+            </button>
+            <button onClick={onToggle}>
+              <img src={menuIcon} alt="menuIcon" />
+            </button>
+          </div>
+          <ProfileSection />
+          <PostListSection />
+        </div>
       </div>
-      <ProfileSection />
-      <PostListSection />
+      <div>
+        <LogoutSection />
+        <p className="text-xs text-neutral-content">날고 싶은 거북이</p>
+      </div>
     </div>
   );
 }
