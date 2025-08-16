@@ -2,6 +2,7 @@ import { icons } from "@src/assets";
 import { useThemeIcon } from "@hooks/useThemeIcon";
 import { NotificationModal } from "@components/Notice";
 import { useState } from "react";
+import ProfileSection from "./ProfileSection";
 
 export function SidebarOpen({ onToggle }: { onToggle: () => void }) {
   const [noticeOpen, setNoticeOpen] = useState(false);
@@ -26,6 +27,7 @@ export function SidebarOpen({ onToggle }: { onToggle: () => void }) {
           <img src={menuIcon} alt="menuIcon" />
         </button>
       </div>
+      <ProfileSection />
     </div>
   );
 }
