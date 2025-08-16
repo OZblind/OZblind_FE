@@ -3,6 +3,7 @@ import { useThemeIcon } from "@hooks/useThemeIcon";
 import { NotificationModal } from "@components/Notice";
 import { useState } from "react";
 import ProfileSection from "./ProfileSection";
+import PostListSection from "./PostListSection";
 
 export function SidebarOpen({ onToggle }: { onToggle: () => void }) {
   const [noticeOpen, setNoticeOpen] = useState(false);
@@ -28,6 +29,7 @@ export function SidebarOpen({ onToggle }: { onToggle: () => void }) {
         </button>
       </div>
       <ProfileSection />
+      <PostListSection />
     </div>
   );
 }
