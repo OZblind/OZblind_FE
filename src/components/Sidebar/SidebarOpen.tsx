@@ -1,13 +1,15 @@
 import { icons } from "@src/assets";
 import { useThemeIcon } from "@hooks/useThemeIcon";
 import { NotificationModal } from "@components/Notice";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ProfileSection from "./ProfileSection";
+import SmallProfileSection from "./SmallProfileSection";
 import PostListSection from "./PostListSection";
 import LogoutSection from "./LogoutSection";
 
 export function SidebarOpen({ onToggle }: { onToggle: () => void }) {
   const [noticeOpen, setNoticeOpen] = useState(false);
+  const [isSmall, setIsSmall] = useState(false);
   const themeIcon = useThemeIcon();
   const menuIcon = themeIcon === "oz_dark" ? icons.menu.dark : icons.menu.light;
   const notificationsIcon =
@@ -15,10 +17,21 @@ export function SidebarOpen({ onToggle }: { onToggle: () => void }) {
       ? icons.notifications.dark
       : icons.notifications.light;
 
+  useEffect(() => {
+    const handleResize = () => {
+      setIsSmall(window.innerHeight < 730);
+    };
+
+    handleResize(); // 초기 실행
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   return (
     <div className="flex flex-col justify-between h-full bg-base-200 p-6">
       <div className="flex flex-col items-center">
-        <div>
+        <div className="flex flex-col items-center">
           <NotificationModal
             open={noticeOpen}
             onClose={() => setNoticeOpen(false)}
@@ -31,7 +44,7 @@ export function SidebarOpen({ onToggle }: { onToggle: () => void }) {
               <img src={menuIcon} alt="menuIcon" />
             </button>
           </div>
-          <ProfileSection />
+          {isSmall ? <SmallProfileSection /> : <ProfileSection />}
           <PostListSection />
         </div>
       </div>
