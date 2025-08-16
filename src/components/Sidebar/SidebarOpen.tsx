@@ -29,18 +29,24 @@ export function SidebarOpen({ onToggle }: { onToggle: () => void }) {
   }, []);
 
   return (
-    <div className="flex flex-col justify-between h-full bg-base-200 p-6">
+    <div className="flex flex-col justify-between h-full bg-base-200 p-4">
       <div className="flex flex-col items-center">
         <div className="flex flex-col items-center">
           <NotificationModal
             open={noticeOpen}
             onClose={() => setNoticeOpen(false)}
           />
-          <div className="flex justify-between w-[260px] h-[24px]">
-            <button onClick={() => setNoticeOpen(true)}>
+          <div className="flex justify-between w-[270px] h-[40px]">
+            <button
+              onClick={() => setNoticeOpen(true)}
+              className="p-2 rounded-full hover:bg-base-300"
+            >
               <img src={notificationsIcon} alt="notificationsIcon" />
             </button>
-            <button onClick={onToggle}>
+            <button
+              onClick={onToggle}
+              className="p-2 rounded-full hover:bg-base-300"
+            >
               <img src={menuIcon} alt="menuIcon" />
             </button>
           </div>

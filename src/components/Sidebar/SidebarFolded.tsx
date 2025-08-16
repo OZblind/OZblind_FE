@@ -14,16 +14,20 @@ export function SidebarFolded({ onToggle }: { onToggle: () => void }) {
       : icons.notifications.light;
 
   return (
-    <div className="flex flex-col items-center justify-between w-full h-full bg-base-200 py-6">
-      <button onClick={onToggle}>
+    <div className="flex flex-col items-center justify-between w-full h-full bg-base-200 py-4">
+      <button onClick={onToggle} className="p-2 rounded-full hover:bg-base-300">
         <img src={menuIcon} alt="menuIcon" />
       </button>
+
       <div className="flex flex-col gap-4 items-center">
         <NotificationModal
           open={noticeOpen}
           onClose={() => setNoticeOpen(false)}
         />
-        <button onClick={() => setNoticeOpen(true)}>
+        <button
+          onClick={() => setNoticeOpen(true)}
+          className="p-2 rounded-full hover:bg-base-300"
+        >
           <img src={notificationsIcon} alt="notificationsIcon" />
         </button>
         <button>
