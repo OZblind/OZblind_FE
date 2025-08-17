@@ -204,10 +204,13 @@ export default function CommentItem({
           <ThumbsDown className="mr-1 h-4 w-4" /> {fmtNum(dislikes)}
         </button>
 
-        <ReplyControl
-          depth={depth}
-          onSubmit={(content) => onAddReply(rootId, content)}
-        />
+        {/* 최상위 댓글에서만 “답글 작성” 표시 */}
+        {depth === 0 && (
+          <ReplyControl
+            depth={0}
+            onSubmit={(content) => onAddReply(rootId, content)}
+          />
+        )}
 
         {data.hasReplies && (
           <button

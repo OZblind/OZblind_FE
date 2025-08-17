@@ -93,9 +93,6 @@ export default function PostComment({ comments }: { comments: CommentMeta[] }) {
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-lg font-semibold">댓글 {fmtNum(list.length)}</h2>
         <div className="flex items-center gap-2">
-          <label htmlFor="comment-sort" className="text-sm opacity-70">
-            정렬
-          </label>
           <select
             id="comment-sort"
             className="select select-sm select-bordered"
