@@ -33,6 +33,7 @@ import {
 } from "@hooks/useAuthQueries";
 import { useToastStore } from "@store/toastStore";
 import { resolvePostLoginPath } from "@utils/postLogin";
+import TestMainPage from "@src/pages/test/TestMainPage";
 
 /** 공개(보호 불필요) 경로 목록 */
 const PUBLIC_PATHS: ReadonlySet<string> = new Set([
@@ -190,6 +191,7 @@ export default function AppRouter() {
         <Route path={PATHS.ROOT} element={<TestHub />} />
         <Route path="/test/write" element={<TestPostWritePage />} />
         <Route path="/test/setting" element={<TestSettingPage />} />
+        <Route path="/test/main" element={<TestMainPage />}></Route>
         <Route path="/test/board/free-list" element={<TestFreeBoardList />} />
 
         {/* 인증 로비(공개) */}
