@@ -4,7 +4,10 @@ import { SidebarFolded } from "./SidebarFolded";
 
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState<boolean | null>(null);
-  const [userClosed, setUserClosed] = useState(false);
+  const [userClosed, setUserClosed] = useState(() => {
+    const saved = localStorage.getItem("sidebarUserClosed");
+    return saved === "true"; // 문자열을 불리언으로 변환
+  });
 
   useEffect(() => {
     const mql = window.matchMedia("(max-width: 1200px)");
@@ -26,8 +29,10 @@ export default function Sidebar() {
     setIsOpen(open);
     if (!open) {
       setUserClosed(true);
+      localStorage.setItem("sidebarUserClosed", "true");
     } else {
       setUserClosed(false);
+      localStorage.setItem("sidebarUserClosed", "false");
     }
   };
 
