@@ -15,19 +15,17 @@ export default function CommentItem({
   data,
   depth = 0,
   rootId,
-  branchColor,
+  branchStyle, // { bg, stroke, fill }
   onEdit,
   onDelete,
   onAddReply,
 }: {
   data: CommentMeta;
   depth?: number;
-  /** 최상위 댓글 id (depth=0이면 자신의 id) */
   rootId: CommentMeta["id"];
-  branchColor: string;
+  branchStyle: { bg: string; stroke: string; fill: string };
   onEdit: (id: CommentMeta["id"], content: string) => void;
   onDelete: (id: CommentMeta["id"]) => void;
-  /** rootId 위치에 대댓글 추가 */
   onAddReply: (rootId: CommentMeta["id"], content: string) => void;
 }) {
   const [expanded, setExpanded] = useState(depth === 0 && data.hasReplies);
@@ -42,7 +40,6 @@ export default function CommentItem({
   useEffect(() => {
     if (depth === 0 && data.hasReplies) setExpanded(true);
   }, [data.hasReplies, depth]);
-
   useEffect(() => setEditDraft(data.content), [data.content]);
 
   const handleLike = () => {
@@ -58,7 +55,6 @@ export default function CommentItem({
       }
     }
   };
-
   const handleDislike = () => {
     if (dislike) {
       setDislike(false);
@@ -75,16 +71,28 @@ export default function CommentItem({
 
   return (
     <div className={clsx(depth > 0 ? "relative pl-6" : "")}>
-      {/* depth>0일 때만 수평 커넥터(루트 세로 라인 ↔ 댓글 본문) */}
+      {/* depth>0: 곡선 연결 + 노드 (굵기 업) */}
       {depth > 0 && (
-        <span
-          aria-hidden
-          className="absolute top-3 left-[-24px] h-[2px] w-6 rounded-full"
-          style={{ backgroundColor: branchColor, opacity: 0.6 }}
-        />
+        <svg
+          aria-hidden="true"
+          viewBox="0 4 18 14"
+          className={clsx(
+            "pointer-events-none absolute -left-7 w-7 overflow-visible thread-elbow",
+            branchStyle.stroke,
+            branchStyle.fill
+          )}
+        >
+          {/* 곡선: 중앙(y=7) 기준, 굵기 ↑ */}
+          <path
+            d="M0 0 C 0 7, 12 7, 28 7"
+            className="fill-none stroke-current stroke-[4px] opacity-70"
+          />
+          {/* 끝 노드: 중앙(y=7)에 위치 */}
+          <circle cx="28" cy="7" r="3.5" className="fill-current opacity-90" />
+        </svg>
       )}
 
-      {/* 헤더 (작성자/시간/메뉴) */}
+      {/* 헤더 */}
       <div className="flex items-center gap-2 text-sm text-base-content/70">
         <span className="font-medium text-base-content">{data.author}</span>
         <span>•</span>
@@ -196,7 +204,6 @@ export default function CommentItem({
           <ThumbsDown className="mr-1 h-4 w-4" /> {fmtNum(dislikes)}
         </button>
 
-        {/* 버튼은 같은 줄, 에디터는 다음 줄 (ReplyControl 구현 그대로) */}
         <ReplyControl
           depth={depth}
           onSubmit={(content) => onAddReply(rootId, content)}
@@ -231,7 +238,7 @@ export default function CommentItem({
               data={r}
               depth={depth + 1}
               rootId={rootId}
-              branchColor={branchColor}
+              branchStyle={branchStyle}
               onEdit={onEdit}
               onDelete={onDelete}
               onAddReply={onAddReply}

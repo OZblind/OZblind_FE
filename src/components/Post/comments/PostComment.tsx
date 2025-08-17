@@ -3,39 +3,48 @@ import type { CommentMeta } from "@src/mocks/post.demo";
 import { fmtNum } from "@src/utils/utils";
 import CommentItem from "./CommentItem";
 import { commentTree } from "@src/utils/commentTree";
+import "./thread.css";
 
 type SortKey = "newest" | "oldest" | "likes";
 
-/** 안정적 색 생성용 팔레트 + 해시 */
-const THREAD_COLORS = [
-  "#5B8DEF",
-  "#50C878",
-  "#F59E0B",
-  "#EF4444",
-  "#A78BFA",
-  "#10B981",
-  "#F472B6",
-  "#22D3EE",
-  "#E879F9",
-  "#F97316",
-  "#34D399",
-  "#60A5FA",
-];
-function hashId(id: string | number): number {
+/** 스레드 색 팔레트: bg/stroke/fill 세트 (purge 방지용 상수) */
+const THREAD_COLOR_CLASSES = [
+  { bg: "bg-blue-500", stroke: "stroke-blue-500", fill: "fill-blue-500" },
+  {
+    bg: "bg-emerald-500",
+    stroke: "stroke-emerald-500",
+    fill: "fill-emerald-500",
+  },
+  { bg: "bg-amber-500", stroke: "stroke-amber-500", fill: "fill-amber-500" },
+  { bg: "bg-red-500", stroke: "stroke-red-500", fill: "fill-red-500" },
+  { bg: "bg-violet-500", stroke: "stroke-violet-500", fill: "fill-violet-500" },
+  { bg: "bg-teal-500", stroke: "stroke-teal-500", fill: "fill-teal-500" },
+  { bg: "bg-pink-500", stroke: "stroke-pink-500", fill: "fill-pink-500" },
+  { bg: "bg-cyan-500", stroke: "stroke-cyan-500", fill: "fill-cyan-500" },
+  {
+    bg: "bg-fuchsia-500",
+    stroke: "stroke-fuchsia-500",
+    fill: "fill-fuchsia-500",
+  },
+  { bg: "bg-orange-500", stroke: "stroke-orange-500", fill: "fill-orange-500" },
+  { bg: "bg-green-500", stroke: "stroke-green-500", fill: "fill-green-500" },
+  { bg: "bg-sky-500", stroke: "stroke-sky-500", fill: "fill-sky-500" },
+] as const;
+
+function hashId(id: string | number) {
   const s = String(id);
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
   return Math.abs(h);
 }
-function colorFor(id: CommentMeta["id"]) {
-  return THREAD_COLORS[hashId(id) % THREAD_COLORS.length];
+function classFor(id: CommentMeta["id"]) {
+  return THREAD_COLOR_CLASSES[hashId(id) % THREAD_COLOR_CLASSES.length];
 }
 
 export default function PostComment({ comments }: { comments: CommentMeta[] }) {
   const [list, setList] = useState<CommentMeta[]>(comments);
   useEffect(() => setList(comments), [comments]);
 
-  // id 발급기 (숫자 id 없을 때도 안전)
   const idRef = useRef<number>(commentTree.getMaxNumericId(comments) || 0);
   const [sortKey, setSortKey] = useState<SortKey>("newest");
 
@@ -57,24 +66,16 @@ export default function PostComment({ comments }: { comments: CommentMeta[] }) {
 
   const handleEdit = (id: CommentMeta["id"], content: string) => {
     setList((prev) => commentTree.update(prev, id, (c) => ({ ...c, content })));
-    // TODO: PATCH /comments/:id
   };
-
   const handleDelete = (id: CommentMeta["id"]) => {
     setList((prev) => commentTree.remove(prev, id));
-    // TODO: DELETE /comments/:id
   };
-
-  /** 규칙:
-   * - depth=0: rootId 자신의 replies에 인라인 추가
-   * - depth>0: 더 깊게 안 들어가고 동일 rootId의 replies에 추가 (같은 라인)
-   */
   const handleAddReply = (rootId: CommentMeta["id"], content: string) => {
     const newId =
       typeof rootId === "number" ? ++idRef.current : String(Date.now());
     const reply: CommentMeta = {
       id: newId as CommentMeta["id"],
-      author: "나", // TODO: 로그인 유저명
+      author: "나",
       content,
       createdAt: new Date().toISOString(),
       likes: 0,
@@ -85,15 +86,16 @@ export default function PostComment({ comments }: { comments: CommentMeta[] }) {
       replies: [],
     };
     setList((prev) => commentTree.addToRoot(prev, rootId, reply));
-    // TODO: POST /comments (parentId = rootId)
   };
 
   return (
     <section className="mt-8">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-lg font-semibold">댓글 {fmtNum(list.length)}</h2>
-
         <div className="flex items-center gap-2">
+          <label htmlFor="comment-sort" className="text-sm opacity-70">
+            정렬
+          </label>
           <select
             id="comment-sort"
             className="select select-sm select-bordered"
@@ -110,21 +112,28 @@ export default function PostComment({ comments }: { comments: CommentMeta[] }) {
 
       <div className="space-y-8">
         {topLevelSorted.map((c) => {
-          const branchColor = colorFor(c.id);
+          const branchStyle = classFor(c.id);
           return (
-            <div key={c.id} className="relative pl-6">
-              {/* 스레드 세로 라인 (최상위 댓글~모든 대댓글을 감쌈) */}
+            <div key={c.id} className="relative pl-6 thread">
+              {/* 세로 브랜치 라인: 더 굵게 */}
               <span
-                aria-hidden
-                className="absolute left-0 top-0 bottom-0 w-[2px] rounded-full"
-                style={{ backgroundColor: branchColor, opacity: 0.6 }}
+                aria-hidden="true"
+                className={`absolute left-[-1px] top-0 bottom-0 w-[4px] rounded-full opacity-70 thread-rail ${branchStyle.bg}`}
+              />
+              {/* 시작 노드(원): 세로 라인 시작점에 표시 */}
+              <span
+                aria-hidden="true"
+                className={`
+                  absolute left-0 -translate-x-1/2 thread-node
+                rounded-full border-2 border-base-100 shadow
+                ${branchStyle.bg}
+                `}
               />
               <CommentItem
-                key={c.id}
                 data={c}
                 depth={0}
                 rootId={c.id}
-                branchColor={branchColor}
+                branchStyle={branchStyle}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onAddReply={handleAddReply}
