@@ -22,6 +22,7 @@ import { PostComment } from "@src/components/Post/comments";
 import DropdownMenu, {
   type DropdownItem,
 } from "@src/components/ui/DropdownMenu";
+import { useToastStore } from "@src/store/toastStore";
 
 // ================== Main ==================
 export default function PostDetail({ post }: { post: PostMeta }) {
@@ -86,14 +87,14 @@ export default function PostDetail({ post }: { post: PostMeta }) {
     {
       label: "URL 복사",
       icon: <Copy className="h-4 w-4" />,
-      onSelect: () => void navigator.clipboard.writeText(window.location.href),
-    },
-    {
-      label: "게시글 삭제",
-      icon: <Trash2 className="h-4 w-4" />,
-      danger: true,
       onSelect: () => {
-        // TODO: 삭제 로직
+        void navigator.clipboard.writeText(window.location.href);
+
+        useToastStore.getState().push({
+          message: "URL 복사에 성공했습니다!",
+          type: "success",
+          durationMs: 3000, // 선택 (기본값: 2500ms)
+        });
       },
     },
     {
@@ -101,6 +102,14 @@ export default function PostDetail({ post }: { post: PostMeta }) {
       icon: <Pencil className="h-4 w-4" />,
       onSelect: () => {
         // TODO: 수정 페이지 이동
+      },
+    },
+    {
+      label: "게시글 삭제",
+      icon: <Trash2 className="h-4 w-4" />,
+      danger: true,
+      onSelect: () => {
+        // TODO: 삭제 로직
       },
     },
   ];

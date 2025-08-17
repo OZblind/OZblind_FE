@@ -12,7 +12,7 @@
 ## 🛠 사용 방법
 
 ```ts
-import { useToastStore } from "@/stores/toastStore";
+import { useToastStore } from "@store/toastStore";
 
 // 예시: 성공 토스트
 useToastStore.getState().push({
