@@ -14,7 +14,7 @@ export function SidebarFolded({ onToggle }: { onToggle: () => void }) {
       : icons.notifications.light;
 
   return (
-    <div className="flex flex-col items-center justify-between w-full h-full bg-base-200 py-4">
+    <div className="flex flex-col items-center justify-between w-full h-full bg-base-200 p-2 py-4">
       <button onClick={onToggle} className="p-2 rounded-full hover:bg-base-300">
         <img src={menuIcon} alt="menuIcon" />
       </button>
