@@ -72,13 +72,15 @@ export default function CommentItem({
   };
 
   return (
-    <div className={clsx("flex gap-3", depth > 0 && "pl-6")}>
-      {/* Avatar */}
-      <div className="avatar mt-1">
-        <div className="w-8 rounded-full bg-base-300 text-base-content/80 flex items-center justify-center text-xs">
-          {data.author.slice(0, 2)}
-        </div>
-      </div>
+    <div className="flex gap-2">
+      {depth > 0 && (
+        <span
+          aria-hidden="true"
+          className="mt-[2px] text-base-content/50 select-none leading-6"
+        >
+          {"ㄴ".repeat(depth)}
+        </span>
+      )}
 
       <div className="flex-1">
         <div className="flex items-center gap-2 text-sm text-base-content/70">
