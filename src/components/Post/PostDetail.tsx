@@ -18,7 +18,7 @@ import {
   type PostMeta,
 } from "@src/mocks/post.demo";
 import { fmtDate, fmtNum } from "@src/utils/utils";
-import PostComment from "./PostComment";
+import { PostComment } from "@src/components/Post/comments";
 
 // ================== Main ==================
 export default function PostDetail({ post }: { post: PostMeta }) {
@@ -27,6 +27,7 @@ export default function PostDetail({ post }: { post: PostMeta }) {
   const [bookmarked, setBookmarked] = useState(false);
   const [commentDraft, setCommentDraft] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false); // 상단 드롭다운
 
   const [comments, setComments] = useState<CommentMeta[]>(() => demoComments);
 
@@ -62,7 +63,7 @@ export default function PostDetail({ post }: { post: PostMeta }) {
     setTimeout(() => {
       setComments((prev) => [
         {
-          id: Math.random().toString(36).slice(2),
+          id: Math.random().toString(36).slice(2), // string ID여도 PostComment가 대응함
           author: "나",
           content: commentDraft.trim(),
           createdAt: new Date().toISOString(),
@@ -78,6 +79,20 @@ export default function PostDetail({ post }: { post: PostMeta }) {
     }, 600);
   };
 
+  // 상단 드롭다운 액션 (필요 시 실제 로직 연결)
+  const handleCopyUrl = () => {
+    void navigator.clipboard.writeText(window.location.href);
+    setMenuOpen(false);
+  };
+  const handleDeletePost = () => {
+    // TODO: 게시글 삭제 연동
+    setMenuOpen(false);
+  };
+  const handleEditPost = () => {
+    // TODO: 수정 페이지로 이동
+    setMenuOpen(false);
+  };
+
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6 lg:py-8">
       {/* 상단 바 */}
@@ -90,34 +105,51 @@ export default function PostDetail({ post }: { post: PostMeta }) {
           <span>{fmtDate(post.createdAt)}</span>
         </div>
 
-        {/* dropdown (daisyUI) */}
+        {/* dropdown: role/tabIndex 없이 ul>li>button 패턴 */}
         <div className="dropdown dropdown-end">
-          <div
-            tabIndex={0}
-            role="button"
+          <button
             className="btn btn-ghost btn-sm"
             aria-label="more"
+            aria-expanded={menuOpen ? "true" : "false"}
+            onClick={() => setMenuOpen((v) => !v)}
+            type="button"
           >
             <MoreHorizontal className="h-5 w-5" />
-          </div>
+          </button>
           <ul
-            tabIndex={0}
-            className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-40"
+            className={clsx(
+              "dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-44",
+              menuOpen ? "block" : "hidden"
+            )}
+            onKeyDown={(e) => e.key === "Escape" && setMenuOpen(false)}
+            aria-label="게시글 메뉴"
           >
             <li>
-              <a className="flex items-center">
+              <button
+                className="flex items-center gap-2"
+                onClick={handleCopyUrl}
+                type="button"
+              >
                 <Copy className="h-4 w-4" /> URL 복사
-              </a>
+              </button>
             </li>
             <li>
-              <a className="flex items-center">
+              <button
+                className="flex items-center gap-2 text-error"
+                onClick={handleDeletePost}
+                type="button"
+              >
                 <Trash2 className="h-4 w-4" /> 게시글 삭제
-              </a>
+              </button>
             </li>
             <li>
-              <a className="flex items-center">
+              <button
+                className="flex items-center gap-2"
+                onClick={handleEditPost}
+                type="button"
+              >
                 <Pencil className="h-4 w-4" /> 게시글 수정
-              </a>
+              </button>
             </li>
           </ul>
         </div>
@@ -162,6 +194,7 @@ export default function PostDetail({ post }: { post: PostMeta }) {
           className={clsx("btn btn-ghost btn-sm", like && "text-primary")}
           onClick={toggleLike}
           aria-pressed={!!like}
+          type="button"
         >
           <ThumbsUp className="mr-1 h-4 w-4" /> {fmtNum(reaction.like)}
         </button>
@@ -170,6 +203,7 @@ export default function PostDetail({ post }: { post: PostMeta }) {
           className={clsx("btn btn-ghost btn-sm", dislike && "text-primary")}
           onClick={toggleDislike}
           aria-pressed={!!dislike}
+          type="button"
         >
           <ThumbsDown className="mr-1 h-4 w-4" /> {fmtNum(reaction.dislike)}
         </button>
@@ -178,6 +212,7 @@ export default function PostDetail({ post }: { post: PostMeta }) {
           className={clsx("btn btn-ghost btn-sm", bookmarked && "text-primary")}
           onClick={() => setBookmarked((v) => !v)}
           aria-pressed={!!bookmarked}
+          type="button"
         >
           <Bookmark className="mr-2 h-4 w-4" /> {fmtNum(reaction.bookmark)}
         </button>
@@ -195,6 +230,7 @@ export default function PostDetail({ post }: { post: PostMeta }) {
           <button
             className="btn btn-outline btn-sm"
             onClick={() => setCommentDraft("")}
+            type="button"
           >
             취소
           </button>
@@ -202,6 +238,7 @@ export default function PostDetail({ post }: { post: PostMeta }) {
             className="btn btn-primary btn-sm"
             onClick={submitComment}
             disabled={submitting}
+            type="button"
           >
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{" "}
             댓글 작성
@@ -214,6 +251,3 @@ export default function PostDetail({ post }: { post: PostMeta }) {
     </div>
   );
 }
-
-// 사용 예시
-// <PostDetail post={demoPost} />
