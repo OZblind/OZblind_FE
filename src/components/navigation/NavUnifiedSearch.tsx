@@ -29,17 +29,17 @@ interface InlineDropdownSearchBarProps {
   maxPreviewResults?: number; // detail 모드에서 더 많은 결과 표시
 }
 
-const categories = ["전체", "자유", "취업", "정보", "설문", "Github"] as const;
+const categories = ["통합", "자유", "취직", "정보", "설문", "깃레포"] as const;
 type Category = (typeof categories)[number];
 
 // 카테고리 매핑
 const categoryMapping: Record<Category, string> = {
-  전체: "all",
+  통합: "all",
   자유: "free",
-  취업: "job",
+  취직: "job",
   정보: "info",
   설문: "survey",
-  Github: "Github",
+  깃레포: "github",
 };
 
 const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
@@ -50,7 +50,7 @@ const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [selectedCategory, setSelectedCategory] = useState<Category>("전체");
+  const [selectedCategory, setSelectedCategory] = useState<Category>("통합");
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
   const [previewResults, setPreviewResults] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -303,7 +303,7 @@ const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
             </button>
 
             {isCategoryDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 bg-neutral-800 border border-neutral-600 rounded-lg shadow-lg z-20 w-full min-w-[100px]">
+              <div className="absolute top-full left-0 mt-1 bg-neutral-800 border border-neutral-600 rounded-lg shadow-lg z-[60] w-full min-w-[100px]">
                 {categories.map((category) => (
                   <button
                     key={category}
