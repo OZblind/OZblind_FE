@@ -21,30 +21,32 @@ export default function ReplyControl({
   };
 
   return (
-    <div className="inline-flex flex-col">
-      <button
-        className="btn btn-ghost btn-sm"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open ? "true" : "false"}
-        type="button"
-      >
-        <MessageSquare className="mr-1 h-4 w-4" /> 답글 작성
-      </button>
-
-      {open && (
-        <div
-          className={clsx("mt-2 flex flex-col gap-2", depth === 0 && "w-full")}
+    <>
+      {/* 액션 바 안: 버튼만 인라인 */}
+      <div className="inline-flex">
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open ? "true" : "false"}
+          type="button"
         >
+          <MessageSquare className="mr-1 h-4 w-4" /> 답글 작성
+        </button>
+      </div>
+
+      {/* 다음 줄에 꽉 차게 표시: 부모가 flex-wrap 이어야 함 */}
+      {open && (
+        <div className={clsx("basis-full w-full mt-2")}>
           {depth === 0 ? (
             <textarea
-              className="textarea textarea-bordered min-h-[88px]"
+              className="textarea textarea-bordered w-full min-h-[88px]"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="답글을 입력하세요"
             />
           ) : (
             <input
-              className="input input-bordered"
+              className="input input-bordered w-full"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="답글을 입력하세요"
@@ -52,7 +54,7 @@ export default function ReplyControl({
             />
           )}
 
-          <div className="flex gap-2 self-end">
+          <div className="mt-2 flex gap-2 justify-end">
             <button
               className="btn btn-outline btn-sm"
               onClick={() => {
@@ -73,6 +75,6 @@ export default function ReplyControl({
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

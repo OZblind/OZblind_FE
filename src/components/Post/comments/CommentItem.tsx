@@ -173,7 +173,7 @@ export default function CommentItem({
           </div>
         )}
 
-        <div className="mt-2 flex items-center gap-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           <button
             className={clsx("btn btn-ghost btn-sm", like && "text-primary")}
             onClick={handleLike}
@@ -191,7 +191,7 @@ export default function CommentItem({
             <ThumbsDown className="mr-1 h-4 w-4" /> {fmtNum(dislikes)}
           </button>
 
-          {/* 답글: depth=0 인라인, depth>0 동일 루트에 append */}
+          {/* 답글: 버튼은 같은 줄, 에디터는 다음 줄(basis-full) */}
           <ReplyControl
             depth={depth}
             onSubmit={(content) => onAddReply(rootId, content)}
