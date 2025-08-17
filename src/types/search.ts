@@ -41,5 +41,5 @@ export const categoryMapping: Record<Category, string> = {
   취업: "job",
   정보: "info",
   설문: "survey",
-  GitHub: "gitHub", // 백엔드와 대소문자 확인 필요
+  GitHub: "github", // 백엔드와 대소문자 확인 필요
 };
