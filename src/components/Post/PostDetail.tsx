@@ -19,6 +19,9 @@ import {
 } from "@src/mocks/post.demo";
 import { fmtDate, fmtNum } from "@src/utils/utils";
 import { PostComment } from "@src/components/Post/comments";
+import DropdownMenu, {
+  type DropdownItem,
+} from "@src/components/ui/DropdownMenu";
 
 // ================== Main ==================
 export default function PostDetail({ post }: { post: PostMeta }) {
@@ -27,7 +30,6 @@ export default function PostDetail({ post }: { post: PostMeta }) {
   const [bookmarked, setBookmarked] = useState(false);
   const [commentDraft, setCommentDraft] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false); // 상단 드롭다운
 
   const [comments, setComments] = useState<CommentMeta[]>(() => demoComments);
 
@@ -80,18 +82,28 @@ export default function PostDetail({ post }: { post: PostMeta }) {
   };
 
   // 상단 드롭다운 액션 (필요 시 실제 로직 연결)
-  const handleCopyUrl = () => {
-    void navigator.clipboard.writeText(window.location.href);
-    setMenuOpen(false);
-  };
-  const handleDeletePost = () => {
-    // TODO: 게시글 삭제 연동
-    setMenuOpen(false);
-  };
-  const handleEditPost = () => {
-    // TODO: 수정 페이지로 이동
-    setMenuOpen(false);
-  };
+  const menuItems: DropdownItem[] = [
+    {
+      label: "URL 복사",
+      icon: <Copy className="h-4 w-4" />,
+      onSelect: () => void navigator.clipboard.writeText(window.location.href),
+    },
+    {
+      label: "게시글 삭제",
+      icon: <Trash2 className="h-4 w-4" />,
+      danger: true,
+      onSelect: () => {
+        // TODO: 삭제 로직
+      },
+    },
+    {
+      label: "게시글 수정",
+      icon: <Pencil className="h-4 w-4" />,
+      onSelect: () => {
+        // TODO: 수정 페이지 이동
+      },
+    },
+  ];
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6 lg:py-8">
@@ -107,51 +119,12 @@ export default function PostDetail({ post }: { post: PostMeta }) {
 
         {/* dropdown: role/tabIndex 없이 ul>li>button 패턴 */}
         <div className="dropdown dropdown-end">
-          <button
-            className="btn btn-ghost btn-sm"
-            aria-label="more"
-            aria-expanded={menuOpen ? "true" : "false"}
-            onClick={() => setMenuOpen((v) => !v)}
-            type="button"
-          >
-            <MoreHorizontal className="h-5 w-5" />
-          </button>
-          <ul
-            className={clsx(
-              "dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-44",
-              menuOpen ? "block" : "hidden"
-            )}
-            onKeyDown={(e) => e.key === "Escape" && setMenuOpen(false)}
-            aria-label="게시글 메뉴"
-          >
-            <li>
-              <button
-                className="flex items-center gap-2"
-                onClick={handleCopyUrl}
-                type="button"
-              >
-                <Copy className="h-4 w-4" /> URL 복사
-              </button>
-            </li>
-            <li>
-              <button
-                className="flex items-center gap-2 text-error"
-                onClick={handleDeletePost}
-                type="button"
-              >
-                <Trash2 className="h-4 w-4" /> 게시글 삭제
-              </button>
-            </li>
-            <li>
-              <button
-                className="flex items-center gap-2"
-                onClick={handleEditPost}
-                type="button"
-              >
-                <Pencil className="h-4 w-4" /> 게시글 수정
-              </button>
-            </li>
-          </ul>
+          <DropdownMenu
+            items={menuItems}
+            trigger={<MoreHorizontal className="h-5 w-5" />}
+            align="end"
+            triggerAriaLabel="게시글 메뉴"
+          />
         </div>
       </div>
 
