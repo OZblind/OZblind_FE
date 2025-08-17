@@ -15,6 +15,7 @@ export default function CommentItem({
   data,
   depth = 0,
   rootId,
+  branchColor,
   onEdit,
   onDelete,
   onAddReply,
@@ -23,6 +24,7 @@ export default function CommentItem({
   depth?: number;
   /** 최상위 댓글 id (depth=0이면 자신의 id) */
   rootId: CommentMeta["id"];
+  branchColor: string;
   onEdit: (id: CommentMeta["id"], content: string) => void;
   onDelete: (id: CommentMeta["id"]) => void;
   /** rootId 위치에 대댓글 추가 */
@@ -72,169 +74,171 @@ export default function CommentItem({
   };
 
   return (
-    <div className="flex gap-2">
+    <div className={clsx(depth > 0 ? "relative pl-6" : "")}>
+      {/* depth>0일 때만 수평 커넥터(루트 세로 라인 ↔ 댓글 본문) */}
       {depth > 0 && (
         <span
-          aria-hidden="true"
-          className="mt-[2px] text-base-content/50 select-none leading-6"
-        >
-          {"ㄴ".repeat(depth)}
-        </span>
+          aria-hidden
+          className="absolute top-3 left-[-24px] h-[2px] w-6 rounded-full"
+          style={{ backgroundColor: branchColor, opacity: 0.6 }}
+        />
       )}
 
-      <div className="flex-1">
-        <div className="flex items-center gap-2 text-sm text-base-content/70">
-          <span className="font-medium text-base-content">{data.author}</span>
-          <span>•</span>
-          <span>{fmtDate(data.createdAt)}</span>
+      {/* 헤더 (작성자/시간/메뉴) */}
+      <div className="flex items-center gap-2 text-sm text-base-content/70">
+        <span className="font-medium text-base-content">{data.author}</span>
+        <span>•</span>
+        <span>{fmtDate(data.createdAt)}</span>
 
-          {/* 점 3개 드롭다운 (role, tabindex 없이) */}
-          <div className="ml-auto dropdown dropdown-end">
-            <button
-              className="btn btn-ghost btn-xs"
-              aria-expanded={menuOpen ? "true" : "false"}
-              onClick={() => setMenuOpen((v) => !v)}
-              type="button"
-            >
-              <MoreVertical className="h-4 w-4" />
-              <span className="sr-only">댓글 메뉴</span>
-            </button>
-            <ul
-              className={clsx(
-                "dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-32",
-                menuOpen ? "block" : "hidden"
-              )}
-              onKeyDown={(e) => e.key === "Escape" && setMenuOpen(false)}
-              aria-label="댓글 메뉴"
-            >
-              <li>
-                <button
-                  className="text-sm"
-                  onClick={() => {
-                    setEditing(true);
-                    setMenuOpen(false);
-                  }}
-                  type="button"
-                >
-                  댓글 수정
-                </button>
-              </li>
-              <li>
-                <button
-                  className="text-sm text-error"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onDelete(data.id);
-                  }}
-                  type="button"
-                >
-                  댓글 삭제
-                </button>
-              </li>
-            </ul>
-          </div>
+        {/* 점 3개 드롭다운 */}
+        <div className="ml-auto dropdown dropdown-end">
+          <button
+            className="btn btn-ghost btn-xs"
+            aria-expanded={menuOpen ? "true" : "false"}
+            onClick={() => setMenuOpen((v) => !v)}
+            type="button"
+          >
+            <MoreVertical className="h-4 w-4" />
+            <span className="sr-only">댓글 메뉴</span>
+          </button>
+          <ul
+            className={clsx(
+              "dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-32",
+              menuOpen ? "block" : "hidden"
+            )}
+            onKeyDown={(e) => e.key === "Escape" && setMenuOpen(false)}
+            aria-label="댓글 메뉴"
+          >
+            <li>
+              <button
+                className="text-sm"
+                onClick={() => {
+                  setEditing(true);
+                  setMenuOpen(false);
+                }}
+                type="button"
+              >
+                댓글 수정
+              </button>
+            </li>
+            <li>
+              <button
+                className="text-sm text-error"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onDelete(data.id);
+                }}
+                type="button"
+              >
+                댓글 삭제
+              </button>
+            </li>
+          </ul>
         </div>
+      </div>
 
-        {/* 본문 / 편집 */}
-        {editing ? (
-          <div className="mt-2 flex flex-col gap-2">
-            <textarea
-              className="textarea textarea-bordered min-h-[88px]"
-              value={editDraft}
-              onChange={(e) => setEditDraft(e.target.value)}
-              aria-label="댓글 내용 수정"
-            />
-            <div className="flex gap-2 self-end">
-              <button
-                className="btn btn-outline btn-sm"
-                onClick={() => {
-                  setEditing(false);
-                  setEditDraft(data.content);
-                }}
-                type="button"
-              >
-                취소
-              </button>
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={() => {
-                  const trimmed = editDraft.trim();
-                  if (!trimmed) return;
-                  onEdit(data.id, trimmed);
-                  setEditing(false);
-                }}
-                type="button"
-              >
-                저장
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="whitespace-pre-wrap text-sm leading-6 mt-1">
-            {data.content}
-          </div>
-        )}
-
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <button
-            className={clsx("btn btn-ghost btn-sm", like && "text-primary")}
-            onClick={handleLike}
-            aria-pressed={like ? "true" : "false"}
-            type="button"
-          >
-            <ThumbsUp className="mr-1 h-4 w-4" /> {fmtNum(likes)}
-          </button>
-          <button
-            className={clsx("btn btn-ghost btn-sm", dislike && "text-primary")}
-            onClick={handleDislike}
-            aria-pressed={dislike ? "true" : "false"}
-            type="button"
-          >
-            <ThumbsDown className="mr-1 h-4 w-4" /> {fmtNum(dislikes)}
-          </button>
-
-          {/* 답글: 버튼은 같은 줄, 에디터는 다음 줄(basis-full) */}
-          <ReplyControl
-            depth={depth}
-            onSubmit={(content) => onAddReply(rootId, content)}
+      {/* 본문 / 편집 */}
+      {editing ? (
+        <div className="mt-2 flex flex-col gap-2">
+          <textarea
+            className="textarea textarea-bordered min-h-[88px]"
+            value={editDraft}
+            onChange={(e) => setEditDraft(e.target.value)}
+            aria-label="댓글 내용 수정"
           />
-
-          {data.hasReplies && (
+          <div className="flex gap-2 self-end">
             <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => setExpanded((v) => !v)}
-              aria-expanded={expanded ? "true" : "false"}
+              className="btn btn-outline btn-sm"
+              onClick={() => {
+                setEditing(false);
+                setEditDraft(data.content);
+              }}
               type="button"
             >
-              {expanded ? (
-                <>
-                  <ChevronUp className="mr-1 h-4 w-4" /> 답글 접기
-                </>
-              ) : (
-                <>
-                  <ChevronDown className="mr-1 h-4 w-4" /> 답글 펼치기
-                </>
-              )}
+              취소
             </button>
-          )}
-        </div>
-
-        {expanded && data.replies && data.replies.length > 0 && (
-          <div className="mt-4 space-y-6">
-            {data.replies.map((r) => (
-              <CommentItem
-                key={r.id}
-                data={r}
-                depth={depth + 1}
-                rootId={rootId}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onAddReply={onAddReply}
-              />
-            ))}
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => {
+                const trimmed = editDraft.trim();
+                if (!trimmed) return;
+                onEdit(data.id, trimmed);
+                setEditing(false);
+              }}
+              type="button"
+            >
+              저장
+            </button>
           </div>
+        </div>
+      ) : (
+        <div className="whitespace-pre-wrap text-sm leading-6 mt-1">
+          {data.content}
+        </div>
+      )}
+
+      {/* 액션바 + 답글 입력(다음 줄) */}
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <button
+          className={clsx("btn btn-ghost btn-sm", like && "text-primary")}
+          onClick={handleLike}
+          aria-pressed={like ? "true" : "false"}
+          type="button"
+        >
+          <ThumbsUp className="mr-1 h-4 w-4" /> {fmtNum(likes)}
+        </button>
+        <button
+          className={clsx("btn btn-ghost btn-sm", dislike && "text-primary")}
+          onClick={handleDislike}
+          aria-pressed={dislike ? "true" : "false"}
+          type="button"
+        >
+          <ThumbsDown className="mr-1 h-4 w-4" /> {fmtNum(dislikes)}
+        </button>
+
+        {/* 버튼은 같은 줄, 에디터는 다음 줄 (ReplyControl 구현 그대로) */}
+        <ReplyControl
+          depth={depth}
+          onSubmit={(content) => onAddReply(rootId, content)}
+        />
+
+        {data.hasReplies && (
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded ? "true" : "false"}
+            type="button"
+          >
+            {expanded ? (
+              <>
+                <ChevronUp className="mr-1 h-4 w-4" /> 답글 접기
+              </>
+            ) : (
+              <>
+                <ChevronDown className="mr-1 h-4 w-4" /> 답글 펼치기
+              </>
+            )}
+          </button>
         )}
       </div>
+
+      {/* 대댓글 */}
+      {expanded && data.replies && data.replies.length > 0 && (
+        <div className="mt-4 space-y-6">
+          {data.replies.map((r) => (
+            <CommentItem
+              key={r.id}
+              data={r}
+              depth={depth + 1}
+              rootId={rootId}
+              branchColor={branchColor}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onAddReply={onAddReply}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -6,13 +6,37 @@ import { commentTree } from "@src/utils/commentTree";
 
 type SortKey = "newest" | "oldest" | "likes";
 
+/** 안정적 색 생성용 팔레트 + 해시 */
+const THREAD_COLORS = [
+  "#5B8DEF",
+  "#50C878",
+  "#F59E0B",
+  "#EF4444",
+  "#A78BFA",
+  "#10B981",
+  "#F472B6",
+  "#22D3EE",
+  "#E879F9",
+  "#F97316",
+  "#34D399",
+  "#60A5FA",
+];
+function hashId(id: string | number): number {
+  const s = String(id);
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+function colorFor(id: CommentMeta["id"]) {
+  return THREAD_COLORS[hashId(id) % THREAD_COLORS.length];
+}
+
 export default function PostComment({ comments }: { comments: CommentMeta[] }) {
   const [list, setList] = useState<CommentMeta[]>(comments);
   useEffect(() => setList(comments), [comments]);
 
   // id 발급기 (숫자 id 없을 때도 안전)
   const idRef = useRef<number>(commentTree.getMaxNumericId(comments) || 0);
-
   const [sortKey, setSortKey] = useState<SortKey>("newest");
 
   const topLevelSorted = useMemo(() => {
@@ -85,17 +109,29 @@ export default function PostComment({ comments }: { comments: CommentMeta[] }) {
       </div>
 
       <div className="space-y-8">
-        {topLevelSorted.map((c) => (
-          <CommentItem
-            key={c.id}
-            data={c}
-            depth={0}
-            rootId={c.id}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onAddReply={handleAddReply}
-          />
-        ))}
+        {topLevelSorted.map((c) => {
+          const branchColor = colorFor(c.id);
+          return (
+            <div key={c.id} className="relative pl-6">
+              {/* 스레드 세로 라인 (최상위 댓글~모든 대댓글을 감쌈) */}
+              <span
+                aria-hidden
+                className="absolute left-0 top-0 bottom-0 w-[2px] rounded-full"
+                style={{ backgroundColor: branchColor, opacity: 0.6 }}
+              />
+              <CommentItem
+                key={c.id}
+                data={c}
+                depth={0}
+                rootId={c.id}
+                branchColor={branchColor}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onAddReply={handleAddReply}
+              />
+            </div>
+          );
+        })}
       </div>
     </section>
   );
