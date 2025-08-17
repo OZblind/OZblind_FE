@@ -3,37 +3,38 @@ import { SidebarOpen } from "./SidebarOpen";
 import { SidebarFolded } from "./SidebarFolded";
 
 export default function Sidebar() {
-  const [isOpen, setIsOpen] = useState<boolean | null>(null);
-  const [userClosed, setUserClosed] = useState(() => {
-    const saved = localStorage.getItem("sidebarUserClosed");
-    return saved === "true"; // 문자열을 불리언으로 변환
+  // 새로고침 후에도 아이콘 닫힘 상태를 우선 적용
+  const [isOpen, setIsOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    const savedClosed = localStorage.getItem("sidebarUserClosed") === "true";
+    const mql = window.matchMedia("(max-width: 1200px)");
+    if (savedClosed) return false;
+    return !mql.matches;
   });
 
+  // 사용자가 아이콘으로 사이드바를 닫았는지 추적
+  const [userClosed, setUserClosed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("sidebarUserClosed") === "true";
+  });
+
+  // matchMedia 구독
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     const mql = window.matchMedia("(max-width: 1200px)");
-
-    // 미디어 쿼리 변화 시 호출
     const handleChange = (e: MediaQueryListEvent) => {
-      setIsOpen(!e.matches || !userClosed);
+      if (!userClosed) setIsOpen(!e.matches);
     };
-
-    // 초기값 세팅
-    setIsOpen(!mql.matches || !userClosed);
 
     mql.addEventListener("change", handleChange);
     return () => mql.removeEventListener("change", handleChange);
   }, [userClosed]);
 
   const toggleSidebar = (open: boolean) => {
-    // 사용자가 아이콘으로 사이드 바를 닫은 경우 닫힘 상태를 고정, 다시 연 경우 고정 해제
     setIsOpen(open);
-    if (!open) {
-      setUserClosed(true);
-      localStorage.setItem("sidebarUserClosed", "true");
-    } else {
-      setUserClosed(false);
-      localStorage.setItem("sidebarUserClosed", "false");
-    }
+    setUserClosed(!open);
+    localStorage.setItem("sidebarUserClosed", String(!open));
   };
 
   if (isOpen === null) return null; // 초기 깜빡임 방지
