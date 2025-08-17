@@ -29,12 +29,12 @@ interface InlineDropdownSearchBarProps {
   maxPreviewResults?: number; // detail 모드에서 더 많은 결과 표시
 }
 
-const categories = ["통합", "자유", "취업", "정보", "설문", "Github"] as const;
+const categories = ["전체", "자유", "취업", "정보", "설문", "Github"] as const;
 type Category = (typeof categories)[number];
 
 // 카테고리 매핑
 const categoryMapping: Record<Category, string> = {
-  통합: "all",
+  전체: "all",
   자유: "free",
   취업: "job",
   정보: "info",
@@ -50,7 +50,7 @@ const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [selectedCategory, setSelectedCategory] = useState<Category>("통합");
+  const [selectedCategory, setSelectedCategory] = useState<Category>("전체");
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
   const [previewResults, setPreviewResults] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
