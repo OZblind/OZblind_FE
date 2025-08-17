@@ -1,7 +1,7 @@
 import { icons } from "@src/assets";
 import { useThemeIcon } from "@hooks/useThemeIcon";
 import { NotificationModal } from "@components/Notice";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ProfileSection from "./ProfileSection";
 import SmallProfileSection from "./SmallProfileSection";
 import PostListSection from "./PostListSection";
@@ -11,11 +11,15 @@ export function SidebarOpen({ onToggle }: { onToggle: () => void }) {
   const [noticeOpen, setNoticeOpen] = useState(false);
   const [isSmall, setIsSmall] = useState(false);
   const themeIcon = useThemeIcon();
-  const menuIcon = themeIcon === "oz_dark" ? icons.menu.dark : icons.menu.light;
-  const notificationsIcon =
-    themeIcon === "oz_dark"
-      ? icons.notifications.dark
-      : icons.notifications.light;
+  const { menuIcon, notificationsIcon } = useMemo(() => {
+    const dark = themeIcon === "oz_dark";
+    return {
+      menuIcon: dark ? icons.menu.dark : icons.menu.light,
+      notificationsIcon: dark
+        ? icons.notifications.dark
+        : icons.notifications.light,
+    };
+  }, [themeIcon]);
 
   useEffect(() => {
     const handleResize = () => {

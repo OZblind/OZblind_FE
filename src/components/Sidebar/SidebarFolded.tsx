@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { icons } from "@src/assets";
 import { useThemeIcon } from "@hooks/useThemeIcon";
 import profile from "@assets/images/profile.jpg";
@@ -7,11 +7,15 @@ import { NotificationModal } from "@components/Notice";
 export function SidebarFolded({ onToggle }: { onToggle: () => void }) {
   const [noticeOpen, setNoticeOpen] = useState(false);
   const themeIcon = useThemeIcon();
-  const menuIcon = themeIcon === "oz_dark" ? icons.menu.dark : icons.menu.light;
-  const notificationsIcon =
-    themeIcon === "oz_dark"
-      ? icons.notifications.dark
-      : icons.notifications.light;
+  const { menuIcon, notificationsIcon } = useMemo(() => {
+    const dark = themeIcon === "oz_dark";
+    return {
+      menuIcon: dark ? icons.menu.dark : icons.menu.light,
+      notificationsIcon: dark
+        ? icons.notifications.dark
+        : icons.notifications.light,
+    };
+  }, [themeIcon]);
 
   return (
     <div className="flex flex-col items-center justify-between w-full h-full bg-base-200 p-2 py-4">

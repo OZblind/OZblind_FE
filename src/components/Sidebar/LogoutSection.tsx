@@ -1,13 +1,17 @@
 import { icons } from "@src/assets";
 import { useThemeIcon } from "@hooks/useThemeIcon";
+import { useMemo } from "react";
 
 export default function LogoutSection() {
   const themeIcon = useThemeIcon();
   const logoutBtnIcon = icons.logoutBtn.default;
-  const logoutBtnHoverIcon =
-    themeIcon === "oz_dark"
-      ? icons.logoutBtn.hover.dark
-      : icons.logoutBtn.hover.light;
+  const logoutBtnHoverIcon = useMemo(() => {
+    const dark = themeIcon === "oz_dark";
+    return dark ? icons.logoutBtn.hover.dark : icons.logoutBtn.hover.light;
+  }, [themeIcon]);
+
+  // JSX
+  <img src={logoutBtnHoverIcon} alt="Logout" />;
 
   return (
     <div className="flex flex-col items-center w-full">
