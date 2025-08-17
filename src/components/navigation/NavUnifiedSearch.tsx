@@ -25,28 +25,32 @@ interface SearchPreview {
 interface InlineDropdownSearchBarProps {
   className?: string;
   placeholder?: string;
-  mode?: "default" | "detail"; // 명우님 제안: default와 detail 값으로 분리
-  maxPreviewResults?: number; // detail 모드에서 더 많은 결과 표시
+  mode?: "default" | "detail";
+  maxPreviewResults?: number;
 }
 
 const categories = ["전체", "자유", "취업", "정보", "설문", "Github"] as const;
 type Category = (typeof categories)[number];
 
-// 카테고리 매핑
+// 카테고리 매핑 - 백엔드 호환성을 위해 소문자로 통일
 const categoryMapping: Record<Category, string> = {
   전체: "all",
   자유: "free",
   취업: "job",
   정보: "info",
   설문: "survey",
-  Github: "Github",
+  Github: "github", // 백엔드와 대소문자 확인 필요
 };
+
+// 정규식 메타문자 이스케이프 유틸리티
+const escapeRegExp = (s: string): string =>
+  s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
   className = "",
   placeholder = "검색...",
-  mode = "default", // 기본값: default 모드
-  maxPreviewResults = mode === "detail" ? 8 : 5, // detail 모드에서 더 많은 결과
+  mode = "default",
+  maxPreviewResults = mode === "detail" ? 8 : 5,
 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -64,15 +68,47 @@ const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
   const resultsRef = useRef<HTMLDivElement>(null);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
 
+  // 요청 취소와 중복 요청 방지를 위한 ref들
+  const controllerRef = useRef<AbortController | null>(null);
+  const latestReqIdRef = useRef(0);
+
+  // 키보드 네비게이션을 위한 최신 상태 ref들
+  const isOpenRef = useRef(isOpen);
+  const selectedIndexRef = useRef(selectedIndex);
+  const previewResultsRef = useRef(previewResults);
+  const totalCountRef = useRef(totalCount);
+  const searchQueryRef = useRef(searchQuery);
+
+  // ref 상태 동기화
+  useEffect(() => {
+    isOpenRef.current = isOpen;
+  }, [isOpen]);
+  useEffect(() => {
+    selectedIndexRef.current = selectedIndex;
+  }, [selectedIndex]);
+  useEffect(() => {
+    previewResultsRef.current = previewResults;
+  }, [previewResults]);
+  useEffect(() => {
+    totalCountRef.current = totalCount;
+  }, [totalCount]);
+  useEffect(() => {
+    searchQueryRef.current = searchQuery;
+  }, [searchQuery]);
+
   // 검색 미리보기 API 호출
   const searchPreview = useCallback(
-    async (query: string, category: Category): Promise<SearchPreview> => {
+    async (
+      query: string,
+      category: Category,
+      signal?: AbortSignal
+    ): Promise<SearchPreview> => {
       try {
         const response = await axios.get("/api/posts/search", {
           params: {
             q: query.trim(),
             category: categoryMapping[category],
-            limit: maxPreviewResults, // mode에 따라 동적으로 변경
+            limit: maxPreviewResults,
             offset: 0,
           },
           headers: {
@@ -80,6 +116,7 @@ const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
               ? `Bearer ${tokens.accessToken}`
               : undefined,
           },
+          signal, // AbortSignal 추가
         });
 
         return {
@@ -87,6 +124,10 @@ const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
           totalCount: response.data.totalCount || 0,
         };
       } catch (error) {
+        // AbortError는 정상적인 취소이므로 로그하지 않음
+        if (axios.isCancel(error) || (error as Error).name === "AbortError") {
+          throw error;
+        }
         console.error("Search preview API error:", error);
         return {
           posts: [],
@@ -131,40 +172,86 @@ const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
     setSelectedCategory(category);
     setIsCategoryDropdownOpen(false);
     setSelectedIndex(-1);
+    setTimeout(() => {
+      searchRef.current?.focus();
+      setIsOpen(true);
+    }, 100);
   }, []);
 
-  // 검색 실행
+  // 검색 실행 - 요청 취소 및 중복 방지 로직 추가
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
       if (searchQuery.trim()) {
+        // 이전 요청 취소
+        controllerRef.current?.abort();
+        const controller = new AbortController();
+        controllerRef.current = controller;
+
+        // 최신 요청 ID 추적
+        const reqId = ++latestReqIdRef.current;
+
         setIsLoading(true);
         try {
-          const result = await searchPreview(searchQuery, selectedCategory);
-          setPreviewResults(result.posts);
-          setTotalCount(result.totalCount);
+          const result = await searchPreview(
+            searchQuery,
+            selectedCategory,
+            controller.signal
+          );
+
+          // 컴포넌트가 언마운트되거나 더 최신 요청이 있는 경우 상태 업데이트 방지
+          if (reqId === latestReqIdRef.current && !controller.signal.aborted) {
+            setPreviewResults(result.posts);
+            setTotalCount(result.totalCount);
+          }
         } catch (error) {
-          console.error("Search preview failed:", error);
-          setPreviewResults([]);
-          setTotalCount(0);
+          // AbortError는 정상적인 취소이므로 처리하지 않음
+          if (
+            !axios.isCancel(error) &&
+            (error as Error).name !== "AbortError"
+          ) {
+            console.error("Search preview failed:", error);
+            if (reqId === latestReqIdRef.current) {
+              setPreviewResults([]);
+              setTotalCount(0);
+            }
+          }
         } finally {
-          setIsLoading(false);
+          if (reqId === latestReqIdRef.current && !controller.signal.aborted) {
+            setIsLoading(false);
+          }
         }
       } else {
+        // 빈 검색어인 경우 이전 요청 취소하고 결과 초기화
+        controllerRef.current?.abort();
         setPreviewResults([]);
         setTotalCount(0);
+        setIsLoading(false);
       }
     }, 300);
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, [searchQuery, selectedCategory, searchPreview]);
 
-  // 키보드 네비게이션
+  // 컴포넌트 언마운트 시 요청 취소
+  useEffect(() => {
+    return () => {
+      controllerRef.current?.abort();
+    };
+  }, []);
+
+  // 키보드 네비게이션 - 단일 등록으로 개선
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
+      if (!isOpenRef.current) return;
 
-      const itemCount =
-        previewResults.length + (totalCount > previewResults.length ? 1 : 0);
+      const preview = previewResultsRef.current;
+      const total = totalCountRef.current;
+      const idx = selectedIndexRef.current;
+      const query = searchQueryRef.current;
+
+      const itemCount = preview.length + (total > preview.length ? 1 : 0);
 
       switch (e.key) {
         case "ArrowDown":
@@ -177,15 +264,15 @@ const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
           break;
         case "Enter":
           e.preventDefault();
-          if (selectedIndex >= 0) {
-            if (selectedIndex < previewResults.length) {
-              handlePostSelect(previewResults[selectedIndex]);
+          if (idx >= 0) {
+            if (idx < preview.length) {
+              handlePostSelect(preview[idx]);
             } else {
               handleViewAllResults();
             }
-          } else if (previewResults.length > 0) {
-            handlePostSelect(previewResults[0]);
-          } else if (searchQuery.trim()) {
+          } else if (preview.length > 0) {
+            handlePostSelect(preview[0]);
+          } else if (query.trim()) {
             handleViewAllResults();
           }
           break;
@@ -198,33 +285,23 @@ const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [
-    isOpen,
-    selectedIndex,
-    previewResults,
-    totalCount,
-    searchQuery,
-    handlePostSelect,
-    handleViewAllResults,
-    handleClose,
-  ]);
+  }, [handlePostSelect, handleViewAllResults, handleClose]); // 빈 배열 대신 필요한 핸들러만 의존성 추가
 
   // 외부 클릭 감지
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent): void => {
+      const target = event.target as Node;
+
       // 카테고리 드롭다운 외부 클릭
       if (
         categoryDropdownRef.current &&
-        !categoryDropdownRef.current.contains(event.target as Node)
+        !categoryDropdownRef.current.contains(target)
       ) {
         setIsCategoryDropdownOpen(false);
       }
 
       // 전체 검색 결과 외부 클릭
-      if (
-        resultsRef.current &&
-        !resultsRef.current.contains(event.target as Node)
-      ) {
+      if (resultsRef.current && !resultsRef.current.contains(target)) {
         setIsOpen(false);
         setIsCategoryDropdownOpen(false);
       }
@@ -266,60 +343,96 @@ const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
     }
   };
 
+  // 텍스트 하이라이트 - 정규식 메타문자 이스케이프 적용
   const highlightText = (text: string, query: string): React.ReactNode => {
     if (!query.trim()) return text;
 
-    const regex = new RegExp(`(${query})`, "gi");
-    const parts = text.split(regex);
+    try {
+      const escapedQuery = escapeRegExp(query);
+      const regex = new RegExp(`(${escapedQuery})`, "gi");
+      const parts = text.split(regex);
 
-    return parts.map((part, index) =>
-      regex.test(part) ? (
-        <mark key={index} className="bg-yellow-400 text-black px-0.5 rounded">
-          {part}
-        </mark>
-      ) : (
-        part
-      )
-    );
+      return parts.map((part, index) =>
+        regex.test(part) ? (
+          <mark key={index} className="bg-yellow-400 text-black px-0.5 rounded">
+            {part}
+          </mark>
+        ) : (
+          part
+        )
+      );
+    } catch (error) {
+      // 정규식 생성 실패 시 원본 텍스트 반환
+      console.warn("Regex creation failed for query:", query, error);
+      return text;
+    }
   };
 
   return (
     <div className={`relative ${className}`} ref={resultsRef}>
-      {/* 검색창 + 드롭다운 (검색 버튼 형태) */}
+      {/* 검색창 + 드롭다운 */}
       <div className="relative">
-        <div className="flex items-center bg-neutral-800 rounded-full border border-neutral-600 hover:border-neutral-500 focus-within:border-neutral-400 transition-colors">
+        <div
+          className={`flex items-center bg-neutral-800 rounded-full border transition-all duration-200 ${
+            isOpen || isCategoryDropdownOpen
+              ? "border-neutral-400 shadow-lg"
+              : "border-neutral-600 hover:border-neutral-500"
+          }`}
+        >
           {/* 카테고리 드롭다운 (왼쪽) */}
           <div className="relative" ref={categoryDropdownRef}>
             <button
-              onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
-              className="flex items-center space-x-1 px-4 py-2 text-neutral-300 hover:text-white transition-colors text-sm border-r border-neutral-600 min-w-[80px] justify-center"
+              onClick={() => {
+                setIsCategoryDropdownOpen(!isCategoryDropdownOpen);
+              }}
+              className={`flex items-center space-x-1 px-3 py-1.5 text-sm min-w-[80px] justify-center rounded-full ml-1 transition-all duration-200 ${
+                isCategoryDropdownOpen
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "text-neutral-300 hover:text-white hover:bg-blue-500"
+              }`}
+              aria-expanded={isCategoryDropdownOpen}
+              aria-haspopup="listbox"
+              aria-label={`카테고리 선택: ${selectedCategory}`}
             >
               <span className="font-medium">{selectedCategory}</span>
               <IoChevronDown
-                className={`w-3 h-3 transition-transform ${
+                className={`w-3 h-3 transition-transform duration-200 ${
                   isCategoryDropdownOpen ? "rotate-180" : ""
                 }`}
               />
             </button>
 
+            {/* 카테고리 드롭다운 메뉴 */}
             {isCategoryDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 bg-neutral-800 border border-neutral-600 rounded-lg shadow-lg z-[60] w-full min-w-[100px]">
-                {categories.map((category) => (
-                  <button
-                    key={category}
-                    onClick={() => handleCategorySelect(category)}
-                    className={`w-full px-3 py-2 text-center text-sm hover:bg-neutral-700 first:rounded-t-lg last:rounded-b-lg transition-colors ${
-                      selectedCategory === category
-                        ? "bg-blue-600 text-white"
-                        : "text-neutral-300"
-                    }`}
-                  >
-                    {category}
-                  </button>
-                ))}
+              <div
+                className="absolute top-full left-0 mt-1 bg-neutral-800 border border-neutral-600 rounded-xl shadow-xl z-[70] w-full min-w-[100px] overflow-hidden animate-fadeIn"
+                role="listbox"
+                aria-label="카테고리 목록"
+              >
+                <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-b-4 border-l-transparent border-r-transparent border-b-neutral-600"></div>
+                {categories
+                  .filter((category) => category !== selectedCategory)
+                  .map((category, index, filteredArray) => (
+                    <button
+                      key={category}
+                      onClick={() => handleCategorySelect(category)}
+                      className={`w-full px-3 py-2.5 text-center text-sm transition-all duration-150 hover:bg-neutral-700 text-neutral-300 ${
+                        index === 0 ? "rounded-t-xl" : ""
+                      } ${
+                        index === filteredArray.length - 1 ? "rounded-b-xl" : ""
+                      }`}
+                      role="option"
+                      aria-selected={false}
+                    >
+                      {category}
+                    </button>
+                  ))}
               </div>
             )}
           </div>
+
+          {/* 구분선 */}
+          <div className="w-px h-6 bg-neutral-600 mx-2"></div>
 
           {/* 검색 입력창 (중앙) */}
           <input
@@ -329,14 +442,19 @@ const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={handleFocus}
-            className="flex-1 bg-transparent text-white placeholder-neutral-400 px-3 py-3 outline-none text-sm"
+            className="flex-1 bg-transparent text-white placeholder-neutral-400 px-2 py-3 outline-none text-sm"
+            aria-label="검색어 입력"
+            aria-expanded={isOpen}
+            aria-haspopup="listbox"
+            autoComplete="off"
           />
 
           {/* 검색 버튼 또는 닫기 버튼 (오른쪽) */}
           {isOpen ? (
             <button
               onClick={handleClose}
-              className="mr-4 text-neutral-400 hover:text-white transition-colors"
+              className="mr-4 text-neutral-400 hover:text-white transition-colors p-1 rounded-full hover:bg-neutral-700"
+              aria-label="검색창 닫기"
             >
               <IoClose className="w-5 h-5" />
             </button>
@@ -349,7 +467,8 @@ const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
                   searchRef.current?.focus();
                 }
               }}
-              className="mr-4 text-neutral-400 hover:text-white transition-colors"
+              className="mr-4 text-neutral-400 hover:text-white transition-colors p-1 rounded-full hover:bg-neutral-700"
+              aria-label="검색 실행"
             >
               <IoSearch className="w-5 h-5" />
             </button>
@@ -359,16 +478,20 @@ const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
 
       {/* 검색 미리보기 드롭다운 */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-neutral-800 border border-neutral-600 rounded-xl shadow-xl z-50 overflow-hidden">
+        <div
+          className="absolute top-full left-0 right-0 mt-2 bg-neutral-800 border border-neutral-600 rounded-xl shadow-xl z-50 overflow-hidden animate-fadeIn"
+          role="listbox"
+          aria-label="검색 결과"
+        >
           {/* 결과 헤더 */}
           {searchQuery && (
-            <div className="px-4 py-2 border-b border-neutral-700 bg-neutral-900">
+            <div className="px-4 py-3 border-b border-neutral-700 bg-gradient-to-r from-neutral-900 to-neutral-800">
               <div className="flex items-center justify-between text-xs">
-                <div className="text-neutral-400">
-                  <span className="text-blue-400 font-medium">
+                <div className="text-neutral-400 flex items-center space-x-1">
+                  <span className="text-blue-400 font-medium bg-blue-400/10 px-2 py-1 rounded">
                     {selectedCategory}
                   </span>
-                  에서 검색
+                  <span>에서 검색</span>
                 </div>
                 {totalCount > 0 && (
                   <div className="text-neutral-400">
@@ -390,7 +513,7 @@ const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
           >
             {isLoading ? (
               <div className="px-4 py-6 text-center">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500 mx-auto mb-2"></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-500 border-t-transparent mx-auto mb-3"></div>
                 <div className="text-sm text-neutral-400">검색 중...</div>
               </div>
             ) : searchQuery.trim() ? (
@@ -404,29 +527,33 @@ const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
                         <button
                           key={post.id}
                           onClick={() => handlePostSelect(post)}
-                          className={`w-full px-4 py-3 text-left hover:bg-neutral-700 transition-colors ${
+                          className={`w-full px-4 py-3 text-left transition-all duration-150 hover:bg-neutral-700 border-l-2 ${
                             isSelected
-                              ? "bg-neutral-700 border-r-2 border-blue-500"
-                              : ""
+                              ? "bg-neutral-700 border-l-blue-500 shadow-md"
+                              : "border-l-transparent hover:border-l-neutral-600"
                           }`}
+                          role="option"
+                          aria-selected={isSelected}
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1 min-w-0">
                               <div
-                                className={`font-medium mb-1 text-sm ${
+                                className={`font-medium mb-1 text-sm transition-colors duration-150 ${
                                   isSelected ? "text-blue-400" : "text-white"
                                 }`}
                               >
                                 {highlightText(post.title, searchQuery)}
                               </div>
-                              <div className="text-xs text-neutral-400 mb-1 line-clamp-1">
+                              <div className="text-xs text-neutral-400 mb-2 line-clamp-1">
                                 {highlightText(
                                   post.content.substring(0, 60) + "...",
                                   searchQuery
                                 )}
                               </div>
                               <div className="flex items-center space-x-2 text-xs text-neutral-500">
-                                <span>{post.author}</span>
+                                <span className="font-medium">
+                                  {post.author}
+                                </span>
                                 <span>•</span>
                                 <span>{formatDate(post.createdAt)}</span>
                                 <span>•</span>
@@ -434,7 +561,7 @@ const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
                               </div>
                             </div>
                             <div className="flex-shrink-0 ml-3">
-                              <span className="bg-neutral-700 text-neutral-300 px-2 py-1 rounded text-xs">
+                              <span className="bg-neutral-700 text-neutral-300 px-2 py-1 rounded-full text-xs font-medium">
                                 {post.category}
                               </span>
                             </div>
@@ -447,26 +574,30 @@ const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
                     {totalCount > previewResults.length && (
                       <button
                         onClick={handleViewAllResults}
-                        className={`w-full px-4 py-3 text-left border-t border-neutral-700 hover:bg-neutral-700 transition-colors ${
+                        className={`w-full px-4 py-3 text-left border-t border-neutral-700 transition-all duration-150 hover:bg-neutral-700 border-l-2 ${
                           selectedIndex === previewResults.length
-                            ? "bg-neutral-700 border-r-2 border-blue-500"
-                            : ""
+                            ? "bg-neutral-700 border-l-blue-500"
+                            : "border-l-transparent hover:border-l-neutral-600"
                         }`}
+                        role="option"
+                        aria-selected={selectedIndex === previewResults.length}
                       >
                         <div className="flex items-center justify-between">
                           <div className="text-blue-400 font-medium text-sm">
                             "{searchQuery}" 전체 결과 보기
                           </div>
-                          <div className="text-xs text-neutral-400">
-                            {totalCount}개 →
+                          <div className="text-xs text-neutral-400 flex items-center">
+                            <span className="mr-1">{totalCount}개</span>
+                            <span>→</span>
                           </div>
                         </div>
                       </button>
                     )}
                   </div>
                 ) : (
-                  <div className="px-4 py-6 text-center">
-                    <div className="text-sm text-neutral-400 mb-1">
+                  <div className="px-4 py-8 text-center">
+                    <IoSearch className="w-8 h-8 text-neutral-500 mx-auto mb-3" />
+                    <div className="text-sm text-neutral-400 mb-1 font-medium">
                       "{searchQuery}"에 대한 검색 결과가 없습니다
                     </div>
                     <div className="text-xs text-neutral-500">
@@ -476,13 +607,17 @@ const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
                 )}
               </>
             ) : (
-              <div className="px-4 py-6 text-center">
-                <IoSearch className="w-6 h-6 text-neutral-500 mx-auto mb-2" />
-                <div className="text-sm text-neutral-400">
+              <div className="px-4 py-8 text-center">
+                <IoSearch className="w-8 h-8 text-neutral-500 mx-auto mb-3" />
+                <div className="text-sm text-neutral-400 font-medium mb-1">
                   검색어를 입력해주세요
                 </div>
-                <div className="text-xs text-neutral-500 mt-1">
-                  좌측에서 카테고리 선택 • Ctrl+K 단축키
+                <div className="text-xs text-neutral-500">
+                  좌측에서 카테고리 선택 •{" "}
+                  <kbd className="bg-neutral-700 px-1 py-0.5 rounded text-xs">
+                    Ctrl+K
+                  </kbd>{" "}
+                  단축키
                 </div>
               </div>
             )}
