@@ -10,7 +10,6 @@ export default function LogoutSection() {
     return dark ? icons.logoutBtn.hover.dark : icons.logoutBtn.hover.light;
   }, [themeIcon]);
 
-  // JSX
   <img src={logoutBtnHoverIcon} alt="Logout" />;
 
   return (
