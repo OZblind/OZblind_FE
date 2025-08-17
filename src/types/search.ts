@@ -30,7 +30,7 @@ export const categories = [
   "취업",
   "정보",
   "설문",
-  "Github",
+  "GitHub",
 ] as const;
 export type Category = (typeof categories)[number];
 
@@ -41,5 +41,5 @@ export const categoryMapping: Record<Category, string> = {
   취업: "job",
   정보: "info",
   설문: "survey",
-  Github: "github", // 백엔드와 대소문자 확인 필요
+  GitHub: "gitHub", // 백엔드와 대소문자 확인 필요
 };
