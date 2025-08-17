@@ -7,20 +7,18 @@ export default function Sidebar() {
   const [userClosed, setUserClosed] = useState(false);
 
   useEffect(() => {
-    // 1200px 이하로는 무조건 사이드바가 접히도록, 사용자가 닫은 상태가 아니라면 열림
-    const handleResize = () => {
-      if (window.innerWidth <= 1200) {
-        setIsOpen(false);
-      } else {
-        if (!userClosed) {
-          setIsOpen(true);
-        }
-      }
+    const mql = window.matchMedia("(max-width: 1200px)");
+
+    // 미디어 쿼리 변화 시 호출
+    const handleChange = (e: MediaQueryListEvent) => {
+      setIsOpen(!e.matches || !userClosed);
     };
 
-    handleResize(); // 처음 페이지 로드 시 창 크기에 맞춰 사이드바 상태를 세팅
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    // 초기값 세팅
+    setIsOpen(!mql.matches || !userClosed);
+
+    mql.addEventListener("change", handleChange);
+    return () => mql.removeEventListener("change", handleChange);
   }, [userClosed]);
 
   const toggleSidebar = (open: boolean) => {
