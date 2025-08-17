@@ -15,6 +15,7 @@ export default function TestHub() {
     { to: "/403", label: "403 테스트" },
     { to: "/500", label: "500 테스트" },
     { to: "/test/setting", label: "사용자 모달 테스트" },
+    { to: "/test/board/free-list", label: "자유·취업·정보 리스트 본문 테스트" },
     // 404는 없는 주소
     // --- 인증 관련 테스트 링크 ---
     { to: PATHS.AUTH, label: "로그인/회원가입(로비) 테스트" },
