@@ -3,22 +3,37 @@ import { SidebarOpen } from "./SidebarOpen";
 import { SidebarFolded } from "./SidebarFolded";
 
 export default function Sidebar() {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState<boolean | null>(null);
+  const [userClosed, setUserClosed] = useState(false);
 
-  // 창 크기에 따른 사이드 바 열림 여부
   useEffect(() => {
+    // 1200px 이하로는 무조건 사이드바가 접히도록, 사용자가 닫은 상태가 아니라면 열림
     const handleResize = () => {
       if (window.innerWidth <= 1200) {
         setIsOpen(false);
       } else {
-        setIsOpen(true);
+        if (!userClosed) {
+          setIsOpen(true);
+        }
       }
     };
 
-    handleResize(); // 첫 렌더링 시 실행
+    handleResize(); // 처음 페이지 로드 시 창 크기에 맞춰 사이드바 상태를 세팅
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  }, [userClosed]);
+
+  const toggleSidebar = (open: boolean) => {
+    // 사용자가 아이콘으로 사이드 바를 닫은 경우 닫힘 상태를 고정, 다시 연 경우 고정 해제
+    setIsOpen(open);
+    if (!open) {
+      setUserClosed(true);
+    } else {
+      setUserClosed(false);
+    }
+  };
+
+  if (isOpen === null) return null; // 초기 깜빡임 방지
 
   return (
     <div
@@ -29,9 +44,9 @@ export default function Sidebar() {
       `}
     >
       {isOpen ? (
-        <SidebarOpen onToggle={() => setIsOpen(false)} />
+        <SidebarOpen onToggle={() => toggleSidebar(false)} />
       ) : (
-        <SidebarFolded onToggle={() => setIsOpen(true)} />
+        <SidebarFolded onToggle={() => toggleSidebar(true)} />
       )}
     </div>
   );
