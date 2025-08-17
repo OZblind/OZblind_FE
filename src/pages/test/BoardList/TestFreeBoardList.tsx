@@ -1,38 +1,35 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PostList from "@components/Board/free/PostList";
 import type { FreeBoardItem } from "@components/Board/free/PostRow";
 import { useInfiniteScroll } from "@hooks/useInfiniteScroll";
 import { formatYyMmDd, formatYyyyMmDdHms } from "@utils/date";
 
+const PAGE_SIZE = 15;
+const MAX_PAGES = 4;
+const MOCK_TOTAL = PAGE_SIZE * MAX_PAGES;
+
+function makeMockItems(count: number, startIndex: number): FreeBoardItem[] {
+  const DAY = 24 * 60 * 60 * 1000;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const baseTs = today.getTime();
+
+  return Array.from({ length: count }, (_, i) => {
+    const idx = startIndex + i;
+    const d = new Date(baseTs - idx * DAY);
+    return {
+      id: `mock-${idx + 1}`,
+      no: MOCK_TOTAL - idx, // 최신 글 번호가 더 큼(내림차순)
+      title: `샘플 게시글 제목 ${idx + 1} — 반응형/테이블·카드/무한스크롤 테스트`,
+      author: `사용자${((idx + 1) % 7) + 1}`,
+      dateText: formatYyMmDd(d),
+      views: Math.floor(Math.random() * 5000),
+      likes: Math.floor(Math.random() * 200),
+    };
+  });
+}
+
 export default function TestFreeBoardList() {
-  const PAGE_SIZE = 15;
-  const MAX_PAGES = 4;
-  const MOCK_TOTAL = PAGE_SIZE * MAX_PAGES; // 전체 개수(번호 역순 생성용)
-
-  const makeMockItems = (
-    count: number,
-    startIndex: number
-  ): FreeBoardItem[] => {
-    const DAY = 24 * 60 * 60 * 1000;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const baseTs = today.getTime();
-
-    return Array.from({ length: count }, (_, i) => {
-      const idx = startIndex + i;
-      const d = new Date(baseTs - idx * DAY);
-      return {
-        id: `mock-${idx + 1}`,
-        no: MOCK_TOTAL - idx,
-        title: `샘플 게시글 제목 ${idx + 1} — 반응형/테이블·카드/무한스크롤 테스트`,
-        author: `사용자${((idx + 1) % 7) + 1}`,
-        dateText: formatYyMmDd(d),
-        views: Math.floor(Math.random() * 5000),
-        likes: Math.floor(Math.random() * 200),
-      };
-    });
-  };
-
   const [page, setPage] = useState(1);
   const [items, setItems] = useState<FreeBoardItem[]>(() =>
     makeMockItems(PAGE_SIZE, 0)
@@ -43,25 +40,53 @@ export default function TestFreeBoardList() {
     formatYyyyMmDdHms(new Date())
   );
 
-  const hasMore = useMemo(() => page < MAX_PAGES, [page]);
+  const mountedRef = useRef(true);
+  const busyRef = useRef(false);
+  const pageRef = useRef(1);
+  const hasMoreRef = useRef(true);
 
-  const loadMore = async () => {
-    if (busy || !hasMore) return;
-    setBusy(true);
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const hasMore = useMemo(() => page < MAX_PAGES, [page]);
+  useEffect(() => {
+    hasMoreRef.current = hasMore;
+  }, [hasMore]);
+
+  const loadMore = useCallback(async () => {
+    if (busyRef.current || !hasMoreRef.current) return;
+    busyRef.current = true;
+    if (mountedRef.current) setBusy(true);
     setErr(null);
-    await new Promise((r) => setTimeout(r, 500));
-    const nextPage = page + 1;
-    setItems((prev) => [...prev, ...makeMockItems(PAGE_SIZE, prev.length)]);
-    setPage(nextPage);
-    setLastLoadedAt(formatYyyyMmDdHms(new Date()));
-    setBusy(false);
-  };
+
+    try {
+      await new Promise((r) => setTimeout(r, 500)); // mock API 지연
+      const nextPage = pageRef.current + 1;
+
+      if (!mountedRef.current) return;
+      setItems((prev) => [...prev, ...makeMockItems(PAGE_SIZE, prev.length)]);
+      setPage(nextPage);
+      pageRef.current = nextPage;
+      setLastLoadedAt(formatYyyyMmDdHms(new Date()));
+    } finally {
+      if (mountedRef.current) setBusy(false);
+      busyRef.current = false;
+    }
+  }, []);
+
+  // pageRef 동기화
+  useEffect(() => {
+    pageRef.current = page;
+  }, [page]);
 
   const { sentinelRef } = useInfiniteScroll({
     root: null,
     rootMargin: "1000px 0px",
     threshold: 0,
-    disabled: busy || !hasMore || !!err,
+    disabled: busy || !hasMore || !!err, // 외부 가드
     onIntersect: loadMore,
   });
 
@@ -70,9 +95,12 @@ export default function TestFreeBoardList() {
   const toggleError = () => setErr((e) => (e ? null : "의도적 테스트 에러"));
   const resetAll = () => {
     setPage(1);
+    pageRef.current = 1;
     setItems(makeMockItems(PAGE_SIZE, 0));
     setBusy(false);
+    busyRef.current = false;
     setErr(null);
+    hasMoreRef.current = true;
     setLastLoadedAt(formatYyyyMmDdHms(new Date()));
   };
 
@@ -128,6 +156,7 @@ export default function TestFreeBoardList() {
           isLoading={busy}
           isError={!!err}
           errorText={err ?? undefined}
+          hasMore={hasMore}
           sentinelRef={sentinelRef}
           empty={{
             message: "조건에 맞는 게시글이 없습니다.",
