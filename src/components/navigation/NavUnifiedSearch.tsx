@@ -29,17 +29,17 @@ interface InlineDropdownSearchBarProps {
   maxPreviewResults?: number; // detail 모드에서 더 많은 결과 표시
 }
 
-const categories = ["통합", "자유", "취직", "정보", "설문", "깃레포"] as const;
+const categories = ["전체", "자유", "취업", "정보", "설문", "Github"] as const;
 type Category = (typeof categories)[number];
 
 // 카테고리 매핑
 const categoryMapping: Record<Category, string> = {
-  통합: "all",
+  전체: "all",
   자유: "free",
-  취직: "job",
+  취업: "job",
   정보: "info",
   설문: "survey",
-  깃레포: "github",
+  Github: "Github",
 };
 
 const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
@@ -50,7 +50,7 @@ const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [selectedCategory, setSelectedCategory] = useState<Category>("통합");
+  const [selectedCategory, setSelectedCategory] = useState<Category>("전체");
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
   const [previewResults, setPreviewResults] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -285,16 +285,14 @@ const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
 
   return (
     <div className={`relative ${className}`} ref={resultsRef}>
-      {/* 검색창 + 내장 드롭다운 */}
+      {/* 검색창 + 드롭다운 (검색 버튼 형태) */}
       <div className="relative">
         <div className="flex items-center bg-neutral-800 rounded-full border border-neutral-600 hover:border-neutral-500 focus-within:border-neutral-400 transition-colors">
-          <IoSearch className="ml-4 text-neutral-400 w-5 h-5" />
-
-          {/* 카테고리 드롭다운 (검색창 내부 - 세로줄까지만) */}
+          {/* 카테고리 드롭다운 (왼쪽) */}
           <div className="relative" ref={categoryDropdownRef}>
             <button
               onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
-              className="flex items-center space-x-1 px-3 py-2 text-neutral-300 hover:text-white transition-colors text-sm border-r border-neutral-600"
+              className="flex items-center space-x-1 px-4 py-2 text-neutral-300 hover:text-white transition-colors text-sm border-r border-neutral-600 min-w-[80px] justify-center"
             >
               <span className="font-medium">{selectedCategory}</span>
               <IoChevronDown
@@ -305,12 +303,12 @@ const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
             </button>
 
             {isCategoryDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 bg-neutral-800 border border-neutral-600 rounded-lg shadow-lg z-20 min-w-[100px]">
+              <div className="absolute top-full left-0 mt-1 bg-neutral-800 border border-neutral-600 rounded-lg shadow-lg z-20 w-full min-w-[100px]">
                 {categories.map((category) => (
                   <button
                     key={category}
                     onClick={() => handleCategorySelect(category)}
-                    className={`w-full px-3 py-2 text-left text-sm hover:bg-neutral-700 first:rounded-t-lg last:rounded-b-lg transition-colors ${
+                    className={`w-full px-3 py-2 text-center text-sm hover:bg-neutral-700 first:rounded-t-lg last:rounded-b-lg transition-colors ${
                       selectedCategory === category
                         ? "bg-blue-600 text-white"
                         : "text-neutral-300"
@@ -323,7 +321,7 @@ const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
             )}
           </div>
 
-          {/* 검색 입력창 */}
+          {/* 검색 입력창 (중앙) */}
           <input
             ref={searchRef}
             type="text"
@@ -334,13 +332,26 @@ const InlineDropdownSearchBar: React.FC<InlineDropdownSearchBarProps> = ({
             className="flex-1 bg-transparent text-white placeholder-neutral-400 px-3 py-3 outline-none text-sm"
           />
 
-          {/* 닫기 버튼 */}
-          {isOpen && (
+          {/* 검색 버튼 또는 닫기 버튼 (오른쪽) */}
+          {isOpen ? (
             <button
               onClick={handleClose}
               className="mr-4 text-neutral-400 hover:text-white transition-colors"
             >
-              <IoClose className="w-4 h-4" />
+              <IoClose className="w-5 h-5" />
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                if (searchQuery.trim()) {
+                  handleViewAllResults();
+                } else {
+                  searchRef.current?.focus();
+                }
+              }}
+              className="mr-4 text-neutral-400 hover:text-white transition-colors"
+            >
+              <IoSearch className="w-5 h-5" />
             </button>
           )}
         </div>
