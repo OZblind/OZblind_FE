@@ -34,10 +34,13 @@ export function SidebarFolded({ onToggle }: { onToggle: () => void }) {
         >
           <img src={notificationsIcon} alt="notificationsIcon" />
         </button>
-        <button>
-          <div className="flex justify-center items-center w-10 h-10 rounded-full hover:bg-base-300 hover:scale-110">
-            <img src={profile} alt="profile" className="w-8 h-8 rounded-full" />
-          </div>
+        <button className="flex justify-center items-center w-10 h-10 rounded-full hover:bg-base-300 hover:scale-110">
+          <img
+            src={profile}
+            alt="profile"
+            className="w-8 h-8 rounded-full"
+            loading="lazy"
+          />
         </button>
       </div>
     </div>
