@@ -1,0 +1,36 @@
+import { icons } from "@src/assets";
+import { useThemeIcon } from "@hooks/useThemeIcon";
+import { useMemo } from "react";
+import type { HotPost } from "./data";
+
+export default function HotPostCard({ post }: { post: HotPost }) {
+  const themeIcon = useThemeIcon();
+  const { thumbUp } = useMemo(() => {
+    const dark = themeIcon === "oz_dark";
+    return {
+      thumbUp: dark ? icons.thumbUp.dark : icons.thumbUp.light,
+    };
+  }, [themeIcon]);
+
+  return (
+    <button
+      className={`flex w-full h-[180px] rounded-lg shadow-md overflow-hidden border-2
+        hover:shadow-lg hover:scale-105 transition-all duration-200`}
+    >
+      <div className="flex flex-col justify-between p-2 flex-1 items-start text-left">
+        <div>
+          <p className={`text-sm mt-1 text-info/50`}>{post.board} 게시판</p>
+          <h3 className="text-lg font-semibold py-0.5 line-clamp-2">
+            {post.title}
+          </h3>
+        </div>
+        <div className="flex items-center justify-between text-sm w-full font-thin text-base-content/40">
+          <span>조회 {post.views}</span>
+          <div className="flex items-center gap-1">
+            <img src={thumbUp} alt="thumbUp" className="w-4 h-4" /> {post.likes}
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+}
