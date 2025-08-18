@@ -36,6 +36,7 @@ import { resolvePostLoginPath } from "@utils/postLogin";
 import TestTagPage from "@src/pages/test/TestTagPage";
 import TestPostReadPage from "@src/pages/test/TestPostReadPage";
 import TestMainPage from "@src/pages/test/TestMainPage";
+import TestJobBannerPage from "@src/pages/test/TestJobBanner";
 
 /** 공개(보호 불필요) 경로 목록 */
 const PUBLIC_PATHS: ReadonlySet<string> = new Set([
@@ -197,6 +198,7 @@ export default function AppRouter() {
         <Route path="/test/setting" element={<TestSettingPage />} />
         <Route path="/test/main" element={<TestMainPage />}></Route>
         <Route path="/test/board/free-list" element={<TestFreeBoardList />} />
+        <Route path="/test/jobbanner" element={<TestJobBannerPage />} />
 
         {/* 인증 로비(공개) */}
         <Route path={PATHS.AUTH} element={<LandingPage />} />
