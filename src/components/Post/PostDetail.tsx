@@ -12,20 +12,21 @@ import {
   Pencil,
 } from "lucide-react";
 import clsx from "clsx";
-import {
-  demoComments,
-  type CommentMeta,
-  type PostMeta,
-} from "@src/mocks/post.demo";
+import { demoComments } from "@src/mocks/post.demo";
 import { fmtDate, fmtNum } from "@src/utils/utils";
 import { PostComment } from "@src/components/Post/comments";
 import DropdownMenu, {
   type DropdownItem,
 } from "@src/components/ui/DropdownMenu";
 import { useToastStore } from "@src/store/toastStore";
+import { useAuthStore } from "@src/store/authStore";
+import type { CommentMeta, PostMeta } from "@src/types/post";
 
 // ================== Main ==================
 export default function PostDetail({ post }: { post: PostMeta }) {
+  const currentUserId = useAuthStore((s) => s.user?.userId);
+  const role = useAuthStore((s) => s.user?.role);
+
   const [like, setLike] = useState(false);
   const [dislike, setDislike] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
@@ -33,6 +34,11 @@ export default function PostDetail({ post }: { post: PostMeta }) {
   const [submitting, setSubmitting] = useState(false);
 
   const [comments, setComments] = useState<CommentMeta[]>(() => demoComments);
+
+  // 작성자 or 관리자 판단
+  const isOwner = currentUserId === post.authorId;
+  const isAdmin = role === "admin";
+  const canManage = isOwner || isAdmin;
 
   const reaction = useMemo(
     () => ({
@@ -67,7 +73,9 @@ export default function PostDetail({ post }: { post: PostMeta }) {
       setComments((prev) => [
         {
           id: Math.random().toString(36).slice(2), // string ID여도 PostComment가 대응함
-          author: "나",
+          author: "나", // 닉네임(짧은 표시용)
+          authorId: "me", // 고유 사용자 ID (실제 로그인 유저 ID 넣는게 베스트)
+          authorName: "현재 사용자", // 선택적 표시 이름
           content: commentDraft.trim(),
           createdAt: new Date().toISOString(),
           liked: false,
@@ -97,21 +105,26 @@ export default function PostDetail({ post }: { post: PostMeta }) {
         });
       },
     },
-    {
-      label: "게시글 수정",
-      icon: <Pencil className="h-4 w-4" />,
-      onSelect: () => {
-        // TODO: 수정 페이지 이동
-      },
-    },
-    {
-      label: "게시글 삭제",
-      icon: <Trash2 className="h-4 w-4" />,
-      danger: true,
-      onSelect: () => {
-        // TODO: 삭제 로직
-      },
-    },
+    // 작성자/관리자 전용
+    ...(canManage
+      ? [
+          {
+            label: "게시글 수정",
+            icon: <Pencil className="h-4 w-4" />,
+            onSelect: () => {
+              // TODO: 수정 페이지 이동
+            },
+          },
+          {
+            label: "게시글 삭제",
+            icon: <Trash2 className="h-4 w-4" />,
+            danger: true,
+            onSelect: () => {
+              // TODO: 삭제 로직
+            },
+          },
+        ]
+      : []),
   ];
 
   return (
