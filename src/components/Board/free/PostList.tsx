@@ -1,12 +1,10 @@
 import ScrollSentinel from "@components/commons/InfiniteScroll/ScrollSentinel";
-import {
-  EmptyState,
+import EmptyState, {
   type EmptyStateProps,
 } from "@components/Board/common/EmptyState";
-import { LastLoadedBar } from "@components/Board/common/LastLoadedBar";
-import { PostRow, type FreeBoardItem, FREE_LIST_GRID } from "./PostRow";
-import { PostCard } from "./PostCard";
-import { BoardTopBar } from "@components/Board/common/BoardTopBar";
+import PostRow, { type FreeBoardItem, FREE_LIST_GRID } from "./PostRow";
+import PostCard from "./PostCard";
+import { LastLoadedBar, BoardTopBar } from "../common";
 
 export type PostListProps = {
   items: FreeBoardItem[];

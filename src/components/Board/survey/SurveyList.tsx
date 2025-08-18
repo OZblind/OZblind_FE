@@ -1,16 +1,13 @@
 import ScrollSentinel from "@components/commons/InfiniteScroll/ScrollSentinel";
-import EmptyState, {
-  type EmptyStateProps,
-} from "@components/Board/common/EmptyState";
 import SurveyCard, { type SurveyCardProps } from "./SurveyCard";
-import { BoardTopBar, LastLoadedBar } from "../common";
+import EmptyState, { type EmptyStateProps } from "../common/EmptyState";
+import { LastLoadedBar, BoardTopBar } from "../common";
 
 export type SurveyListProps = {
-  /** UI용 아이템 배열(상위에서 상태 판정 완료할 것) */
   items: SurveyCardProps[];
   onItemClick?: (id: string) => void;
 
-  /** 상단 바(옵션) */
+  /** ⬇️ PostList와 동일한 탑바 옵션 */
   topBar?: {
     boardName: string;
     onOpenSort?: () => void;
@@ -18,21 +15,17 @@ export type SurveyListProps = {
     onWrite?: () => void;
   };
 
-  /** 마지막 로드 시각/새로고침 */
   lastLoadedAt?: string;
   onRefresh?: () => void;
 
-  /** 상태 제어 */
   isLoading?: boolean;
   isError?: boolean;
   errorText?: string;
 
-  /** 무한 스크롤 */
   hasMore?: boolean;
   sentinelRef?: (el: HTMLDivElement | null) => void;
   noMoreText?: string;
 
-  /** 빈 상태 커스터마이즈 */
   empty?: EmptyStateProps;
 
   className?: string;
@@ -90,28 +83,16 @@ export default function SurveyList({
 
         {!isError && !(isLoading && isEmpty) && !isEmpty && (
           <>
-            {/* 반응형: <768px 1열 / ≥768px 2열, 균등 높이 */}
-            <ul
-              className="
-                grid gap-3 md:gap-4 items-stretch auto-rows-fr
-                grid-cols-1 md:grid-cols-2
-              "
-            >
+            <ul className="grid gap-3 md:gap-4 grid-cols-1">
               {items.map((it) => (
-                <li key={it.id} className="h-full">
-                  <SurveyCard
-                    {...it}
-                    onClick={(id) => {
-                      if (it.status === "active") onItemClick?.(id);
-                    }}
-                    className="h-full"
-                  />
+                <li key={it.id}>
+                  <SurveyCard {...it} onClick={(id) => onItemClick?.(id)} />
                 </li>
               ))}
 
-              {/* 로딩 스켈레톤 (리스트가 이미 있을 때) */}
+              {/* 리스트가 이미 있을 때의 추가 로딩 스켈레톤 */}
               {isLoading &&
-                !isEmpty &&
+                items.length > 0 &&
                 Array.from({ length: 2 }).map((_, i) => (
                   <li
                     key={`sk-${i}`}
