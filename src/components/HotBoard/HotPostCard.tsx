@@ -21,7 +21,7 @@ export default function HotPostCard({ post }: { post: HotPost }) {
     >
       <div className="flex flex-col justify-between p-2 flex-1 items-start text-left">
         <div>
-          <p className={`text-sm mt-1 text-info/50 ${CARD_TEXT[post.board]}`}>
+          <p className={`text-sm mt-1 ${CARD_TEXT[post.board]}`}>
             {post.board} 게시판
           </p>
           <h3 className="text-lg font-semibold py-0.5 line-clamp-2">
