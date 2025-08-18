@@ -42,7 +42,7 @@ export default function Sidebar() {
   return (
     <div
       className={`
-        h-screen overflow-hidden
+        w-[300px] flex-shrink-0 h-screen overflow-hidden
         transition-all duration-200 ease-in-out
         ${isOpen ? "w-[300px]" : "w-[60px]"}
       `}
