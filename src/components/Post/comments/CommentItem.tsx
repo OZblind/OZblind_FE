@@ -75,7 +75,7 @@ export default function CommentItem({
       {depth > 0 && (
         <svg
           aria-hidden="true"
-          viewBox="0 4 18 14"
+          viewBox="0 4 20 14"
           className={clsx(
             "pointer-events-none absolute -left-7 w-7 overflow-visible thread-elbow",
             branchStyle.stroke,

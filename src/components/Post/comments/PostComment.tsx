@@ -115,7 +115,7 @@ export default function PostComment({ comments }: { comments: CommentMeta[] }) {
               {/* 세로 브랜치 라인: 더 굵게 */}
               <span
                 aria-hidden="true"
-                className={`absolute left-[-1px] top-0 bottom-0 w-[4px] rounded-full opacity-70 thread-rail ${branchStyle.bg}`}
+                className={`absolute left-[-2px] top-0 bottom-0 w-[4px] rounded-full opacity-70 thread-rail ${branchStyle.bg}`}
               />
               {/* 시작 노드(원): 세로 라인 시작점에 표시 */}
               <span
