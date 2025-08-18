@@ -11,3 +11,18 @@ export function validateAssignedTags(tags: Tag[]) {
     positionCount: position.length,
   };
 }
+
+const COHORT_ID = (cohort: string) => `cohort-${cohort.replace("기", "")}`;
+const POSITION_ID = (position: string) => `position-${position}`; // 필요시 스네이크/케밥 처리
+
+export function mapUserToTags(cohort: string, position: string): Tag[] {
+  return [
+    { id: COHORT_ID(cohort), label: cohort, category: "cohort", locked: true },
+    {
+      id: POSITION_ID(position),
+      label: position,
+      category: "position",
+      locked: true,
+    },
+  ];
+}
