@@ -17,6 +17,8 @@ import Error500 from "@pages/error/500";
 
 import TestHub from "@pages/test/TestHub"; // /
 import TestPostWritePage from "@pages/test/TestPostWritePage"; // /test/write
+import TestSettingPage from "@pages/test/TestSettingPage"; // /test/setting
+import TestFreeBoardList from "@src/pages/test/BoardList/TestFreeBoardList"; // test/board/free-list
 
 import { useAuthBootstrap } from "@hooks/useAuthBootstrap";
 import { useAuthStore } from "@store/authStore";
@@ -32,6 +34,7 @@ import {
 import { useToastStore } from "@store/toastStore";
 import { resolvePostLoginPath } from "@utils/postLogin";
 import TestPostReadPage from "@src/pages/test/TestPostReadPage";
+import TestMainPage from "@src/pages/test/TestMainPage";
 
 /** 공개(보호 불필요) 경로 목록 */
 const PUBLIC_PATHS: ReadonlySet<string> = new Set([
@@ -189,6 +192,9 @@ export default function AppRouter() {
         <Route path={PATHS.ROOT} element={<TestHub />} />
         <Route path="/test/write" element={<TestPostWritePage />} />
         <Route path="/test/post" element={<TestPostReadPage />} />
+        <Route path="/test/setting" element={<TestSettingPage />} />
+        <Route path="/test/main" element={<TestMainPage />}></Route>
+        <Route path="/test/board/free-list" element={<TestFreeBoardList />} />
 
         {/* 인증 로비(공개) */}
         <Route path={PATHS.AUTH} element={<LandingPage />} />
