@@ -28,6 +28,7 @@ const NavUnifiedSearch: React.FC<NavUnifiedSearchProps> = ({
     previewResults,
     isLoading,
     totalCount,
+    error,
     setIsOpen,
     setSearchQuery,
     setSelectedIndex,
@@ -36,6 +37,7 @@ const NavUnifiedSearch: React.FC<NavUnifiedSearchProps> = ({
     handleViewAllResults,
     handleFocus,
     handleCategorySelect,
+    handleRetry,
   } = useSearchLogic({ maxPreviewResults });
 
   // 키보드 네비게이션 훅
@@ -171,9 +173,11 @@ const NavUnifiedSearch: React.FC<NavUnifiedSearchProps> = ({
         previewResults={previewResults}
         totalCount={totalCount}
         isLoading={isLoading}
+        error={error}
         mode={mode}
         onPostSelect={handlePostSelect}
         onViewAllResults={handleViewAllResults}
+        onRetry={handleRetry}
       />
     </div>
   );

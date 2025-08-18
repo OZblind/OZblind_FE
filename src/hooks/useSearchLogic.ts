@@ -19,6 +19,7 @@ export const useSearchLogic = ({ maxPreviewResults }: UseSearchLogicProps) => {
   const [previewResults, setPreviewResults] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [totalCount, setTotalCount] = useState<number>(0);
+  const [error, setError] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const { tokens } = useAuthStore();
@@ -128,6 +129,11 @@ export const useSearchLogic = ({ maxPreviewResults }: UseSearchLogicProps) => {
     setSelectedIndex(-1);
   }, []);
 
+  const handleRetry = useCallback((): void => {
+    setError(null);
+    executeSearch(searchQuery, selectedCategory);
+  }, [searchQuery, selectedCategory, executeSearch]);
+
   return {
     // 상태
     isOpen,
@@ -137,6 +143,7 @@ export const useSearchLogic = ({ maxPreviewResults }: UseSearchLogicProps) => {
     previewResults,
     isLoading,
     totalCount,
+    error,
 
     // 상태 변경 함수
     setIsOpen,
@@ -149,5 +156,6 @@ export const useSearchLogic = ({ maxPreviewResults }: UseSearchLogicProps) => {
     handleViewAllResults,
     handleFocus,
     handleCategorySelect,
+    handleRetry,
   };
 };

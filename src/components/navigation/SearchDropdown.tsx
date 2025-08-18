@@ -1,6 +1,6 @@
 import React from "react";
-import { IoSearch } from "react-icons/io5";
-import type { Post, Category } from "@src/types/search";
+import { IoSearch, IoRefresh, IoWarning } from "react-icons/io5";
+import type { Post, Category } from "../../types/search";
 import SearchResultItem from "./SearchResultItem";
 
 interface SearchDropdownProps {
@@ -11,9 +11,11 @@ interface SearchDropdownProps {
   previewResults: Post[];
   totalCount: number;
   isLoading: boolean;
+  error: string | null; // 에러 상태 추가
   mode: "default" | "detail";
   onPostSelect: (post: Post) => void;
   onViewAllResults: () => void;
+  onRetry?: () => void; // 재시도 핸들러 추가
 }
 
 const SearchDropdown: React.FC<SearchDropdownProps> = ({
@@ -24,9 +26,11 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({
   previewResults,
   totalCount,
   isLoading,
+  error,
   mode,
   onPostSelect,
   onViewAllResults,
+  onRetry,
 }) => {
   if (!isOpen) return null;
 
@@ -37,7 +41,7 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({
       aria-label="검색 결과"
     >
       {/* 결과 헤더 */}
-      {searchQuery && (
+      {searchQuery && !error && (
         <div className="px-4 py-3 border-b border-neutral-700 bg-gradient-to-r from-neutral-900 to-neutral-800">
           <div className="flex items-center justify-between text-xs">
             <div className="text-neutral-400 flex items-center space-x-1">
@@ -62,7 +66,25 @@ const SearchDropdown: React.FC<SearchDropdownProps> = ({
           mode === "detail" ? "max-h-96" : "max-h-80"
         }`}
       >
-        {isLoading ? (
+        {/* 에러 상태 */}
+        {error ? (
+          <div className="px-4 py-8 text-center">
+            <IoWarning className="w-8 h-8 text-red-400 mx-auto mb-3" />
+            <div className="text-sm text-red-400 mb-3 font-medium">
+              오류가 발생했습니다
+            </div>
+            <div className="text-xs text-neutral-400 mb-4">{error}</div>
+            {onRetry && (
+              <button
+                onClick={onRetry}
+                className="flex items-center space-x-2 mx-auto px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition-colors duration-150"
+              >
+                <IoRefresh className="w-4 h-4" />
+                <span>다시 시도</span>
+              </button>
+            )}
+          </div>
+        ) : isLoading ? (
           <div className="px-4 py-6 text-center">
             <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-500 border-t-transparent mx-auto mb-3"></div>
             <div className="text-sm text-neutral-400">검색 중...</div>

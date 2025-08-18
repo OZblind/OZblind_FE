@@ -6,6 +6,7 @@ import { useSearchLogic } from "@src/hooks/useSearchLogic";
 import { useKeyboardNavigation } from "@src/hooks/useKeyboardNavigation";
 import CategoryDropdown from "./CategoryDropdown";
 import SearchDropdown from "./SearchDropdown";
+import { error } from "console";
 
 const InlineDropdownSearchBar: React.FC<NavUnifiedSearchProps> = ({
   className = "",
@@ -172,6 +173,7 @@ const InlineDropdownSearchBar: React.FC<NavUnifiedSearchProps> = ({
         previewResults={previewResults}
         totalCount={totalCount}
         isLoading={isLoading}
+        error={typeof error === "string" ? error : null}
         mode={mode}
         onPostSelect={handlePostSelect}
         onViewAllResults={handleViewAllResults}
