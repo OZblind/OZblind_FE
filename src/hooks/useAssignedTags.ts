@@ -1,53 +1,43 @@
 import { useEffect, useState } from "react";
-import { fetchAssignedTagsByKey } from "@api/tags";
-import { validateAssignedTags } from "@utils/tagRules";
+import { getMyAssignedTags } from "@api/tags";
 import type { Tag } from "@src/types/tag";
 
-export function useAssignedTags(designatedKey?: string) {
+function isValid(tags: Tag[]): boolean {
+  const cohort = tags.filter((t) => t.category === "cohort").length === 1;
+  const position = tags.filter((t) => t.category === "position").length === 1;
+  return cohort && position;
+}
+
+export function useAssignedTags() {
   const [tags, setTags] = useState<Tag[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [valid, setValid] = useState(false);
+  const [valid, setValid] = useState<boolean>(false);
 
   useEffect(() => {
     let cancelled = false;
-    async function run() {
-      if (!designatedKey) {
-        setTags([]);
-        setValid(false);
-        return;
-      }
+    (async () => {
       setLoading(true);
       setError(null);
       try {
-        const result = await fetchAssignedTagsByKey(designatedKey);
+        const result = await getMyAssignedTags();
         if (cancelled) return;
-
-        const v = validateAssignedTags(result);
-        setValid(v.ok);
         setTags(result);
-        if (!v.ok) {
-          setError(
-            `Invalid tag set: cohort=${v.cohortCount}, position=${v.positionCount} (need 1+1)`
-          );
-        }
+        setValid(isValid(result));
+        if (!isValid(result)) setError("기수 1개 + 포지션 1개가 필요합니다.");
       } catch (e: unknown) {
-        if (!cancelled) {
-          if (e instanceof Error) {
-            setError(e.message);
-          } else {
-            setError("Failed to fetch assigned tags");
-          }
-        }
+        if (!cancelled)
+          setError(
+            e instanceof Error ? e.message : "태그를 불러오지 못했습니다."
+          );
       } finally {
         if (!cancelled) setLoading(false);
       }
-    }
-    run();
+    })();
     return () => {
       cancelled = true;
     };
-  }, [designatedKey]);
+  }, []);
 
   return { tags, loading, error, valid };
 }
