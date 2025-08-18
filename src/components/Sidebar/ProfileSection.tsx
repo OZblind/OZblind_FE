@@ -1,7 +1,9 @@
 import profile from "@assets/images/profile.jpg";
+import AssignedTagList from "../tags/AssignedTagList";
+import { profileToTagsMock } from "@src/mocks/tags.mock";
 
 export default function ProfileSection() {
-  const userTag = "FE 11"; // 임시
+  const tags = profileToTagsMock("11기", "프론트");
   return (
     <div className="flex flex-col items-center p-8">
       <div className="flex justify-center items-center w-[164px] h-[164px] rounded-full overflow-hidden transform transition-transform duration-300 hover:bg-base-300/50 hover:scale-105">
@@ -13,7 +15,7 @@ export default function ProfileSection() {
           />
         </button>
       </div>
-      <p className="p-2">{userTag}</p>
+      <AssignedTagList tags={tags} />
     </div>
   );
 }
