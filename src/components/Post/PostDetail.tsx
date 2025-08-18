@@ -19,14 +19,11 @@ import DropdownMenu, {
   type DropdownItem,
 } from "@src/components/ui/DropdownMenu";
 import { useToastStore } from "@src/store/toastStore";
-import { useAuthStore } from "@src/store/authStore";
 import type { CommentMeta, PostMeta } from "@src/types/post";
+import { onlyWhen, useCanManage } from "@src/hooks/useCanManage";
 
 // ================== Main ==================
 export default function PostDetail({ post }: { post: PostMeta }) {
-  const currentUserId = useAuthStore((s) => s.user?.userId);
-  const role = useAuthStore((s) => s.user?.role);
-
   const [like, setLike] = useState(false);
   const [dislike, setDislike] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
@@ -34,11 +31,6 @@ export default function PostDetail({ post }: { post: PostMeta }) {
   const [submitting, setSubmitting] = useState(false);
 
   const [comments, setComments] = useState<CommentMeta[]>(() => demoComments);
-
-  // 작성자 or 관리자 판단
-  const isOwner = currentUserId === post.authorId;
-  const isAdmin = role === "admin";
-  const canManage = isOwner || isAdmin;
 
   const reaction = useMemo(
     () => ({
@@ -90,6 +82,11 @@ export default function PostDetail({ post }: { post: PostMeta }) {
     }, 600);
   };
 
+  const { canManage } = useCanManage(post.authorId, {
+    allowAdmin: true,
+    allowModerator: true,
+  });
+
   // 상단 드롭다운 액션 (필요 시 실제 로직 연결)
   const menuItems: DropdownItem[] = [
     {
@@ -106,25 +103,23 @@ export default function PostDetail({ post }: { post: PostMeta }) {
       },
     },
     // 작성자/관리자 전용
-    ...(canManage
-      ? [
-          {
-            label: "게시글 수정",
-            icon: <Pencil className="h-4 w-4" />,
-            onSelect: () => {
-              // TODO: 수정 페이지 이동
-            },
-          },
-          {
-            label: "게시글 삭제",
-            icon: <Trash2 className="h-4 w-4" />,
-            danger: true,
-            onSelect: () => {
-              // TODO: 삭제 로직
-            },
-          },
-        ]
-      : []),
+    ...onlyWhen(canManage, [
+      {
+        label: "게시글 수정",
+        icon: <Pencil className="h-4 w-4" />,
+        onSelect: () => {
+          // TODO: 수정 페이지 이동
+        },
+      },
+      {
+        label: "게시글 삭제",
+        icon: <Trash2 className="h-4 w-4" />,
+        danger: true,
+        onSelect: () => {
+          // TODO: 삭제 로직
+        },
+      },
+    ]),
   ];
 
   return (
