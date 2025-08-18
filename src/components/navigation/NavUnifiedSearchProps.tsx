@@ -6,7 +6,6 @@ import { useSearchLogic } from "@src/hooks/useSearchLogic";
 import { useKeyboardNavigation } from "@src/hooks/useKeyboardNavigation";
 import CategoryDropdown from "./CategoryDropdown";
 import SearchDropdown from "./SearchDropdown";
-import { error } from "console";
 
 const InlineDropdownSearchBar: React.FC<NavUnifiedSearchProps> = ({
   className = "",
@@ -30,6 +29,7 @@ const InlineDropdownSearchBar: React.FC<NavUnifiedSearchProps> = ({
     previewResults,
     isLoading,
     totalCount,
+    error,
     setIsOpen,
     setSearchQuery,
     setSelectedIndex,
@@ -38,6 +38,7 @@ const InlineDropdownSearchBar: React.FC<NavUnifiedSearchProps> = ({
     handleViewAllResults,
     handleFocus,
     handleCategorySelect,
+    handleRetry,
   } = useSearchLogic({ maxPreviewResults });
 
   // 키보드 네비게이션 훅
@@ -173,10 +174,11 @@ const InlineDropdownSearchBar: React.FC<NavUnifiedSearchProps> = ({
         previewResults={previewResults}
         totalCount={totalCount}
         isLoading={isLoading}
-        error={typeof error === "string" ? error : null}
+        error={error}
         mode={mode}
         onPostSelect={handlePostSelect}
         onViewAllResults={handleViewAllResults}
+        onRetry={handleRetry}
       />
     </div>
   );
