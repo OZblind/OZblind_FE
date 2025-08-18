@@ -1,6 +1,6 @@
 import React from "react";
-import { FilterIconButton } from "./FilterIconButton";
 import WriteButton from "./WriteButton";
+import FilterIconButton from "./FilterIconButton";
 
 type Props = {
   boardName: string; // 게시판명
@@ -11,7 +11,7 @@ type Props = {
   className?: string;
 };
 
-export function BoardTopBar({
+export default function BoardTopBar({
   boardName,
   onOpenSort,
   onOpenTag,
