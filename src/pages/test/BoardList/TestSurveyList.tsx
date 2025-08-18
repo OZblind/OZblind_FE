@@ -19,7 +19,7 @@ function makeMockItems(count: number, startIndex: number): SurveyCardProps[] {
   return Array.from({ length: count }, (_, i) => {
     const idx = startIndex + i;
 
-    // 마감일: 과거/미래 섞기 → expired/active
+    // 마감일
     const closeAt = new Date(now + ((idx % 6) - 2) * 86_400_000);
     const status: SurveyCardProps["status"] =
       closeAt.getTime() < Date.now() ? "expired" : "active";
@@ -28,7 +28,7 @@ function makeMockItems(count: number, startIndex: number): SurveyCardProps[] {
     const cohort: CohortLabel = COHORTS[9 + (idx % 5)];
     const position: PositionLabel = POSITIONS[idx % 2];
 
-    // ✅ 설문 링크(길게)
+    // 설문 링크(길게)
     const link = `https://forms.example.com/surveys/${idx + 1}/very/long/path/that/should/truncate?utm_source=board&ref=survey_${
       idx + 1
     }`;
@@ -40,7 +40,7 @@ function makeMockItems(count: number, startIndex: number): SurveyCardProps[] {
       desc: "오즈 커뮤니티 설문(지정 태그 칩 표시 테스트)",
       deadline: closeAt.toISOString(),
       tags: makeAssignedTags(cohort, position),
-      link, // ✅ 추가
+      link,
       onClick: undefined, // List에서 바인딩
     };
   });
@@ -106,7 +106,7 @@ export default function TestSurveyList() {
   });
 
   const clearItems = () => setItems([]);
-  const toggleError = () => setErr((e) => (e ? null : ": 의도적 테스트 에러"));
+  const toggleError = () => setErr((e) => (e ? null : "의도적 테스트 에러"));
   const resetAll = () => {
     setPage(1);
     pageRef.current = 1;

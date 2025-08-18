@@ -7,7 +7,6 @@ export type SurveyListProps = {
   items: SurveyCardProps[];
   onItemClick?: (id: string) => void;
 
-  /** ⬇️ PostList와 동일한 탑바 옵션 */
   topBar?: {
     boardName: string;
     onOpenSort?: () => void;
@@ -90,7 +89,7 @@ export default function SurveyList({
                 </li>
               ))}
 
-              {/* 리스트가 이미 있을 때의 추가 로딩 스켈레톤 */}
+              {/* 리스트가 이미 있을 때의 추가 로딩 스켈레톤 (임시) */}
               {isLoading &&
                 items.length > 0 &&
                 Array.from({ length: 2 }).map((_, i) => (

@@ -47,7 +47,7 @@ export default function SurveyCard({
       className={clsx(
         "relative rounded-xl border border-base-300 bg-base-100 px-4 py-3 md:px-4 md:py-4 transition-colors",
         "hover:border-primary/50 cursor-pointer",
-        expired && "opacity-60 bg-base-300/20",
+        expired && "opacity-50 bg-base-300/20",
         className
       )}
       onClick={() => onClick?.(id)}
