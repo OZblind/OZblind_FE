@@ -8,7 +8,7 @@ export const demoPost: PostMeta = {
   content:
     "이건 글입니다라달락\n하하호호 여긴 OO게시판 어떤 글을 써야 좋을까요○\n하하하↵\n와랄라랄라라 랄라↵\n샤랄랄라랄라 랄 ㅋㅋㅋㅋ",
   cohort: "11기",
-  category: "Front",
+  category: "프론트",
   createdAt: "2025-04-03T12:36:00+09:00",
   views: 1494,
   commentsCount: 4,
