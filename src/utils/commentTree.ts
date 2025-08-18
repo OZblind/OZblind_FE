@@ -1,5 +1,4 @@
-// utils/commentTree.ts
-import type { CommentMeta } from "@src/mocks/post.demo";
+import type { CommentMeta } from "@src/types/post";
 
 export type AnyId = string | number;
 
