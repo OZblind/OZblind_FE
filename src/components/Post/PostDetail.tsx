@@ -177,7 +177,7 @@ export default function PostDetail({ post }: { post: PostMeta }) {
       </div>
 
       {/* 리액션 바 */}
-      <div className="mt-4 flex flex-wrap items-center gap-2">
+      <div className="mt-12 flex flex-wrap items-center gap-1">
         <button
           className={clsx("btn btn-ghost btn-sm", like && "text-primary")}
           onClick={toggleLike}
@@ -207,7 +207,7 @@ export default function PostDetail({ post }: { post: PostMeta }) {
       </div>
 
       {/* 댓글 입력 */}
-      <div className="mt-8">
+      <div className="mt-4">
         <textarea
           value={commentDraft}
           onChange={(e) => setCommentDraft(e.target.value)}
