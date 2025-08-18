@@ -1,5 +1,9 @@
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  safelist: [
+    { pattern: /bg-\[#([0-9a-fA-F]{6})\]/ },
+    { pattern: /text-white/ }, // 필요시
+  ],
   theme: {
     fontFamily: {
       sans: ["Pretendard", "sans-serif", "system-ui"],

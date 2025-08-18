@@ -33,6 +33,7 @@ import {
 } from "@hooks/useAuthQueries";
 import { useToastStore } from "@store/toastStore";
 import { resolvePostLoginPath } from "@utils/postLogin";
+import TestTagPage from "@src/pages/test/TestTagPage";
 import TestPostReadPage from "@src/pages/test/TestPostReadPage";
 import TestMainPage from "@src/pages/test/TestMainPage";
 
@@ -191,6 +192,7 @@ export default function AppRouter() {
         {/* 테스트 라우트 */}
         <Route path={PATHS.ROOT} element={<TestHub />} />
         <Route path="/test/write" element={<TestPostWritePage />} />
+        <Route path="/test/tag" element={<TestTagPage />} />
         <Route path="/test/post" element={<TestPostReadPage />} />
         <Route path="/test/setting" element={<TestSettingPage />} />
         <Route path="/test/main" element={<TestMainPage />}></Route>
