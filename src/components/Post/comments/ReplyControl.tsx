@@ -69,6 +69,7 @@ export default function ReplyControl({
               className="btn btn-primary btn-sm"
               onClick={handlePost}
               type="button"
+              disabled={!draft.trim()}
             >
               답글 등록
             </button>
