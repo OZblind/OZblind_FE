@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 import ReplyControl from "./ReplyControl";
 import type { CommentMeta } from "@src/types/post";
+import { useCanManage } from "@src/hooks/useCanManage";
 
 export default function CommentItem({
   data,
@@ -36,6 +37,11 @@ export default function CommentItem({
   const [editing, setEditing] = useState(false);
   const [editDraft, setEditDraft] = useState(data.content);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const { canManage } = useCanManage(data.authorId, {
+    allowAdmin: true,
+    allowModerator: true,
+  });
 
   useEffect(() => {
     if (depth === 0 && data.hasReplies) setExpanded(true);
@@ -99,50 +105,53 @@ export default function CommentItem({
         <span>{fmtDate(data.createdAt)}</span>
 
         {/* 점 3개 드롭다운 */}
-        <div className="ml-auto dropdown dropdown-end">
-          <button
-            className="btn btn-ghost btn-xs"
-            aria-expanded={menuOpen ? "true" : "false"}
-            onClick={() => setMenuOpen((v) => !v)}
-            type="button"
-          >
-            <MoreVertical className="h-4 w-4" />
-            <span className="sr-only">댓글 메뉴</span>
-          </button>
-          <ul
-            className={clsx(
-              "dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-32",
-              menuOpen ? "block" : "hidden"
-            )}
-            onKeyDown={(e) => e.key === "Escape" && setMenuOpen(false)}
-            aria-label="댓글 메뉴"
-          >
-            <li>
-              <button
-                className="text-sm"
-                onClick={() => {
-                  setEditing(true);
-                  setMenuOpen(false);
-                }}
-                type="button"
-              >
-                댓글 수정
-              </button>
-            </li>
-            <li>
-              <button
-                className="text-sm text-error"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onDelete(data.id);
-                }}
-                type="button"
-              >
-                댓글 삭제
-              </button>
-            </li>
-          </ul>
-        </div>
+        {/* 작성자/관리자만 메뉴 노출 */}
+        {canManage && (
+          <div className="ml-auto dropdown dropdown-end">
+            <button
+              className="btn btn-ghost btn-xs"
+              aria-expanded={menuOpen ? "true" : "false"}
+              onClick={() => setMenuOpen((v) => !v)}
+              type="button"
+            >
+              <MoreVertical className="h-4 w-4" />
+              <span className="sr-only">댓글 메뉴</span>
+            </button>
+            <ul
+              className={clsx(
+                "dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-32",
+                menuOpen ? "block" : "hidden"
+              )}
+              onKeyDown={(e) => e.key === "Escape" && setMenuOpen(false)}
+              aria-label="댓글 메뉴"
+            >
+              <li>
+                <button
+                  className="text-sm"
+                  onClick={() => {
+                    setEditing(true);
+                    setMenuOpen(false);
+                  }}
+                  type="button"
+                >
+                  댓글 수정
+                </button>
+              </li>
+              <li>
+                <button
+                  className="text-sm text-error"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onDelete(data.id);
+                  }}
+                  type="button"
+                >
+                  댓글 삭제
+                </button>
+              </li>
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* 본문 / 편집 */}
