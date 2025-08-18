@@ -1,12 +1,13 @@
+// components/navigation/InlineDropdownSearchBar.tsx
 import React, { useRef, useEffect, useState } from "react";
 import { IoSearch, IoClose } from "react-icons/io5";
-import type { NavUnifiedSearchProps, Category } from "../../types/search";
-import { useSearchLogic } from "../../hooks/useSearchLogic";
-import { useKeyboardNavigation } from "../../hooks/useKeyboardNavigation";
+import type { NavUnifiedSearchProps, Category } from "@src/types/search";
+import { useSearchLogic } from "@src/hooks/useSearchLogic";
+import { useKeyboardNavigation } from "@src/hooks/useKeyboardNavigation";
 import CategoryDropdown from "./CategoryDropdown";
 import SearchDropdown from "./SearchDropdown";
 
-const NavUnifiedSearch: React.FC<NavUnifiedSearchProps> = ({
+const InlineDropdownSearchBar: React.FC<NavUnifiedSearchProps> = ({
   className = "",
   placeholder = "검색...",
   mode = "default",
@@ -179,4 +180,4 @@ const NavUnifiedSearch: React.FC<NavUnifiedSearchProps> = ({
   );
 };
 
-export default NavUnifiedSearch;
+export default InlineDropdownSearchBar;

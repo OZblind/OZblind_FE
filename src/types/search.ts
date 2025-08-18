@@ -16,7 +16,7 @@ export interface SearchPreview {
 }
 
 // Props 타입 정의 - default와 detail 모드 지원
-export interface InlineDropdownSearchBarProps {
+export interface NavUnifiedSearchProps {
   className?: string;
   placeholder?: string;
   mode?: "default" | "detail";
