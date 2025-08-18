@@ -11,6 +11,8 @@ User DB 에 저장된 태그를 자동으로 불러와서 지정 위치에 보�
 
 ## 🛠 사용 방법
 
+### fetch Tag
+
 ```ts
 import { useAssignedTags } from "@hooks/useAssignedTags";
 import AssignedTagList from "@components/tags/AssignedTagList";
@@ -19,4 +21,11 @@ import AssignedTagList from "@components/tags/AssignedTagList";
 const { tags, loading, error } = useAssignedTags();
 
 <AssignedTagList tags={tags} />;
+```
+
+### 프로필 값으로 직접 생성
+
+```ts
+import { profileToTagsMock } from "@mocks/tags.mock";
+const tags = profileToTagsMock("11기", "프론트");
 ```
