@@ -1,7 +1,7 @@
 import React from "react";
 import { IoSearch } from "react-icons/io5";
 import type { Post, Category } from "@src/types/search";
-import SearchResultItem from "./SearchResultltem";
+import SearchResultItem from "./SearchResultItem";
 
 interface SearchDropdownProps {
   isOpen: boolean;
