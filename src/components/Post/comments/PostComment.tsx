@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { CommentMeta } from "@src/mocks/post.demo";
+import { useEffect, useMemo, useState } from "react";
 import { fmtNum } from "@src/utils/utils";
 import CommentItem from "./CommentItem";
 import { commentTree } from "@src/utils/commentTree";
 import "./thread.css";
+import type { CommentMeta } from "@src/types/post";
 
 type SortKey = "newest" | "oldest" | "likes";
 
@@ -45,7 +45,6 @@ export default function PostComment({ comments }: { comments: CommentMeta[] }) {
   const [list, setList] = useState<CommentMeta[]>(comments);
   useEffect(() => setList(comments), [comments]);
 
-  const idRef = useRef<number>(commentTree.getMaxNumericId(comments) || 0);
   const [sortKey, setSortKey] = useState<SortKey>("newest");
 
   const topLevelSorted = useMemo(() => {
@@ -64,18 +63,25 @@ export default function PostComment({ comments }: { comments: CommentMeta[] }) {
     return arr;
   }, [list, sortKey]);
 
+  // (선택) 공통 ID 생성 유틸
+  const makeId = () => Math.random().toString(36).slice(2);
+
   const handleEdit = (id: CommentMeta["id"], content: string) => {
     setList((prev) => commentTree.update(prev, id, (c) => ({ ...c, content })));
   };
+
   const handleDelete = (id: CommentMeta["id"]) => {
     setList((prev) => commentTree.remove(prev, id));
   };
+
   const handleAddReply = (rootId: CommentMeta["id"], content: string) => {
-    const newId =
-      typeof rootId === "number" ? ++idRef.current : String(Date.now());
+    const newId: CommentMeta["id"] = makeId(); // string ID
+
     const reply: CommentMeta = {
-      id: newId as CommentMeta["id"],
-      author: "나",
+      id: newId,
+      author: "나", // 닉네임(간단 표기)
+      authorId: "me", // 로그인 유저의 실제 ID로 대체하세요
+      authorName: "현재 사용자", // 선택: 표시명
       content,
       createdAt: new Date().toISOString(),
       likes: 0,
@@ -85,6 +91,7 @@ export default function PostComment({ comments }: { comments: CommentMeta[] }) {
       hasReplies: false,
       replies: [],
     };
+
     setList((prev) => commentTree.addToRoot(prev, rootId, reply));
   };
 
