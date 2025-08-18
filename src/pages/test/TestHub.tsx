@@ -1,17 +1,27 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { PATHS } from "@constants/paths";
 import { useAuthStore } from "@store/authStore";
 import { useLogoutMutation } from "@hooks/useAuthQueries";
 import { useToastStore } from "@store/toastStore";
+import { NotificationModal } from "@components/Notice";
+// import InfiniteScrollSmokeTest from "./TestInfiniteScroll";
 
 export default function TestHub() {
+  const [noticeOpen, setNoticeOpen] = useState(false);
+
   const items = [
     { to: "/test/write", label: "게시글 작성 테스트" },
     { to: "/test/tag", label: "태그 표기 테스트" },
+    { to: "/test/post", label: "게시글 확인 테스트" },
     { to: "/403", label: "403 테스트" },
     { to: "/500", label: "500 테스트" },
+    { to: "/test/setting", label: "사용자 모달 테스트" },
+    { to: "/test/main", label: "메인 페이지 테스트" },
+    { to: "/test/board/free-list", label: "자유·취업·정보 리스트 본문 테스트" },
+
     // 404는 없는 주소
-    // --- 인증 관련 테스트 링크 추가 ---
+    // --- 인증 관련 테스트 링크 ---
     { to: PATHS.AUTH, label: "로그인/회원가입(로비) 테스트" },
     { to: PATHS.MAIN, label: "보호 라우트: /main (JWT + 인증 완료)" },
     { to: PATHS.KEY_VERIFY, label: "보호 라우트: /key-verify (JWT + 미인증)" },
@@ -55,6 +65,15 @@ export default function TestHub() {
         >
           404 테스트
         </Link>
+
+        {/* 🔔 알림 모달 UI 테스트 (라우팅 없이 띄우기) */}
+        <button
+          type="button"
+          onClick={() => setNoticeOpen(true)}
+          className="rounded-xl border px-4 py-3 text-center hover:bg-gray-50 active:scale-[0.98] transition"
+        >
+          알림 모달 UI 테스트
+        </button>
       </div>
 
       {/* 인증 상태 패널 */}
@@ -117,6 +136,15 @@ export default function TestHub() {
           이동합니다.
         </p>
       </section>
+
+      {/* 🔔 알림 모달 (UI만) */}
+      <NotificationModal
+        open={noticeOpen}
+        onClose={() => setNoticeOpen(false)}
+      />
+
+      {/* 무한 스크롤 스모크 테스트 */}
+      {/* <InfiniteScrollSmokeTest /> */}
     </div>
   );
 }
