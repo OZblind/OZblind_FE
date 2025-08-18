@@ -1,4 +1,3 @@
-import type { CommentMeta } from "@src/mocks/post.demo";
 import { fmtDate, fmtNum } from "@src/utils/utils";
 import {
   ChevronDown,
@@ -10,6 +9,7 @@ import {
 import { useEffect, useState } from "react";
 import clsx from "clsx";
 import ReplyControl from "./ReplyControl";
+import type { CommentMeta } from "@src/types/post";
 
 export default function CommentItem({
   data,
