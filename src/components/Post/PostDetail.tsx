@@ -163,11 +163,9 @@ export default function PostDetail({ post }: { post: PostMeta }) {
       {/* 구분선 */}
       <div className="divider my-5"></div>
 
-      {/* 본문 카드 */}
-      <div className="card border border-base-300 bg-base-100 shadow-sm">
-        <div className="card-body prose max-w-none dark:prose-invert p-6">
-          <p className="whitespace-pre-wrap">{post.content}</p>
-        </div>
+      {/* 본문 */}
+      <div className="m-2 border-base-300 bg-base-100 shadow-sm">
+        <p className="whitespace-pre-wrap">{post.content}</p>
       </div>
 
       {/* 리액션 바 */}
