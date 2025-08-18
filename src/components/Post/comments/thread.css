@@ -1,0 +1,24 @@
+/* 공통 크기/위치 토큰 (필요시 숫자만 바꾸면 전체가 맞춰짐) */
+.thread {
+  --node-top: 0.18rem; /* 시작 원의 상단 위치 (약 14px) */
+  --node-size: 0.875rem; /* 시작 원의 지름 (약 14px) */
+  --elbow-h: 0.875rem; /* 곡선(엘보) SVG의 높이 (viewBox 14에 대응) */
+}
+
+/* 세로 레일: 시작 원의 '정중앙'부터 아래로 시작 */
+.thread .thread-rail {
+  top: calc(var(--node-top) + var(--node-size) / 2);
+}
+
+/* 시작 원(노드) */
+.thread .thread-node {
+  top: var(--node-top);
+  width: var(--node-size);
+  height: var(--node-size);
+}
+
+/* 엘보(분기) SVG: 항상 분기선의 중앙(= 시작 원의 중앙)에 수직 정렬 */
+.thread .thread-elbow {
+  top: calc(var(--node-top) + var(--node-size) / 2 - var(--elbow-h) / 4);
+  height: var(--elbow-h);
+}

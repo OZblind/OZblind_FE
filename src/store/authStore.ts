@@ -70,3 +70,5 @@ export const useAuthStore = create<AuthState>()((set) => ({
       tokens: emptyTokens,
     }),
 }));
+
+export type AuthStore = ReturnType<typeof useAuthStore>;
