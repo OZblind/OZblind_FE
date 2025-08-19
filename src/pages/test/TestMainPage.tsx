@@ -1,7 +1,16 @@
 import Sidebar from "@components/Sidebar/Sidebar";
 import HotBoard from "@src/components/HotBoard/HotBoard";
+import { useEffect } from "react";
 
 export default function TestMainPage() {
+  // 페이지 로드 시 스크롤 막기
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "auto";
+    };
+  }, []);
+
   return (
     <div className="flex w-full min-h-screen">
       <Sidebar />
