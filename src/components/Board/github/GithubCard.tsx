@@ -2,11 +2,8 @@ import { type MouseEvent } from "react";
 import RepoPreviewThumb from "./RepoPreviewThumb";
 
 export type GithubCardProps = {
-  /** 게시글 ID */
   id: string;
-  /** 게시글 제목 */
   title: string;
-  /** 상단 태그 (예: <AssignedTagList ... />) */
   tagSlot?: React.ReactNode;
   /** 게시글 요약/설명 */
   excerpt?: string;
@@ -16,7 +13,7 @@ export type GithubCardProps = {
   onClick?: (id: string) => void;
   /** 레포 링크 클릭 */
   onClickRepo?: (id: string) => void;
-  /** 하단 메타 영역 (좋아요, 댓글 등) */
+  /** 하단 메타 영역 (좋아요, 댓글 등 추가 시 사용) */
   metaSlot?: React.ReactNode;
   className?: string;
 };
@@ -43,12 +40,12 @@ export default function GithubCard({
       role="button"
       tabIndex={0}
       onClick={handleCardClick}
-      className={`rounded-xl border bg-base-100 hover:bg-base-200/40 transition-colors cursor-pointer ${className}`}
+      className={`rounded-xl border border-base-300 bg-base-100 hover:border-primary/50 hover:bg-base-200/40 transition-colors cursor-pointer ${className}`}
     >
-      <div className="flex items-start gap-3 p-3 md:p-4">
+      <div className="flex items-center gap-4 p-3 md:p-4">
         {/* 좌측: GitHub 레포 썸네일 */}
-        <div className="shrink-0 w-24 h-20 md:w-28 md:h-24 rounded-lg overflow-hidden">
-          <RepoPreviewThumb repoLink={repoLink} />
+        <div className="shrink-0 w-28 md:w-32 rounded-lg overflow-hidden">
+          <RepoPreviewThumb repoLink={repoLink} display="auto" />
         </div>
 
         {/* 우측: 게시글 본문 */}
@@ -67,13 +64,13 @@ export default function GithubCard({
             </p>
           )}
 
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs md:text-[13px] text-base-content/60">
+          <div className="mt-2 flex items-center gap-x-3 gap-y-1 text-xs md:text-[13px] text-base-content/60 min-w-0">
             {metaSlot}
             <button
               type="button"
               onClick={handleRepoClick}
-              className="underline decoration-dotted underline-offset-2 hover:text-primary break-all"
               title={repoLink}
+              className="hover:text-primary min-w-0 basis-0 flex-1 max-w-[320px] text-left truncate"
             >
               {repoLink}
             </button>

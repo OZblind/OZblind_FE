@@ -1,12 +1,11 @@
-// src/pages/TestGithubList.tsx
 import { useMemo, useState } from "react";
 import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import {
-  useGithubReposMock,
-  useGithubMockListItems,
-  GITHUB_REPOS_MOCK_KEY,
+  useGithubPostListMock,
+  useGithubPostListItems,
+  GITHUB_POSTS_MOCK_KEY,
   type GithubPostsPage,
-} from "@hooks/useGithubRepos.mock";
+} from "@hooks/useGithubPosts.mock";
 import GithubList from "@components/Board/github/GithubList";
 import { useInfiniteScroll } from "@hooks/useInfiniteScroll";
 import { formatYyyyMmDdHms } from "@utils/date";
@@ -26,10 +25,10 @@ export default function TestGithubList() {
     isError,
     error,
     refetch,
-  } = useGithubReposMock();
+  } = useGithubPostListMock();
 
   // 무한스크롤 페이지 → GithubList에 맞는 items 변환
-  const items = useGithubMockListItems(data);
+  const items = useGithubPostListItems(data);
 
   // 센티넬
   const { sentinelRef } = useInfiniteScroll({
@@ -51,7 +50,7 @@ export default function TestGithubList() {
 
   const handleResetAll = () => {
     setForcedError(null);
-    qc.removeQueries({ queryKey: GITHUB_REPOS_MOCK_KEY });
+    qc.removeQueries({ queryKey: GITHUB_POSTS_MOCK_KEY });
     setLastLoadedAt(formatYyyyMmDdHms(new Date()));
   };
 
@@ -61,7 +60,7 @@ export default function TestGithubList() {
       pageParams: [0],
     };
     qc.setQueryData<InfiniteData<GithubPostsPage>>(
-      GITHUB_REPOS_MOCK_KEY,
+      GITHUB_POSTS_MOCK_KEY,
       emptyData
     );
     setForcedError(null);
@@ -71,7 +70,7 @@ export default function TestGithubList() {
     setForcedError((e) => (e ? null : "의도적 테스트 에러"));
   };
 
-  // 상단 디버그 라벨(선택)
+  // 상단 디버그 라벨
   const debugText = useMemo(() => {
     const total = items.length;
     return `hasMore: ${String(!!hasNextPage)} / busy: ${String(
