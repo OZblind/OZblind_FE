@@ -36,7 +36,7 @@ export default function SurveyCard({
   desc,
   deadline,
   tags,
-  link, // ✅
+  link,
   onClick,
   className,
 }: SurveyCardProps) {

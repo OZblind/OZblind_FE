@@ -1,127 +1,78 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import { SurveyList } from "@components/Board/survey";
-import type { SurveyCardProps } from "@components/Board/survey/SurveyCard";
 import { useInfiniteScroll } from "@hooks/useInfiniteScroll";
 import { formatYyyyMmDdHms } from "@utils/date";
-import {
-  makeAssignedTags,
-  COHORTS,
-  POSITIONS,
-  type CohortLabel,
-  type PositionLabel,
-} from "@src/mocks/tags.mock";
+import { useSurveysMock } from "@hooks/useSurveys.mock";
+import type { SurveyCardProps } from "@components/Board/survey/SurveyCard";
 
-const PAGE_SIZE = 12;
-const MAX_PAGES = 4;
-
-function makeMockItems(count: number, startIndex: number): SurveyCardProps[] {
-  const now = Date.now();
-  return Array.from({ length: count }, (_, i) => {
-    const idx = startIndex + i;
-
-    // 마감일
-    const closeAt = new Date(now + ((idx % 6) - 2) * 86_400_000);
-    const status: SurveyCardProps["status"] =
-      closeAt.getTime() < Date.now() ? "expired" : "active";
-
-    // 지정 태그 2개
-    const cohort: CohortLabel = COHORTS[9 + (idx % 5)];
-    const position: PositionLabel = POSITIONS[idx % 2];
-
-    // 설문 링크(길게)
-    const link = `https://forms.example.com/surveys/${idx + 1}/very/long/path/that/should/truncate?utm_source=board&ref=survey_${
-      idx + 1
-    }`;
-
-    return {
-      id: `survey-${idx + 1}`,
-      status,
-      title: `오즈의 여섯 가지 그림자 — 설문 ${idx + 1}`,
-      desc: "오즈 커뮤니티 설문(지정 태그 칩 표시 테스트)",
-      deadline: closeAt.toISOString(),
-      tags: makeAssignedTags(cohort, position),
-      link,
-      onClick: undefined, // List에서 바인딩
-    };
-  });
-}
+type Page = { items: SurveyCardProps[]; hasMore: boolean };
+const SURVEYS_MOCK_KEY = ["surveys-mock"] as const;
 
 export default function TestSurveyList() {
-  const [page, setPage] = useState(1);
-  const [items, setItems] = useState<SurveyCardProps[]>(() =>
-    makeMockItems(PAGE_SIZE, 0)
-  );
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const [lastLoadedAt, setLastLoadedAt] = useState<string>(
+  const qc = useQueryClient();
+  const [lastLoadedAt, setLastLoadedAt] = useState(
     formatYyyyMmDdHms(new Date())
   );
 
-  const mountedRef = useRef(true);
-  const busyRef = useRef(false);
-  const pageRef = useRef(1);
-  const hasMoreRef = useRef(true);
+  const [forcedError, setForcedError] = useState<string | null>(null);
 
-  useEffect(
-    () => () => {
-      mountedRef.current = false;
-    },
-    []
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isError,
+    error,
+    refetch,
+  } = useSurveysMock();
+
+  const items = useMemo(
+    () => data?.pages.flatMap((p) => p.items) ?? [],
+    [data]
   );
-
-  const hasMore = useMemo(() => page < MAX_PAGES, [page]);
-  useEffect(() => {
-    hasMoreRef.current = hasMore;
-  }, [hasMore]);
-
-  const loadMore = useCallback(async () => {
-    if (busyRef.current || !hasMoreRef.current) return;
-    busyRef.current = true;
-    if (mountedRef.current) setBusy(true);
-    setErr(null);
-    try {
-      await new Promise((r) => setTimeout(r, 500)); // mock API
-      const nextPage = pageRef.current + 1;
-      if (!mountedRef.current) return;
-      setItems((prev) => [...prev, ...makeMockItems(PAGE_SIZE, prev.length)]);
-      setPage(nextPage);
-      pageRef.current = nextPage;
-      setLastLoadedAt(formatYyyyMmDdHms(new Date()));
-    } finally {
-      if (mountedRef.current) setBusy(false);
-      busyRef.current = false;
-    }
-  }, []);
-
-  useEffect(() => {
-    pageRef.current = page;
-  }, [page]);
 
   const { sentinelRef } = useInfiniteScroll({
     root: null,
     rootMargin: "1000px 0px",
     threshold: 0,
-    disabled: busy || !hasMore || !!err,
-    onIntersect: loadMore,
+    disabled: isFetchingNextPage || !hasNextPage || !!forcedError || isError,
+    onIntersect: async () => {
+      await fetchNextPage();
+    },
   });
 
-  const clearItems = () => setItems([]);
-  const toggleError = () => setErr((e) => (e ? null : "의도적 테스트 에러"));
-  const resetAll = () => {
-    setPage(1);
-    pageRef.current = 1;
-    setItems(makeMockItems(PAGE_SIZE, 0));
-    setBusy(false);
-    busyRef.current = false;
-    setErr(null);
-    hasMoreRef.current = true;
+  const handleRefresh = () => {
+    setForcedError(null);
     setLastLoadedAt(formatYyyyMmDdHms(new Date()));
+    refetch();
+  };
+
+  const resetAll = () => {
+    setForcedError(null);
+    qc.removeQueries({ queryKey: SURVEYS_MOCK_KEY });
+    setLastLoadedAt(formatYyyyMmDdHms(new Date()));
+  };
+
+  const clearItems = () => {
+    const emptyData: InfiniteData<Page> = {
+      pages: [{ items: [], hasMore: false }],
+      pageParams: [0],
+    };
+    qc.setQueryData<InfiniteData<Page>>(SURVEYS_MOCK_KEY, emptyData);
+    setForcedError(null);
+  };
+
+  const toggleError = () => {
+    setForcedError((e) => (e ? null : "의도적 테스트 에러"));
   };
 
   return (
     <div className="p-4 max-w-3xl mx-auto space-y-4">
       <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Survey 리스트 본문 — 테스트</h1>
+        <h1 className="text-xl font-semibold">
+          Survey 리스트 본문 — UI 테스트
+        </h1>
         <div className="flex flex-wrap gap-2 text-sm">
           <button
             type="button"
@@ -149,9 +100,13 @@ export default function TestSurveyList() {
 
       <section className="rounded-xl border p-3">
         <div className="text-xs opacity-70 mb-2">
-          page: {page} / hasMore: {String(hasMore)} / busy: {String(busy)} /
-          items: {items.length}
-          {err && <span className="ml-2 text-red-500">| error: {err}</span>}
+          hasMore: {String(!!hasNextPage)} / busy: {String(isFetchingNextPage)}{" "}
+          / items: {items.length}
+          {(isError || !!forcedError) && (
+            <span className="ml-2 text-red-500">
+              | error: {forcedError ?? (error as Error)?.message ?? "에러"}
+            </span>
+          )}
         </div>
 
         <SurveyList
@@ -164,11 +119,11 @@ export default function TestSurveyList() {
             onWrite: () => console.log("글쓰기 이동"),
           }}
           lastLoadedAt={lastLoadedAt}
-          onRefresh={() => setLastLoadedAt(formatYyyyMmDdHms(new Date()))}
-          isLoading={busy}
-          isError={!!err}
-          errorText={err ?? undefined}
-          hasMore={hasMore}
+          onRefresh={handleRefresh}
+          isLoading={isFetchingNextPage}
+          isError={!!forcedError || isError}
+          errorText={forcedError ?? (error as Error)?.message}
+          hasMore={!!hasNextPage}
           sentinelRef={sentinelRef}
           empty={{ message: "등록된 설문이 없습니다." }}
         />
