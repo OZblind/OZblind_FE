@@ -15,7 +15,7 @@ export default function HotPostCard({ post }: { post: HotPost }) {
 
   return (
     <button
-      className={`flex w-full h-[180px] rounded-lg shadow-md overflow-hidden border-2
+      className={`flex w-full h-[148px] rounded-lg shadow-md overflow-hidden border-2
         ${CARD_STYLE[post.board]}
         hover:shadow-lg hover:scale-105 transition-all duration-200`}
     >
@@ -28,8 +28,7 @@ export default function HotPostCard({ post }: { post: HotPost }) {
             {post.title}
           </h3>
         </div>
-        <div className="flex items-center justify-between text-sm w-full font-thin text-base-content/40">
-          <span>조회 {post.views}</span>
+        <div className="flex items-center justify-end text-sm w-full font-thin text-base-content/40">
           <div className="flex items-center gap-1">
             <img src={thumbUp} alt="thumbUp" className="w-4 h-4" /> {post.likes}
           </div>
