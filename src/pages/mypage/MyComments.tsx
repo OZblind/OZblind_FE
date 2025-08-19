@@ -21,18 +21,9 @@ import {
   normalizeError,
   safeParseInt,
   safeString,
-  isValidArray,
 } from "@src/utils/errorUtils";
-
-// 댓글 데이터 타입
-interface CommentItem {
-  id: number;
-  postTitle: string;
-  postCategory: string;
-  commentContent: string;
-  date: string;
-  postId: number;
-}
+import { mockComments } from "@src/mocks/mypage.mock";
+import type { CommentItem } from "@src/types/mypage";
 
 interface CommentListItemProps {
   comment: CommentItem;
@@ -132,39 +123,8 @@ const MyComments: React.FC = () => {
         throw new Error(ERROR_MESSAGES.LOAD_COMMENTS);
       }
 
-      // 임시 댓글 데이터
-      const dummyComments: CommentItem[] = [
-        {
-          id: 1,
-          postTitle: "권권 후후 르르 ㅎㅎ ㅎㅎㅎ",
-          postCategory: "자유",
-          commentContent: "권후르 권후르~",
-          date: "2024.01.12",
-          postId: 4,
-        },
-        {
-          id: 5,
-          postTitle: "오늘 날씨 정말 좋네요",
-          postCategory: "자유",
-          commentContent:
-            "정말이에요! 산책하기 딱 좋은 날씨네요. 저도 잠깐 나갔다 와야겠어요.",
-          date: "2024.01.11",
-          postId: 5,
-        },
-        {
-          id: 6,
-          postTitle: "신입이 물어보기 어려운 질문들",
-          postCategory: "질문",
-          commentContent:
-            "궁금한 것은 바로바로 물어보는 게 좋아요. 선배들도 도와주고 싶어 하실 거예요!",
-          date: "2024.01.10",
-          postId: 6,
-        },
-      ];
-
-      // 안전한 데이터 검증
-      const validComments = isValidArray(dummyComments) ? dummyComments : [];
-      setComments(validComments);
+      // 목업 데이터 사용 (타입 안전성 확보)
+      setComments(mockComments);
       setIsLoading(false);
     } catch (err) {
       const errorMessage = normalizeError(err);
@@ -180,10 +140,12 @@ const MyComments: React.FC = () => {
 
   // setTimeout 정리가 포함된 뒤로가기 핸들러
   const handleBackClick = () => {
+    // 기존 timeout 정리
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
+
     setIsExiting(true);
     timeoutRef.current = setTimeout(() => {
       navigate("/mypage");

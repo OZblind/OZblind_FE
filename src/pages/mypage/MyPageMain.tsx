@@ -3,20 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { PATHS } from "@constants/paths";
 import { ANIMATION_TIMINGS, ANIMATION_KEYFRAMES } from "@constants/animations";
 import { LIST_SETTINGS, EMPTY_MESSAGES } from "@constants/ui";
-
-// 카드 데이터 타입 정의 - icon을 ReactNode로 변경
-interface CardData {
-  title: string;
-  count: number;
-  icon: React.ReactNode;
-  path: string;
-  items: Array<{
-    id: number;
-    title: string;
-    date: string;
-    category?: string;
-  }>;
-}
+import { mockMyPageCards } from "@src/mocks/mypage.mock";
+import type { MyPageCardData } from "@src/types/mypage";
 
 // 개별 카드 컴포넌트
 interface CardProps {
@@ -175,37 +163,8 @@ const MyPageMain: React.FC = () => {
   // setTimeout 대신 pendingPath로 안전한 네비게이션 관리
   const pendingPathRef = useRef<string | null>(null);
 
-  // 카드 데이터
-  const cardData: CardData[] = [
-    {
-      title: "작성글",
-      count: 12,
-      icon: "📝",
-      path: "posts",
-      items: [
-        {
-          id: 1,
-          title: "아프면 병원좀가!!! [21]",
-          date: "01.15",
-          category: "자유",
-        },
-      ],
-    },
-    {
-      title: "작성댓글",
-      count: 45,
-      icon: "💬",
-      path: "comments",
-      items: [],
-    },
-    {
-      title: "북마크",
-      count: 8,
-      icon: "🔖",
-      path: "bookmarks",
-      items: [],
-    },
-  ];
+  // ✅ 목업 데이터 사용
+  const cardData: MyPageCardData[] = mockMyPageCards;
 
   // setTimeout 제거: 애니메이션 이벤트 기반으로 네비게이션
   const handleCardClick = (path: string) => {
