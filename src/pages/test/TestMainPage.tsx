@@ -4,6 +4,7 @@ import NavUnifiedSearch from "@src/components/navigation/NavUnifiedSearch";
 import { useEffect, useMemo, useState } from "react";
 import { logos } from "@assets/index";
 import { useThemeIcon } from "@src/hooks/useThemeIcon";
+import JobBannerTabs from "@src/components/JobBanner/JobBannerTabs";
 
 export default function TestMainPage() {
   const themeIcon = useThemeIcon();
@@ -42,7 +43,9 @@ export default function TestMainPage() {
             <img src={logo} alt="logo" className="w-24" />
             <NavUnifiedSearch className="w-full" placeholder="통합검색" />
           </div>
-          <div className="w-[800px] h-[180px] bg-base-200">취업배너</div>
+          <div className="w-[800px] h-[180px]">
+            <JobBannerTabs />
+          </div>
           <HotBoard />
           <div className="w-[800px] h-[360px] bg-base-200 pb-8"></div>
         </div>
