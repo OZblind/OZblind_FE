@@ -3,6 +3,7 @@ import { icons } from "@src/assets";
 import { useThemeIcon } from "@hooks/useThemeIcon";
 import profile from "@assets/images/profile.jpg";
 import { NotificationModal } from "@components/Notice";
+import FoldedPostListSection from "./FoldedPostListSection";
 
 export function SidebarFolded({ onToggle }: { onToggle: () => void }) {
   const [noticeOpen, setNoticeOpen] = useState(false);
@@ -22,7 +23,7 @@ export function SidebarFolded({ onToggle }: { onToggle: () => void }) {
       <button onClick={onToggle} className="p-2 rounded-full hover:bg-base-300">
         <img src={menuIcon} alt="menuIcon" />
       </button>
-
+      <FoldedPostListSection />
       <div className="flex flex-col gap-4 items-center">
         <NotificationModal
           open={noticeOpen}
