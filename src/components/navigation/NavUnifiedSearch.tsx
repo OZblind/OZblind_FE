@@ -147,7 +147,6 @@ const NavUnifiedSearch: React.FC<ThemedNavUnifiedSearchProps> = ({
             onToggle={handleCategoryToggle}
             onSelect={handleCategorySelectWithDropdownClose}
             dropdownRef={categoryDropdownRef}
-            isDark={currentTheme}
           />
 
           <div className={`w-px h-6 mx-2 ${themeStyles.divider}`}></div>
