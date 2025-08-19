@@ -3,7 +3,7 @@ import type { PostMeta, CommentMeta } from "@src/types/post";
 
 export const demoPost: PostMeta = {
   id: "p1",
-  boardName: "니똥 게시판",
+  boardName: "survey",
   title: "제목입니다랍다랍다락",
   content:
     "이건 글입니다라달락\n하하호호 여긴 OO게시판 어떤 글을 써야 좋을까요○\n하하하↵\n와랄라랄라라 랄라↵\n샤랄랄라랄라 랄 ㅋㅋㅋㅋ",
@@ -15,6 +15,9 @@ export const demoPost: PostMeta = {
   reactions: { like: 4, dislike: 0, bookmark: 3 },
   authorId: "u1",
   authorName: "홍길동",
+  repoUrl: "https://github.com/OZblind/OZblind_FE",
+  formLink: "https://forms.gle/abcd1234",
+  endDate: "2025-09-30",
 };
 
 export const demoComments: CommentMeta[] = [
