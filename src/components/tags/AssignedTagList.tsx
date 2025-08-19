@@ -13,7 +13,7 @@ export default function AssignedTagList({
     a.category === b.category ? 0 : a.category === "cohort" ? -1 : 1
   );
   return (
-    <div className={["flex flex-wrap gap-2", className ?? ""].join(" ")}>
+    <div className={["flex flex-wrap gap-1.5", className ?? ""].join(" ")}>
       {ordered.map((t) => (
         <TagBadge key={t.id} tag={t} />
       ))}
