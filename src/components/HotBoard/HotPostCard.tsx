@@ -15,7 +15,7 @@ export default function HotPostCard({ post }: { post: HotPost }) {
 
   return (
     <button
-      className={`flex w-full h-[180px] rounded-lg shadow-md overflow-hidden border-2
+      className={`flex w-full h-[148px] rounded-lg shadow-md overflow-hidden border-2
         ${CARD_STYLE[post.board]}
         hover:shadow-lg hover:scale-105 transition-all duration-200`}
     >
