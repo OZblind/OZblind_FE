@@ -1,14 +1,11 @@
 import ScrollSentinel from "@components/commons/InfiniteScroll/ScrollSentinel";
-import EmptyState, {
-  type EmptyStateProps,
-} from "@components/Board/common/EmptyState";
-import PostRow, { type FreeBoardItem, FREE_LIST_GRID } from "./PostRow";
-import PostCard from "./PostCard";
+import SurveyCard, { type SurveyCardProps } from "./SurveyCard";
+import EmptyState, { type EmptyStateProps } from "../common/EmptyState";
 import { LastLoadedBar, BoardTopBar } from "../common";
 
-export type PostListProps = {
-  items: FreeBoardItem[];
-  onItemClick?: (id: FreeBoardItem["id"]) => void;
+export type SurveyListProps = {
+  items: SurveyCardProps[];
+  onItemClick?: (id: string) => void;
 
   topBar?: {
     boardName: string;
@@ -33,7 +30,7 @@ export type PostListProps = {
   className?: string;
 };
 
-export default function PostList({
+export default function SurveyList({
   items,
   onItemClick,
   topBar,
@@ -47,7 +44,7 @@ export default function PostList({
   noMoreText = "마지막 페이지입니다.",
   empty,
   className,
-}: PostListProps) {
+}: SurveyListProps) {
   const isEmpty = items.length === 0;
 
   return (
@@ -85,38 +82,23 @@ export default function PostList({
 
         {!isError && !(isLoading && isEmpty) && !isEmpty && (
           <>
-            {/* 데스크톱(테이블) */}
-            <div className="hidden md:block">
-              <div
-                className={`${FREE_LIST_GRID} gap-2 py-2 text-xs font-medium text-base-content/60`}
-              >
-                <div className="text-center">번호</div>
-                <div className="text-center">제목</div>
-                <div className="text-center">글쓴이</div>
-                <div className="text-center">등록일</div>
-                <div className="text-center">조회</div>
-                <div className="text-center">추천</div>
-              </div>
+            <ul className="grid gap-3 md:gap-4 grid-cols-1">
+              {items.map((it) => (
+                <li key={it.id}>
+                  <SurveyCard {...it} onClick={(id) => onItemClick?.(id)} />
+                </li>
+              ))}
 
-              <ul className="divide-y divide-base-300">
-                {items.map((it) => (
-                  <li key={String(it.id)}>
-                    <PostRow item={it} onClick={onItemClick} />
-                  </li>
+              {/* 리스트가 이미 있을 때의 추가 로딩 스켈레톤 (임시) */}
+              {isLoading &&
+                items.length > 0 &&
+                Array.from({ length: 2 }).map((_, i) => (
+                  <li
+                    key={`sk-${i}`}
+                    className="h-28 md:h-32 rounded-xl bg-base-200 animate-pulse"
+                  />
                 ))}
-              </ul>
-            </div>
-
-            {/* 모바일(카드) */}
-            <div className="md:hidden">
-              <ul className="space-y-2 max-[360px]:space-y-1.5">
-                {items.map((it) => (
-                  <li key={String(it.id)}>
-                    <PostCard item={it} onClick={onItemClick} />
-                  </li>
-                ))}
-              </ul>
-            </div>
+            </ul>
 
             {/* 센티넬 & 마지막 페이지 문구 */}
             <div className="mt-2">

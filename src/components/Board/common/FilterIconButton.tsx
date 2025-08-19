@@ -21,7 +21,7 @@ function readIsDarkFromDOM(): boolean {
   return theme === "oz_dark";
 }
 
-export function FilterIconButton(props: Props) {
+export default function FilterIconButton(props: Props) {
   const { kind, onClick, className } = props;
   const [isDark, setIsDark] = useState<boolean>(() => readIsDarkFromDOM());
 

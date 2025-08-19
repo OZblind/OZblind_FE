@@ -338,12 +338,10 @@ const MyBookmarks: React.FC = () => {
   }, []);
 
   const handleBackClick = () => {
-    // 기존 timeout 정리
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
-
     setIsExiting(true);
     timeoutRef.current = setTimeout(() => {
       navigate("/mypage");

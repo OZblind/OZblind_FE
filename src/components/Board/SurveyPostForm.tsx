@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@components/ui/Button";
 import ToastEditor from "@components/Board/editor/ToastEditor";
+import LinkPreviewCard from "./LinkPreviewCard";
 
 interface Props {
   onCancel: () => void;
@@ -127,20 +128,14 @@ export default function SurveyPostForm({ onCancel }: Props) {
           />
         </div>
       </div>
+
       {/* 링크 미리보기 카드 */}
-      {formLink && (
-        <div className="p-4 border rounded bg-white shadow-sm mt-1">
-          <p className="font-semibold text-lg mb-1">📄 설문지 미리보기</p>
-          <a
-            href={formLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 underline break-all"
-          >
-            {formLink}
-          </a>
-        </div>
-      )}
+      <LinkPreviewCard
+        url={formLink}
+        title={title || "제목 없음"}
+        endDate={endDate}
+      />
+
       {/* 에디터 */}
       <div className="flex-1">
         <ToastEditor onChange={setContent} />

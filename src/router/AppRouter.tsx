@@ -42,6 +42,8 @@ import { resolvePostLoginPath } from "@utils/postLogin";
 import TestTagPage from "@src/pages/test/TestTagPage";
 import TestPostReadPage from "@src/pages/test/TestPostReadPage";
 import TestMainPage from "@src/pages/test/TestMainPage";
+import TestSurveyList from "@src/pages/test/BoardList/TestSurveyList";
+import TestJobBannerPage from "@src/pages/test/TestJobBanner";
 
 /** 공개(보호 불필요) 경로 목록 */
 const PUBLIC_PATHS: ReadonlySet<string> = new Set([
@@ -86,7 +88,7 @@ function KeyVerifyPlaceholder() {
     } catch (err: unknown) {
       const msg =
         typeof err === "object" && err && "message" in err
-          ? (err as { message?: string }).message ?? "인증 실패"
+          ? ((err as { message?: string }).message ?? "인증 실패")
           : "인증 실패";
       push({ message: msg, type: "error" });
     }
@@ -203,6 +205,8 @@ export default function AppRouter() {
         <Route path="/test/setting" element={<TestSettingPage />} />
         <Route path="/test/main" element={<TestMainPage />}></Route>
         <Route path="/test/board/free-list" element={<TestFreeBoardList />} />
+        <Route path="/test/board/survey-list" element={<TestSurveyList />} />
+        <Route path="/test/jobbanner" element={<TestJobBannerPage />} />
 
         {/* 인증 로비(공개) */}
         <Route path={PATHS.AUTH} element={<LandingPage />} />

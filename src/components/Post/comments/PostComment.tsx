@@ -5,6 +5,8 @@ import { commentTree } from "@src/utils/commentTree";
 import "./thread.css";
 import type { CommentMeta } from "@src/types/post";
 import { THREAD_COLOR_CLASSES } from "@src/constants/threadColors";
+import { fetchRandomNickname } from "@src/api/nickname";
+import { useToastStore } from "@src/store/toastStore";
 
 type SortKey = "newest" | "oldest" | "likes";
 
@@ -53,25 +55,35 @@ export default function PostComment({ comments }: { comments: CommentMeta[] }) {
     setList((prev) => commentTree.remove(prev, id));
   };
 
-  const handleAddReply = (rootId: CommentMeta["id"], content: string) => {
+  const handleAddReply = async (rootId: CommentMeta["id"], content: string) => {
     const newId: CommentMeta["id"] = makeId(); // string ID
+    try {
+      const nickname = await fetchRandomNickname();
 
-    const reply: CommentMeta = {
-      id: newId,
-      author: "나", // 닉네임(간단 표기)
-      authorId: "me", // 로그인 유저의 실제 ID로 대체하세요
-      authorName: "현재 사용자", // 선택: 표시명
-      content,
-      createdAt: new Date().toISOString(),
-      likes: 0,
-      dislikes: 0,
-      liked: false,
-      disliked: false,
-      hasReplies: false,
-      replies: [],
-    };
+      const reply: CommentMeta = {
+        id: newId,
+        author: nickname, // 닉네임(간단 표기)
+        authorId: "me", // 로그인 유저의 실제 ID로 대체하세요
+        authorName: "현재 사용자", // 선택: 표시명
+        content,
+        createdAt: new Date().toISOString(),
+        likes: 0,
+        dislikes: 0,
+        liked: false,
+        disliked: false,
+        hasReplies: false,
+        replies: [],
+      };
 
-    setList((prev) => commentTree.addToRoot(prev, rootId, reply));
+      setList((prev) => commentTree.addToRoot(prev, rootId, reply));
+    } catch (err) {
+      console.error(err);
+      useToastStore.getState().push({
+        message: "닉네임 생성에 실패했습니다.",
+        type: "error",
+        durationMs: 3000, // 선택 (기본값: 2500ms)
+      });
+    }
   };
 
   return (

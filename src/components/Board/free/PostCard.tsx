@@ -6,7 +6,7 @@ type Props = {
   className?: string;
 };
 
-export function PostCard({ item, onClick, className }: Props) {
+export default function PostCard({ item, onClick, className }: Props) {
   const views = Math.max(0, item.views ?? 0); // 음수/null/undefined → 0
   const likes = Math.max(0, item.likes ?? 0);
 

@@ -12,6 +12,11 @@ export interface PostMeta {
   // 작성자 정보 추가
   authorId: string;
   authorName?: string;
+
+  // --- 설문 깃 전용 필드 ---
+  formLink?: string; // 설문 링크
+  endDate?: string; // 설문 마감일 (YYYY-MM-DD)
+  repoUrl?: string; // GitHub 게시판 전용
 }
 
 export interface CommentMeta {

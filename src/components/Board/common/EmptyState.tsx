@@ -6,7 +6,7 @@ export type EmptyStateProps = {
   className?: string;
 };
 
-export function EmptyState({
+export default function EmptyState({
   message = "게시글이 없습니다.",
   actionLabel,
   onAction,
