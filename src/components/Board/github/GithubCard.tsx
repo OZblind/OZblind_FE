@@ -1,40 +1,41 @@
-import { useState, type MouseEvent } from "react";
-import { FaGithub } from "react-icons/fa";
+import { type MouseEvent } from "react";
+import RepoPreviewThumb from "./RepoPreviewThumb";
 
 export type GithubCardProps = {
+  /** 게시글 ID */
   id: string;
-  /** 좌측 썸네일 (실패 시 플레이스홀더로 대체) */
-  thumbnail?: string;
-  /** 레포명 (owner/repo) */
-  repoName: string;
-  /** 우측 상단 태그(예: Front), 왼쪽 배지(예: 11기)는 옵션으로 확장 가능 */
-  ownerTag?: string;
-  /** 한 줄/두 줄 설명 */
-  desc?: string;
-  /** 외부 링크(URL). 오른쪽 링크 아이콘/텍스트에 바인딩 */
-  href?: string;
-  /** 링크 아이콘/텍스트 클릭 콜백 */
-  onClickLink?: (id: string) => void;
-  /** 카드 전체 클릭 콜백 */
+  /** 게시글 제목 */
+  title: string;
+  /** 상단 태그 (예: <AssignedTagList ... />) */
+  tagSlot?: React.ReactNode;
+  /** 게시글 요약/설명 */
+  excerpt?: string;
+  /** 연결된 GitHub 레포 링크 (필수) */
+  repoLink: string;
+  /** 카드 전체 클릭 (게시글 상세 이동) */
   onClick?: (id: string) => void;
+  /** 레포 링크 클릭 */
+  onClickRepo?: (id: string) => void;
+  /** 하단 메타 영역 (좋아요, 댓글 등) */
+  metaSlot?: React.ReactNode;
+  className?: string;
 };
 
 export default function GithubCard({
   id,
-  thumbnail,
-  repoName,
-  ownerTag,
-  desc,
-  href,
-  onClickLink,
+  title,
+  tagSlot,
+  excerpt,
+  repoLink,
   onClick,
+  onClickRepo,
+  metaSlot,
+  className = "",
 }: GithubCardProps) {
-  const [imgError, setImgError] = useState(false);
-
   const handleCardClick = () => onClick?.(id);
-  const handleLinkClick = (e: MouseEvent) => {
+  const handleRepoClick = (e: MouseEvent) => {
     e.stopPropagation();
-    onClickLink?.(id);
+    onClickRepo?.(id);
   };
 
   return (
@@ -42,63 +43,40 @@ export default function GithubCard({
       role="button"
       tabIndex={0}
       onClick={handleCardClick}
-      className="rounded-xl border bg-base-100 hover:bg-base-200/40 transition-colors cursor-pointer"
+      className={`rounded-xl border bg-base-100 hover:bg-base-200/40 transition-colors cursor-pointer ${className}`}
     >
       <div className="flex items-start gap-3 p-3 md:p-4">
-        {/* 썸네일 */}
-        <div className="shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-lg overflow-hidden bg-base-200 flex items-center justify-center">
-          {!imgError && thumbnail ? (
-            <img
-              src={thumbnail}
-              alt=""
-              className="w-full h-full object-cover"
-              onError={() => setImgError(true)}
-              loading="lazy"
-            />
-          ) : (
-            <div className="w-full h-full grid place-items-center">
-              <FaGithub className="opacity-50" size={24} />
-            </div>
-          )}
+        {/* 좌측: GitHub 레포 썸네일 */}
+        <div className="shrink-0 w-24 h-20 md:w-28 md:h-24 rounded-lg overflow-hidden">
+          <RepoPreviewThumb repoLink={repoLink} />
         </div>
 
-        {/* 본문 */}
+        {/* 우측: 게시글 본문 */}
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            {/* 예시 배지: 11기 (필요 시 props로 확장 가능) */}
-            <span className="inline-flex items-center px-2 h-6 rounded-full text-xs bg-primary/10 text-primary font-medium">
-              11 기
-            </span>
-            {ownerTag && (
-              <span className="inline-flex items-center px-2 h-6 rounded-full text-xs bg-orange-100 text-orange-700 font-medium">
-                {ownerTag}
-              </span>
-            )}
-          </div>
+          {tagSlot && (
+            <div className="mb-1 flex items-center gap-2">{tagSlot}</div>
+          )}
 
           <h3 className="text-base md:text-lg font-semibold truncate">
-            {repoName}
+            {title}
           </h3>
 
-          {desc && (
-            <p className="mt-0.5 text-sm md:text-[15px] text-base-content/70 line-clamp-1 md:line-clamp-2">
-              {desc}
+          {excerpt && (
+            <p className="mt-1 text-sm md:text-[15px] text-base-content/70 line-clamp-1 md:line-clamp-2">
+              {excerpt}
             </p>
           )}
 
-          {/* 하단 메타 */}
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs md:text-[13px] text-base-content/60">
-            {/* 예시: 좋아요/코멘트 등 메타가 생기면 여기에 추가 */}
-            {href && (
-              <button
-                type="button"
-                onClick={handleLinkClick}
-                className="underline decoration-dotted underline-offset-2 hover:text-primary"
-                title={href}
-              >
-                {href}
-              </button>
-            )}
+            {metaSlot}
+            <button
+              type="button"
+              onClick={handleRepoClick}
+              className="underline decoration-dotted underline-offset-2 hover:text-primary break-all"
+              title={repoLink}
+            >
+              {repoLink}
+            </button>
           </div>
         </div>
       </div>

@@ -7,6 +7,7 @@ export type GithubListItem = GithubCardProps;
 export type GithubListProps = {
   items: GithubListItem[];
   onItemClick?: (id: string) => void;
+  onRepoClick?: (id: string) => void;
 
   topBar?: {
     boardName: string;
@@ -24,8 +25,8 @@ export type GithubListProps = {
 
   hasMore?: boolean;
   sentinelRef?: (el: HTMLDivElement | null) => void;
-  noMoreText?: string;
 
+  noMoreText?: string;
   emptyText?: string;
   className?: string;
 };
@@ -33,6 +34,7 @@ export type GithubListProps = {
 export default function GithubList({
   items,
   onItemClick,
+  onRepoClick,
   topBar,
   lastLoadedAt,
   onRefresh,
@@ -42,7 +44,7 @@ export default function GithubList({
   hasMore,
   sentinelRef,
   noMoreText = "마지막 페이지입니다.",
-  emptyText = "등록된 레포가 없습니다.",
+  emptyText = "등록된 게시글이 없습니다.",
   className,
 }: GithubListProps) {
   const isEmpty = items.length === 0;
@@ -86,15 +88,17 @@ export default function GithubList({
 
         {!isError && !(isLoading && isEmpty) && !isEmpty && (
           <>
-            {/* 항상 단일열(768 기준 무관) */}
             <ul className="grid grid-cols-1 gap-3 md:gap-4">
               {items.map((it) => (
                 <li key={it.id}>
-                  <GithubCard {...it} onClick={(id) => onItemClick?.(id)} />
+                  <GithubCard
+                    {...it}
+                    onClick={(id) => onItemClick?.(id)}
+                    onClickRepo={(id) => onRepoClick?.(id)}
+                  />
                 </li>
               ))}
 
-              {/* 추가 로딩 스켈레톤 (간단한 박스) */}
               {isLoading &&
                 items.length > 0 &&
                 Array.from({ length: 2 }).map((_, i) => (
@@ -105,7 +109,6 @@ export default function GithubList({
                 ))}
             </ul>
 
-            {/* 센티넬 & 마지막 페이지 문구 */}
             <div className="mt-2">
               {hasMore !== false && <ScrollSentinel innerRef={sentinelRef} />}
             </div>
