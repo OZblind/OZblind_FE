@@ -20,6 +20,11 @@ function parseYMDToLocalDate(ymd: string, endOfDay = false): Date | null {
     : new Date(y, mo, d, 0, 0, 0, 0);
 }
 
+// URL이 안전한지 확인하는 함수 (http/https만 허용)
+function isSafeUrl(url: string): boolean {
+  return /^https?:\/\/[^\s$.?#].[^\s]*$/i.test(url);
+}
+
 export default function LinkPreviewCard({
   url,
   title = "제목 없음",
@@ -48,6 +53,21 @@ export default function LinkPreviewCard({
         <ExternalLink className="w-4 h-4 opacity-70" aria-hidden />
       </p>
 
+      {isSafeUrl(url) ? (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={clsx(
+            "underline break-all",
+            isExpired ? "text-gray-400 pointer-events-none" : "text-blue-600"
+          )}
+        >
+          {url}
+        </a>
+      ) : (
+        <span className="text-red-500">유효하지 않은 링크입니다.</span>
+      )}
       <a
         href={url}
         target="_blank"
