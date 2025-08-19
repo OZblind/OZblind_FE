@@ -1,10 +1,30 @@
+import { icons } from "@src/assets";
+import { useThemeIcon } from "@hooks/useThemeIcon";
+import { useMemo } from "react";
+
 export default function PostListSection() {
+  const themeIcon = useThemeIcon();
+
+  const { freeIcon, githubIcon, informationIcon, jobsIcon, surveyIcon } =
+    useMemo(() => {
+      const dark = themeIcon === "oz_dark";
+      return {
+        freeIcon: dark ? icons.free.dark : icons.free.light,
+        githubIcon: dark ? icons.github.dark : icons.github.light,
+        informationIcon: dark
+          ? icons.information.dark
+          : icons.information.light,
+        jobsIcon: dark ? icons.jobs.dark : icons.jobs.light,
+        surveyIcon: dark ? icons.survey.dark : icons.survey.light,
+      };
+    }, [themeIcon]);
+
   const boardList = [
-    "자유 게시판",
-    "취업 게시판",
-    "정보 게시판",
-    "설문 게시판",
-    "GitHub 게시판",
+    { key: "free", label: "자유 게시판", icon: freeIcon },
+    { key: "jobs", label: "취업 게시판", icon: jobsIcon },
+    { key: "information", label: "정보 게시판", icon: informationIcon },
+    { key: "survey", label: "설문 게시판", icon: surveyIcon },
+    { key: "github", label: "GitHub 게시판", icon: githubIcon },
   ];
 
   return (
@@ -12,12 +32,13 @@ export default function PostListSection() {
       <div className="w-[240px] rounded-md p-2 bg-base-300/30">
         <p className="text-xs text-neutral-content">게시판</p>
         <div className="flex flex-col py-2 items-center space-y-2">
-          {boardList.map((name) => (
+          {boardList.map(({ key, label, icon }) => (
             <div
-              key={name}
-              className="w-[220px] h-[40px] px-[10px] flex items-center rounded-md cursor-pointer hover:bg-base-300/45"
+              key={key}
+              className="w-[220px] h-[40px] px-[10px] flex items-center gap-2 rounded-md cursor-pointer hover:bg-base-300/45"
             >
-              {name}
+              <img key={icon} src={icon} alt={`${label} 아이콘`} />
+              <span>{label}</span>
             </div>
           ))}
         </div>
