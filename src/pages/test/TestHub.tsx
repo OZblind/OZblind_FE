@@ -5,10 +5,12 @@ import { useAuthStore } from "@store/authStore";
 import { useLogoutMutation } from "@hooks/useAuthQueries";
 import { useToastStore } from "@store/toastStore";
 import { NotificationModal } from "@components/Notice";
+import NavUnifiedSearch from "@components/navigation/NavUnifiedSearch";
 // import InfiniteScrollSmokeTest from "./TestInfiniteScroll";
 
 export default function TestHub() {
   const [noticeOpen, setNoticeOpen] = useState(false);
+  const [showNavSearch, setShowNavSearch] = useState(false); // 통합검색 표시 상태
 
   const items = [
     { to: "/test/write", label: "게시글 작성 테스트" },
@@ -18,14 +20,16 @@ export default function TestHub() {
     { to: "/500", label: "500 테스트" },
     { to: "/test/setting", label: "사용자 모달 테스트" },
     { to: "/test/main", label: "메인 페이지 테스트" },
-    { to: "/test/board/free-list", label: "자유·취업·정보 게시글 목록 테스트" },
+    { to: "/test/board/free-list", label: "자유·취업·정보 리스트 본문 테스트" },
     { to: "/test/board/survey-list", label: "설문 게시글 목록 테스트" },
+    { to: "/test/jobbanner", label: "취업 배너 테스트" },
 
     // 404는 없는 주소
     // --- 인증 관련 테스트 링크 ---
     { to: PATHS.AUTH, label: "로그인/회원가입(로비) 테스트" },
     { to: PATHS.MAIN, label: "보호 라우트: /main (JWT + 인증 완료)" },
     { to: PATHS.KEY_VERIFY, label: "보호 라우트: /key-verify (JWT + 미인증)" },
+    { to: PATHS.MYPAGE, label: "🔥 마이페이지 (작성글/댓글/북마크)" },
   ];
 
   const { user, tokens, isOzAuthenticated } = useAuthStore();
@@ -44,6 +48,23 @@ export default function TestHub() {
     }
   };
 
+  // NavUnifiedSearch가 표시될 때만 해당 컴포넌트를 렌더링
+  if (showNavSearch) {
+    return (
+      <div className="min-h-screen p-6 max-w-2xl mx-auto">
+        <button
+          onClick={() => setShowNavSearch(false)}
+          className="mb-4 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition"
+        >
+          ← 돌아가기
+        </button>
+
+        <NavUnifiedSearch className="w-full" placeholder="통합검색 테스트..." />
+      </div>
+    );
+  }
+
+  // 기본 TestHub 화면
   return (
     <div className="min-h-screen p-6 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Test Hub</h1>
@@ -74,6 +95,15 @@ export default function TestHub() {
           className="rounded-xl border px-4 py-3 text-center hover:bg-gray-50 active:scale-[0.98] transition"
         >
           알림 모달 UI 테스트
+        </button>
+
+        {/* 🔍 통합검색 컴포넌트 테스트 버튼 */}
+        <button
+          type="button"
+          onClick={() => setShowNavSearch(true)}
+          className="rounded-xl border px-4 py-3 text-center active:scale-[0.98] transition font-medium"
+        >
+          🔍 통합검색 컴포넌트 테스트
         </button>
       </div>
 

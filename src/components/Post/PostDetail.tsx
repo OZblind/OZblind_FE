@@ -21,6 +21,10 @@ import DropdownMenu, {
 import { useToastStore } from "@src/store/toastStore";
 import type { CommentMeta, PostMeta } from "@src/types/post";
 import { onlyWhen, useCanManage } from "@src/hooks/useCanManage";
+import { fetchRandomNickname } from "@src/api/nickname";
+import { profileToTagsMock } from "@src/mocks/tags.mock";
+import AssignedTagList from "../tags/AssignedTagList";
+
 
 // ================== Main ==================
 export default function PostDetail({ post }: { post: PostMeta }) {
@@ -60,12 +64,16 @@ export default function PostDetail({ post }: { post: PostMeta }) {
   const submitComment = async () => {
     if (!commentDraft.trim()) return;
     setSubmitting(true);
+    const text = commentDraft.trim();
+    if (!text) return;
+
     // TODO: API 연동
-    setTimeout(() => {
+    try {
+      const nickname = await fetchRandomNickname();
       setComments((prev) => [
         {
           id: Math.random().toString(36).slice(2), // string ID여도 PostComment가 대응함
-          author: "나", // 닉네임(짧은 표시용)
+          author: nickname, // 닉네임(짧은 표시용)
           authorId: "me", // 고유 사용자 ID (실제 로그인 유저 ID 넣는게 베스트)
           authorName: "현재 사용자", // 선택적 표시 이름
           content: commentDraft.trim(),
@@ -78,8 +86,15 @@ export default function PostDetail({ post }: { post: PostMeta }) {
         ...prev,
       ]);
       setCommentDraft("");
-      setSubmitting(false);
-    }, 600);
+    } catch (err) {
+      console.error(err);
+      useToastStore.getState().push({
+        message: "닉네임 생성에 실패했습니다!",
+        type: "error",
+        durationMs: 3000, // 선택 (기본값: 2500ms)
+      });
+    }
+    setSubmitting(false);
   };
 
   const { canManage } = useCanManage(post.authorId, {
@@ -121,6 +136,7 @@ export default function PostDetail({ post }: { post: PostMeta }) {
       },
     ]),
   ];
+  const tags = profileToTagsMock("11기", "프론트");
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6 lg:py-8">
@@ -150,15 +166,14 @@ export default function PostDetail({ post }: { post: PostMeta }) {
         {post.title}
       </h1>
 
-      {/* 태그 / 메타 */}
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-        {post.cohort && (
-          <span className="badge badge-neutral">{post.cohort}</span>
-        )}
-        {post.category && (
-          <span className="badge badge-outline">{post.category}</span>
-        )}
-        <div className="ml-auto flex items-center gap-4 text-base-content/70">
+      <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+        {/* 태그 리스트 */}
+        <div className="flex items-center leading-none">
+          <AssignedTagList tags={tags} />
+        </div>
+
+        {/* 오른쪽 (조회수, 댓글수) */}
+        <div className="ml-auto flex items-center gap-4 text-base-content/70 leading-none">
           <div className="flex items-center gap-1">
             <Eye className="h-4 w-4" /> {fmtNum(post.views)}
           </div>
@@ -172,7 +187,7 @@ export default function PostDetail({ post }: { post: PostMeta }) {
       <div className="divider my-5"></div>
 
       {/* 본문 */}
-      <div className="m-2 border-base-300 bg-base-100 shadow-sm">
+      <div className="m-2 bg-base-100 shadow-none">
         <p className="whitespace-pre-wrap">{post.content}</p>
       </div>
 

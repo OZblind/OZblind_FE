@@ -1,5 +1,4 @@
-// 라우팅 + 부팅 훅 + 가드 분기
-
+// router/AppRouter.tsx - 마이페이지 라우트 추가 버전
 import {
   Routes,
   Route,
@@ -20,6 +19,13 @@ import TestPostWritePage from "@pages/test/TestPostWritePage"; // /test/write
 import TestSettingPage from "@pages/test/TestSettingPage"; // /test/setting
 import TestFreeBoardList from "@src/pages/test/BoardList/TestFreeBoardList"; // test/board/free-list
 
+// 마이페이지 관련 import 추가
+import MyPageLayout from "@pages/mypage/MyPageLayout";
+import MyPageMain from "@pages/mypage/MyPageMain";
+import MyPosts from "@pages/mypage/MyPosts";
+import MyComments from "@pages/mypage/MyComments";
+import MyBookmarks from "@pages/mypage/MyBookmarks";
+
 import { useAuthBootstrap } from "@hooks/useAuthBootstrap";
 import { useAuthStore } from "@store/authStore";
 import RootLayout from "@layouts/RootLayout";
@@ -37,6 +43,7 @@ import TestTagPage from "@src/pages/test/TestTagPage";
 import TestPostReadPage from "@src/pages/test/TestPostReadPage";
 import TestMainPage from "@src/pages/test/TestMainPage";
 import TestSurveyList from "@src/pages/test/BoardList/TestSurveyList";
+import TestJobBannerPage from "@src/pages/test/TestJobBanner";
 
 /** 공개(보호 불필요) 경로 목록 */
 const PUBLIC_PATHS: ReadonlySet<string> = new Set([
@@ -199,6 +206,7 @@ export default function AppRouter() {
         <Route path="/test/main" element={<TestMainPage />}></Route>
         <Route path="/test/board/free-list" element={<TestFreeBoardList />} />
         <Route path="/test/board/survey-list" element={<TestSurveyList />} />
+        <Route path="/test/jobbanner" element={<TestJobBannerPage />} />
 
         {/* 인증 로비(공개) */}
         <Route path={PATHS.AUTH} element={<LandingPage />} />
@@ -216,6 +224,26 @@ export default function AppRouter() {
             )
           }
         />
+
+        {/* 보호: 마이페이지 (JWT + 인증 완료) */}
+        <Route
+          path={PATHS.MYPAGE}
+          element={
+            isAuthed && isOzAuthenticated === true ? (
+              <MyPageLayout />
+            ) : isAuthed && isOzAuthenticated === false ? (
+              <Navigate to={PATHS.KEY_VERIFY} replace />
+            ) : (
+              redirectWithIntent(PATHS.AUTH, location)
+            )
+          }
+        >
+          {/* 마이페이지 중첩 라우팅 */}
+          <Route index element={<MyPageMain />} />
+          <Route path="posts" element={<MyPosts />} />
+          <Route path="comments" element={<MyComments />} />
+          <Route path="bookmarks" element={<MyBookmarks />} />
+        </Route>
 
         {/* 보호: /key-verify (JWT + 미인증) */}
         <Route
