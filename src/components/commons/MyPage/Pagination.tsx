@@ -39,9 +39,26 @@ const Pagination: React.FC<PaginationProps> = ({
   // 표시할 페이지 번호 계산
   const getVisiblePages = () => {
     const pages: number[] = [];
-    const start = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    const end = Math.min(totalPages, start + maxVisiblePages - 1);
 
+    // 총 페이지가 maxVisiblePages 이하면 모든 페이지 표시
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+      return pages;
+    }
+
+    // 항상 maxVisiblePages(5)개 버튼을 유지하는 로직
+    let start = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let end = start + maxVisiblePages - 1;
+
+    // 끝이 총 페이지를 넘어가면 start를 뒤로 당기기
+    if (end > totalPages) {
+      end = totalPages;
+      start = Math.max(1, end - maxVisiblePages + 1);
+    }
+
+    // 정확히 maxVisiblePages개만 생성
     for (let i = start; i <= end; i++) {
       pages.push(i);
     }
