@@ -9,21 +9,11 @@ import {
   getDurationClass,
   SlideInStyles,
 } from "@constants/animations";
+import { mockBookmarks } from "@src/mocks/mypage.mock";
+import type { BookmarkItem } from "@src/types/mypage";
 
 // 페이지네이션 설정
 const ITEMS_PER_PAGE = 5;
-
-// 북마크 데이터 타입
-interface BookmarkItem {
-  id: number;
-  postId: number;
-  category: string;
-  title: string;
-  date: string;
-  bookmarkedDate: string;
-  views?: number;
-  comments?: number;
-}
 
 interface BookmarkListItemProps {
   bookmark: BookmarkItem;
@@ -163,166 +153,8 @@ const MyBookmarks: React.FC = () => {
         throw new Error("북마크 데이터를 불러오는데 실패했습니다.");
       }
 
-      // 확장된 북마크 데이터 (20개)
-      const dummyBookmarks: BookmarkItem[] = [
-        // 1페이지 (1-5)
-        {
-          id: 1,
-          postId: 1,
-          category: "자유",
-          title: "안녕하세요 처음 가입했어요 ㅎㅎ ㅎㅎㅎ [21]",
-          date: "2024.01.15",
-          bookmarkedDate: "2024.01.16",
-          views: 124,
-          comments: 21,
-        },
-        {
-          id: 2,
-          postId: 4,
-          category: "익명",
-          title: "회사 생활 처음인데 조언 구해요",
-          date: "2024.01.12",
-          bookmarkedDate: "2024.01.14",
-          views: 156,
-          comments: 8,
-        },
-        {
-          id: 3,
-          postId: 6,
-          category: "질문",
-          title: "신입이 물어보기 어려운 질문들 [3]",
-          date: "2024.01.10",
-          bookmarkedDate: "2024.01.13",
-          views: 234,
-          comments: 15,
-        },
-        {
-          id: 4,
-          postId: 8,
-          category: "자유",
-          title: "점심시간 맛집 추천 받아요!",
-          date: "2024.01.09",
-          bookmarkedDate: "2024.01.12",
-          views: 89,
-          comments: 12,
-        },
-        {
-          id: 5,
-          postId: 12,
-          category: "질문",
-          title: "이직 준비 어떻게 하셨나요?",
-          date: "2024.01.08",
-          bookmarkedDate: "2024.01.11",
-          views: 178,
-          comments: 23,
-        },
-
-        // 2페이지 (6-10)
-        {
-          id: 6,
-          postId: 15,
-          category: "자유",
-          title: "오늘 야근 확정... 힘들어요 [7]",
-          date: "2024.01.07",
-          bookmarkedDate: "2024.01.10",
-          views: 67,
-          comments: 7,
-        },
-        {
-          id: 7,
-          postId: 18,
-          category: "익명",
-          title: "연봉 협상 어떻게 해야 할까요?",
-          date: "2024.01.06",
-          bookmarkedDate: "2024.01.09",
-          views: 203,
-          comments: 18,
-        },
-        {
-          id: 8,
-          postId: 21,
-          category: "질문",
-          title: "팀 문화가 안 맞는 것 같아요",
-          date: "2024.01.05",
-          bookmarkedDate: "2024.01.08",
-          views: 145,
-          comments: 12,
-        },
-        {
-          id: 9,
-          postId: 24,
-          category: "자유",
-          title: "주말에 뭐하고 지내세요? [5]",
-          date: "2024.01.04",
-          bookmarkedDate: "2024.01.07",
-          views: 92,
-          comments: 5,
-        },
-        {
-          id: 10,
-          postId: 27,
-          category: "익명",
-          title: "상사가 너무 까다로워요",
-          date: "2024.01.03",
-          bookmarkedDate: "2024.01.06",
-          views: 178,
-          comments: 24,
-        },
-
-        // 3페이지 (11-15)
-        {
-          id: 11,
-          postId: 30,
-          category: "질문",
-          title: "원격 근무 어떻게 효율적으로 하나요?",
-          date: "2024.01.02",
-          bookmarkedDate: "2024.01.05",
-          views: 134,
-          comments: 9,
-        },
-        {
-          id: 12,
-          postId: 33,
-          category: "자유",
-          title: "새해 계획 세우셨나요? [11]",
-          date: "2024.01.01",
-          bookmarkedDate: "2024.01.04",
-          views: 87,
-          comments: 11,
-        },
-        {
-          id: 13,
-          postId: 36,
-          category: "익명",
-          title: "회사 동료와의 갈등 해결법",
-          date: "2023.12.31",
-          bookmarkedDate: "2024.01.03",
-          views: 156,
-          comments: 16,
-        },
-        {
-          id: 14,
-          postId: 39,
-          category: "질문",
-          title: "스트레스 관리 어떻게 하시나요?",
-          date: "2023.12.30",
-          bookmarkedDate: "2024.01.02",
-          views: 112,
-          comments: 8,
-        },
-        {
-          id: 15,
-          postId: 42,
-          category: "자유",
-          title: "올해 마지막 출근! 수고하셨어요 [19]",
-          date: "2023.12.29",
-          bookmarkedDate: "2024.01.01",
-          views: 245,
-          comments: 19,
-        },
-      ];
-
-      setAllBookmarks(dummyBookmarks);
+      // ✅ 수정: mockBookmarks 사용
+      setAllBookmarks(mockBookmarks);
       setIsLoading(false);
     } catch (err) {
       setError(
@@ -338,10 +170,12 @@ const MyBookmarks: React.FC = () => {
   }, []);
 
   const handleBackClick = () => {
+    // 기존 timeout 정리
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
+
     setIsExiting(true);
     timeoutRef.current = setTimeout(() => {
       navigate("/mypage");
