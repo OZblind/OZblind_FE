@@ -1,5 +1,4 @@
-// 라우팅 + 부팅 훅 + 가드 분기
-
+// router/AppRouter.tsx - 마이페이지 라우트 추가 버전
 import {
   Routes,
   Route,
@@ -19,6 +18,13 @@ import TestHub from "@pages/test/TestHub"; // /
 import TestPostWritePage from "@pages/test/TestPostWritePage"; // /test/write
 import TestSettingPage from "@pages/test/TestSettingPage"; // /test/setting
 import TestFreeBoardList from "@src/pages/test/BoardList/TestFreeBoardList"; // test/board/free-list
+
+// 마이페이지 관련 import 추가
+import MyPageLayout from "@pages/mypage/MyPageLayout";
+import MyPageMain from "@pages/mypage/MyPageMain";
+import MyPosts from "@pages/mypage/MyPosts";
+import MyComments from "@pages/mypage/MyComments";
+import MyBookmarks from "@pages/mypage/MyBookmarks";
 
 import { useAuthBootstrap } from "@hooks/useAuthBootstrap";
 import { useAuthStore } from "@store/authStore";
@@ -214,6 +220,26 @@ export default function AppRouter() {
             )
           }
         />
+
+        {/* 보호: 마이페이지 (JWT + 인증 완료) */}
+        <Route
+          path={PATHS.MYPAGE}
+          element={
+            isAuthed && isOzAuthenticated === true ? (
+              <MyPageLayout />
+            ) : isAuthed && isOzAuthenticated === false ? (
+              <Navigate to={PATHS.KEY_VERIFY} replace />
+            ) : (
+              redirectWithIntent(PATHS.AUTH, location)
+            )
+          }
+        >
+          {/* 마이페이지 중첩 라우팅 */}
+          <Route index element={<MyPageMain />} />
+          <Route path="posts" element={<MyPosts />} />
+          <Route path="comments" element={<MyComments />} />
+          <Route path="bookmarks" element={<MyBookmarks />} />
+        </Route>
 
         {/* 보호: /key-verify (JWT + 미인증) */}
         <Route

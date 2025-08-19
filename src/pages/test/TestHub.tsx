@@ -27,6 +27,7 @@ export default function TestHub() {
     { to: PATHS.AUTH, label: "로그인/회원가입(로비) 테스트" },
     { to: PATHS.MAIN, label: "보호 라우트: /main (JWT + 인증 완료)" },
     { to: PATHS.KEY_VERIFY, label: "보호 라우트: /key-verify (JWT + 미인증)" },
+    { to: PATHS.MYPAGE, label: "🔥 마이페이지 (작성글/댓글/북마크)" },
   ];
 
   const { user, tokens, isOzAuthenticated } = useAuthStore();
