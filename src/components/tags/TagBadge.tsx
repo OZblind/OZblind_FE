@@ -18,7 +18,6 @@ export default function TagBadge({ tag }: { tag: Tag }) {
       title="회원가입 키로 자동 부여된 태그"
     >
       {tag.label}
-      <span className="ml-1 bg-black/30 px-1 rounded text-[10px]">LOCK</span>
     </span>
   );
 }

@@ -5,10 +5,12 @@ import { useAuthStore } from "@store/authStore";
 import { useLogoutMutation } from "@hooks/useAuthQueries";
 import { useToastStore } from "@store/toastStore";
 import { NotificationModal } from "@components/Notice";
+import NavUnifiedSearch from "@components/navigation/NavUnifiedSearch";
 // import InfiniteScrollSmokeTest from "./TestInfiniteScroll";
 
 export default function TestHub() {
   const [noticeOpen, setNoticeOpen] = useState(false);
+  const [showNavSearch, setShowNavSearch] = useState(false); // 통합검색 표시 상태
 
   const items = [
     { to: "/test/write", label: "게시글 작성 테스트" },
@@ -43,6 +45,23 @@ export default function TestHub() {
     }
   };
 
+  // NavUnifiedSearch가 표시될 때만 해당 컴포넌트를 렌더링
+  if (showNavSearch) {
+    return (
+      <div className="min-h-screen p-6 max-w-2xl mx-auto">
+        <button
+          onClick={() => setShowNavSearch(false)}
+          className="mb-4 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition"
+        >
+          ← 돌아가기
+        </button>
+
+        <NavUnifiedSearch className="w-full" placeholder="통합검색 테스트..." />
+      </div>
+    );
+  }
+
+  // 기본 TestHub 화면
   return (
     <div className="min-h-screen p-6 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Test Hub</h1>
@@ -73,6 +92,15 @@ export default function TestHub() {
           className="rounded-xl border px-4 py-3 text-center hover:bg-gray-50 active:scale-[0.98] transition"
         >
           알림 모달 UI 테스트
+        </button>
+
+        {/* 🔍 통합검색 컴포넌트 테스트 버튼 */}
+        <button
+          type="button"
+          onClick={() => setShowNavSearch(true)}
+          className="rounded-xl border px-4 py-3 text-center active:scale-[0.98] transition font-medium"
+        >
+          🔍 통합검색 컴포넌트 테스트
         </button>
       </div>
 
