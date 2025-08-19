@@ -1,74 +1,113 @@
+// src/store/authStore.ts
 import { create } from "zustand";
+import { tokenStore } from "@api/client";
 
 export type User = {
-  userId: string;
-  email: string;
+  id?: string | number;
+  email?: string;
   name?: string;
-  role?: string;
-  /**
-   * 서버 users.is_active → 계정 활성 여부 (미인증/정지/탈퇴 등)
-   * 로그인은 성공했더라도 isActive=false면 일부/전체 기능 제한 필요
-   */
-  isActive?: boolean;
-  /**
-   * 서버 users.social_provider (e.g. 'google'). UI 표기/분기용(민감X)
-   */
-  socialProvider?: string;
+  profile_image?: string; // 필요시 유지
 };
 
 export type Tokens = {
-  accessToken: string | null;
-  refreshToken: string | null;
-  expiresIn?: number | null;
+  accessToken?: string;
+  refreshToken?: string;
 };
 
-const emptyTokens: Tokens = {
-  accessToken: null,
-  refreshToken: null,
-  expiresIn: null,
+type SetFromAuthPayloadArg = {
+  user?: Partial<User> | null;
+  tokens?: Partial<Tokens>;
+  isOzAuthenticated?: boolean | null;
 };
 
-export type AuthState = {
+type AuthState = {
   user: User | null;
-  /**
-   * isOzAuthenticated ≡ server.users.authenticated
-   *  - 회원 여부와는 별개로, 오즈 키 인증 완료 상태를 의미함
-   *  - 로그인만 된 상태: isOzAuthenticated=false → /key-verify로 유도
-   */
-  isOzAuthenticated: boolean | null;
   tokens: Tokens;
-  setFromAuthPayload: (p: {
-    user?: User | null;
-    tokens?: Partial<Tokens>; // null 금지 + 토큰 정보만 부분 갱신 허용
-    isOzAuthenticated?: boolean | null;
-  }) => void;
+  isOzAuthenticated: boolean | null;
+
+  setFromAuthPayload: (payload: SetFromAuthPayloadArg) => void;
+  setUser: (user: Partial<User> | null) => void;
+  setTokens: (tokens: Partial<Tokens>) => void;
   reset: () => void;
 };
 
-export const useAuthStore = create<AuthState>()((set) => ({
+export const useAuthStore = create<AuthState>((set) => ({
   user: null,
+  tokens: {},
   isOzAuthenticated: null,
-  tokens: emptyTokens,
 
-  setFromAuthPayload: (p) =>
+  setFromAuthPayload: ({ user, tokens, isOzAuthenticated }) => {
+    set((state) => {
+      // 1) user 병합/초기화
+      const nextUser =
+        user === null
+          ? null
+          : user
+          ? { ...(state.user ?? {}), ...user }
+          : state.user;
+
+      // 2) tokens 병합
+      const nextTokens =
+        tokens && (tokens.accessToken || tokens.refreshToken)
+          ? { ...state.tokens, ...tokens }
+          : state.tokens;
+
+      // 3) tokenStore 동기화 (부분 갱신 안전 처리)
+      if (tokens) {
+        const at =
+          tokens.accessToken !== undefined
+            ? tokens.accessToken
+            : tokenStore.access;
+        const rt =
+          tokens.refreshToken !== undefined
+            ? tokens.refreshToken
+            : tokenStore.refresh;
+
+        // 둘 다 빈 값이면 clear, 아니면 set
+        if (!at && !rt) tokenStore.clear();
+        else tokenStore.set(at ?? "", rt ?? "");
+      }
+
+      // 4) isOzAuthenticated 갱신(명시된 경우에만)
+      const nextIsOz =
+        isOzAuthenticated !== undefined
+          ? isOzAuthenticated
+          : state.isOzAuthenticated;
+
+      return {
+        user: nextUser,
+        tokens: nextTokens,
+        isOzAuthenticated: nextIsOz,
+      };
+    });
+  },
+
+  setUser: (user) =>
     set((state) => ({
-      user: p.user !== undefined ? p.user : state.user,
-      isOzAuthenticated:
-        p.isOzAuthenticated !== undefined
-          ? p.isOzAuthenticated
-          : state.isOzAuthenticated,
-      tokens:
-        p.tokens !== undefined
-          ? { ...state.tokens, ...p.tokens }
-          : state.tokens,
+      user: user === null ? null : { ...(state.user ?? {}), ...user },
     })),
 
-  reset: () =>
-    set({
-      user: null,
-      isOzAuthenticated: null,
-      tokens: emptyTokens,
-    }),
-}));
+  setTokens: (tokens) =>
+    set((state) => {
+      const merged = { ...state.tokens, ...tokens };
+      // tokenStore 동기화
+      const at =
+        tokens.accessToken !== undefined
+          ? tokens.accessToken
+          : tokenStore.access;
+      const rt =
+        tokens.refreshToken !== undefined
+          ? tokens.refreshToken
+          : tokenStore.refresh;
 
-export type AuthStore = ReturnType<typeof useAuthStore>;
+      if (!at && !rt) tokenStore.clear();
+      else tokenStore.set(at ?? "", rt ?? "");
+
+      return { tokens: merged };
+    }),
+
+  reset: () => {
+    tokenStore.clear();
+    set({ user: null, tokens: {}, isOzAuthenticated: false });
+  },
+}));
