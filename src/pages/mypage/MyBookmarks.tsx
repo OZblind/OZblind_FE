@@ -70,7 +70,7 @@ const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
           type="checkbox"
           checked={isSelected}
           onChange={handleCheckboxChange}
-          className="checkbox checkbox-primary checkbox-sm border-white bg-transparent"
+          className="checkbox checkbox-primary checkbox-sm border border-base-content bg-transparent"
           onClick={(e) => e.stopPropagation()}
         />
       </div>
@@ -538,7 +538,7 @@ const MyBookmarks: React.FC = () => {
                           if (input) input.indeterminate = isPartiallySelected;
                         }}
                         onChange={(e) => handleSelectAll(e.target.checked)}
-                        className="checkbox checkbox-primary checkbox-sm border-white bg-transparent"
+                        className="checkbox checkbox-primary checkbox-sm border border-base-content bg-transparent"
                       />
                       <span className="text-sm">전체 선택</span>
                     </label>
