@@ -3,6 +3,7 @@ import { IoSearch, IoClose } from "react-icons/io5";
 import type { NavUnifiedSearchProps, Category } from "../../types/search";
 import { useSearchLogic } from "../../hooks/useSearchLogic";
 import { useKeyboardNavigation } from "../../hooks/useKeyboardNavigation";
+import { useThemeIcon } from "../../hooks/useThemeIcon"; // 팀의 테마 훅 사용
 import CategoryDropdown from "./CategoryDropdown";
 import SearchDropdown from "./SearchDropdown";
 
@@ -24,54 +25,8 @@ const NavUnifiedSearch: React.FC<ThemedNavUnifiedSearchProps> = ({
   const resultsRef = useRef<HTMLDivElement>(null);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
 
-  // 팀의 테마 시스템 감지
-  const [teamTheme, setTeamTheme] = useState<string>("");
-
-  useEffect(() => {
-    // 팀의 테마 시스템에서 현재 테마 감지
-    const getCurrentTheme = () => {
-      const htmlTheme = document.documentElement.getAttribute("data-theme");
-      const localTheme = localStorage.getItem("theme");
-      return htmlTheme || localTheme || "oz_dark";
-    };
-
-    const currentTheme = getCurrentTheme();
-    setTeamTheme(currentTheme);
-
-    // 테마 변경 감지 (MutationObserver 사용)
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (
-          mutation.type === "attributes" &&
-          mutation.attributeName === "data-theme"
-        ) {
-          const newTheme =
-            document.documentElement.getAttribute("data-theme") || "oz_dark";
-          setTeamTheme(newTheme);
-        }
-      });
-    });
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-theme"],
-    });
-
-    // localStorage 변경 감지
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "theme") {
-        const newTheme = e.newValue || "oz_dark";
-        setTeamTheme(newTheme);
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("storage", handleStorageChange);
-    };
-  }, []);
+  // 팀의 테마 훅 사용
+  const teamTheme = useThemeIcon();
 
   // isDark가 전달되지 않으면 팀 테마 시스템 사용
   const currentTheme = isDark !== undefined ? isDark : teamTheme === "oz_dark";
