@@ -8,7 +8,7 @@ type Props = {
   iconOnly?: boolean;
 };
 
-export function LastLoadedBar({
+export default function LastLoadedBar({
   lastLoadedAt,
   onRefresh,
   className,

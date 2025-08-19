@@ -4,7 +4,11 @@ type Props = {
   label?: string;
 };
 
-export function WriteButton({ onClick, className, label = "글쓰기" }: Props) {
+export default function WriteButton({
+  onClick,
+  className,
+  label = "글쓰기",
+}: Props) {
   return (
     <button
       type="button"
@@ -33,4 +37,3 @@ export function WriteButton({ onClick, className, label = "글쓰기" }: Props) 
     </button>
   );
 }
-export default WriteButton;
