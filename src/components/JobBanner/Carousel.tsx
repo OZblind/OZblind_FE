@@ -141,10 +141,11 @@ export default function Carousel({
 
           {/* 페이지/더보기 상태 안내 */}
           <div className="mt-1 text-center text-xs opacity-70">
-            {page + 1} / {totalPages} {hasMore ? "(더 불러올 수 있어요)" : ""}
+            {page + 1} / {totalPages}
           </div>
         </>
       )}
     </div>
   );
 }
+
