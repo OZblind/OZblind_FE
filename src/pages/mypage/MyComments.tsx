@@ -180,9 +180,14 @@ const MyComments: React.FC = () => {
 
   // setTimeout 정리가 포함된 뒤로가기 핸들러
   const handleBackClick = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
     setIsExiting(true);
     timeoutRef.current = setTimeout(() => {
       navigate("/mypage");
+      timeoutRef.current = null;
     }, ANIMATION_TIMINGS.PAGE_TRANSITION);
   };
 
