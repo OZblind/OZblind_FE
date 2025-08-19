@@ -21,8 +21,10 @@ import DropdownMenu, {
 import { useToastStore } from "@src/store/toastStore";
 import type { CommentMeta, PostMeta } from "@src/types/post";
 import { onlyWhen, useCanManage } from "@src/hooks/useCanManage";
+import { fetchRandomNickname } from "@src/api/nickname";
 import { profileToTagsMock } from "@src/mocks/tags.mock";
 import AssignedTagList from "../tags/AssignedTagList";
+
 
 // ================== Main ==================
 export default function PostDetail({ post }: { post: PostMeta }) {
@@ -62,12 +64,16 @@ export default function PostDetail({ post }: { post: PostMeta }) {
   const submitComment = async () => {
     if (!commentDraft.trim()) return;
     setSubmitting(true);
+    const text = commentDraft.trim();
+    if (!text) return;
+
     // TODO: API 연동
-    setTimeout(() => {
+    try {
+      const nickname = await fetchRandomNickname();
       setComments((prev) => [
         {
           id: Math.random().toString(36).slice(2), // string ID여도 PostComment가 대응함
-          author: "나", // 닉네임(짧은 표시용)
+          author: nickname, // 닉네임(짧은 표시용)
           authorId: "me", // 고유 사용자 ID (실제 로그인 유저 ID 넣는게 베스트)
           authorName: "현재 사용자", // 선택적 표시 이름
           content: commentDraft.trim(),
@@ -80,8 +86,15 @@ export default function PostDetail({ post }: { post: PostMeta }) {
         ...prev,
       ]);
       setCommentDraft("");
-      setSubmitting(false);
-    }, 600);
+    } catch (err) {
+      console.error(err);
+      useToastStore.getState().push({
+        message: "닉네임 생성에 실패했습니다!",
+        type: "error",
+        durationMs: 3000, // 선택 (기본값: 2500ms)
+      });
+    }
+    setSubmitting(false);
   };
 
   const { canManage } = useCanManage(post.authorId, {
