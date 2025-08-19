@@ -1,8 +1,19 @@
 import Sidebar from "@components/Sidebar/Sidebar";
 import HotBoard from "@src/components/HotBoard/HotBoard";
-import { useEffect, useState } from "react";
+import NavUnifiedSearch from "@src/components/navigation/NavUnifiedSearch";
+import { useEffect, useMemo, useState } from "react";
+import { logos } from "@assets/index";
+import { useThemeIcon } from "@src/hooks/useThemeIcon";
 
 export default function TestMainPage() {
+  const themeIcon = useThemeIcon();
+  const { logo } = useMemo(() => {
+    const dark = themeIcon === "oz_dark";
+    return {
+      logo: dark ? logos.symbol.dark : logos.symbol.light,
+    };
+  }, [themeIcon]);
+
   const [showAd, setShowAd] = useState(false);
 
   // 브라우저 창 너비를 감지해 광고 배너를 노출할지 결정
@@ -27,7 +38,10 @@ export default function TestMainPage() {
       <div className="flex-1 flex justify-center">
         {/** 메인 페이지 */}
         <div className="flex flex-col gap-2 items-center justify-center w-[820px] h-full">
-          <div className="w-[800px] h-[60px] bg-base-200 my-8"></div>
+          <div className="flex items-center gap-4  w-[800px] my-8">
+            <img src={logo} alt="logo" className="w-24" />
+            <NavUnifiedSearch className="w-full" placeholder="통합검색" />
+          </div>
           <div className="w-[800px] h-[180px] bg-base-200">취업배너</div>
           <HotBoard />
           <div className="w-[800px] h-[360px] bg-base-200 pb-8"></div>
