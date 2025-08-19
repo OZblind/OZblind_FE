@@ -21,10 +21,10 @@ export default function FoldedPostListSection() {
 
   const boardButtons = [
     { key: "free", icon: freeIcon, alt: "freeIcon" },
-    { key: "github", icon: githubIcon, alt: "githubIcon" },
-    { key: "information", icon: informationIcon, alt: "informationIcon" },
     { key: "jobs", icon: jobsIcon, alt: "jobsIcon" },
+    { key: "information", icon: informationIcon, alt: "informationIcon" },
     { key: "survey", icon: surveyIcon, alt: "surveyIcon" },
+    { key: "github", icon: githubIcon, alt: "githubIcon" },
   ];
 
   return (
