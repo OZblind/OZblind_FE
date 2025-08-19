@@ -1,4 +1,3 @@
-// GitRepoPostForm.tsx (일부만 수정)
 import { useGithubRepo } from "@hooks/useGithubRepo";
 import { parseGithubRepo } from "@utils/parseGithub";
 import { FaGithub } from "react-icons/fa";
@@ -19,7 +18,6 @@ export function RepoPreviewCard({ repoLink }: { repoLink: string }) {
     <div className="p-4 border rounded bg-white shadow-sm mt-1">
       <p className="font-semibold text-lg mb-2 flex items-center gap-2">
         <FaGithub className="text-gray-800" size={20} />
-        레포 미리보기
       </p>
 
       {!parsed && (

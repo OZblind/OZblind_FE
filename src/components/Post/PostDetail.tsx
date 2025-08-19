@@ -24,7 +24,8 @@ import { onlyWhen, useCanManage } from "@src/hooks/useCanManage";
 import { fetchRandomNickname } from "@src/api/nickname";
 import { profileToTagsMock } from "@src/mocks/tags.mock";
 import AssignedTagList from "../tags/AssignedTagList";
-
+import { RepoPreviewCard } from "../Board/RepoPreviewCard";
+import LinkPreviewCard from "../Board/LinkPreviewCard";
 
 // ================== Main ==================
 export default function PostDetail({ post }: { post: PostMeta }) {
@@ -185,7 +186,31 @@ export default function PostDetail({ post }: { post: PostMeta }) {
 
       {/* 구분선 */}
       <div className="divider my-5"></div>
-
+      {/* 본문 위 카드 */}
+      {(() => {
+        switch (post.boardName) {
+          case "survey":
+            return (
+              <div className="mb-6">
+                <LinkPreviewCard
+                  url={post.formLink ?? ""}
+                  title={post.title}
+                  endDate={post.endDate}
+                />
+              </div>
+            );
+          case "github":
+            return (
+              post.repoUrl && (
+                <div className="mb-6">
+                  <RepoPreviewCard repoLink={post.repoUrl} />
+                </div>
+              )
+            );
+          default:
+            return null;
+        }
+      })()}
       {/* 본문 */}
       <div className="m-2 bg-base-100 shadow-none">
         <p className="whitespace-pre-wrap">{post.content}</p>
