@@ -44,6 +44,7 @@ import TestPostReadPage from "@src/pages/test/TestPostReadPage";
 import TestMainPage from "@src/pages/test/TestMainPage";
 import TestSurveyList from "@src/pages/test/BoardList/TestSurveyList";
 import TestJobBannerPage from "@src/pages/test/TestJobBanner";
+import TestGithubList from "@src/pages/test/BoardList/TestGithubList";
 
 /** 공개(보호 불필요) 경로 목록 */
 const PUBLIC_PATHS: ReadonlySet<string> = new Set([
@@ -206,6 +207,7 @@ export default function AppRouter() {
         <Route path="/test/main" element={<TestMainPage />}></Route>
         <Route path="/test/board/free-list" element={<TestFreeBoardList />} />
         <Route path="/test/board/survey-list" element={<TestSurveyList />} />
+        <Route path="/test/board/github-list" element={<TestGithubList />} />
         <Route path="/test/jobbanner" element={<TestJobBannerPage />} />
 
         {/* 인증 로비(공개) */}
