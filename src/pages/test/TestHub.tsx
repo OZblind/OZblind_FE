@@ -20,8 +20,9 @@ export default function TestHub() {
     { to: "/500", label: "500 테스트" },
     { to: "/test/setting", label: "사용자 모달 테스트" },
     { to: "/test/main", label: "메인 페이지 테스트" },
-    { to: "/test/board/free-list", label: "자유·취업·정보 리스트 본문 테스트" },
+    { to: "/test/board/free-list", label: "자유·취업·정보 게시글 목록 테스트" },
     { to: "/test/board/survey-list", label: "설문 게시글 목록 테스트" },
+    { to: "/test/board/github-list", label: "깃허브 게시글 목록 테스트" },
     { to: "/test/jobbanner", label: "취업 배너 테스트" },
 
     // 404는 없는 주소
