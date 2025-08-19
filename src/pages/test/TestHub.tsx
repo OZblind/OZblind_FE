@@ -21,6 +21,7 @@ export default function TestHub() {
     { to: "/test/setting", label: "사용자 모달 테스트" },
     { to: "/test/main", label: "메인 페이지 테스트" },
     { to: "/test/board/free-list", label: "자유·취업·정보 리스트 본문 테스트" },
+    { to: "/test/jobbanner", label: "취업 배너 테스트" },
 
     // 404는 없는 주소
     // --- 인증 관련 테스트 링크 ---
