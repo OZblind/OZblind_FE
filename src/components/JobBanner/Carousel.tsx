@@ -77,7 +77,7 @@ export default function Carousel({
           {/* 좌우 화살표 - 카드에 더 가깝게 */}
           <button
             type="button"
-            className="btn btn-circle btn-sm absolute -left-6 top-16 z-10"
+            className="btn btn-circle btn-sm absolute -left-6 top-12 z-10"
             onClick={handlePrev}
             disabled={prevDisabled}
             aria-label="이전"
@@ -86,7 +86,7 @@ export default function Carousel({
           </button>
           <button
             type="button"
-            className="btn btn-circle btn-sm absolute -right-6 top-16 z-10"
+            className="btn btn-circle btn-sm absolute -right-6 top-12 z-10"
             onClick={handleNext}
             disabled={nextDisabled}
             aria-label="다음"
@@ -146,7 +146,19 @@ export default function Carousel({
                         {j.remote ? "Remote" : j.location || "위치 미정"}
                       </span>
                       {j.publishedAt && (
-                        <time>{j.publishedAt.slice(0, 10)}</time>
+                        <time>
+                          {(() => {
+                            // Unix 타임스탬프인 경우 (숫자만으로 구성된 문자열)
+                            if (/^\d+$/.test(j.publishedAt)) {
+                              const timestamp = parseInt(j.publishedAt) * 1000; // 초 단위를 밀리초로 변환
+                              return new Date(timestamp)
+                                .toISOString()
+                                .slice(0, 10);
+                            }
+                            // 일반 날짜 문자열인 경우
+                            return j.publishedAt.slice(0, 10);
+                          })()}
+                        </time>
                       )}
                     </div>
                   </article>
