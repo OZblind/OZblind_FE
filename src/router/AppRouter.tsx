@@ -46,6 +46,7 @@ import TestSurveyList from "@src/pages/test/BoardList/TestSurveyList";
 import TestJobBannerPage from "@src/pages/test/TestJobBanner";
 import TestGithubList from "@src/pages/test/BoardList/TestGithubList";
 import MainLayout from "@src/layouts/MainLayout";
+import WritePostPage from "@src/components/Board/WritePostPage";
 
 /** 공개(보호 불필요) 경로 목록 */
 const PUBLIC_PATHS: ReadonlySet<string> = new Set([
@@ -258,6 +259,7 @@ export default function AppRouter() {
           <Route path={PATHS.INFO_BOARD} element={<TestFreeBoardList />} />
           <Route path={PATHS.SURVEY_BOARD} element={<TestSurveyList />} />
           <Route path={PATHS.GITHUB_BOARD} element={<TestGithubList />} />
+          <Route path={PATHS.POST_CREATE} element={<WritePostPage />} />
         </Route>
 
         {/* 에러 */}
