@@ -9,8 +9,12 @@ import {
 import GithubList from "@components/Board/github/GithubList";
 import { useInfiniteScroll } from "@hooks/useInfiniteScroll";
 import { formatYyyyMmDdHms } from "@utils/date";
+import { useNavigate } from "react-router-dom";
+import { urlForPost } from "@src/utils/urlForPost";
 
 export default function TestGithubList() {
+  const navigate = useNavigate();
+
   const qc = useQueryClient();
   const [lastLoadedAt, setLastLoadedAt] = useState(
     formatYyyyMmDdHms(new Date())
@@ -127,12 +131,12 @@ export default function TestGithubList() {
 
         <GithubList
           items={items}
-          onItemClick={(id) => console.log("go detail:", id)}
+          onItemClick={(id) => navigate(urlForPost.postDetail("github", id))}
           topBar={{
             boardName: "GitHub 게시판",
             onOpenSort: () => console.log("정렬 필터 열기"),
             onOpenTag: () => console.log("태그 필터 열기"),
-            onWrite: () => console.log("글쓰기 이동"),
+            onWrite: () => navigate(urlForPost.postCreate("github")),
           }}
           lastLoadedAt={lastLoadedAt}
           onRefresh={handleRefresh}
