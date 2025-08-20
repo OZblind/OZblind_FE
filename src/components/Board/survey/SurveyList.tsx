@@ -54,7 +54,7 @@ export default function SurveyList({
   const [sort, setSort] = useState<SortValue>("latest"); // 기본값: 최신
 
   return (
-    <section className={className ?? ""}>
+    <section className={`flex h-full flex-col ${className ?? ""}`}>
       {topBar && (
         <BoardTopBar
           boardName={topBar.boardName}

@@ -70,6 +70,8 @@ const FilterIconButton = forwardRef<HTMLButtonElement, Props>(
         ].join(" ")}
       >
         <img src={src} alt="" className="h-5 w-5" />
+
+        {/* 필터 활성화 여부 표시 */}
         {active && (
           <span
             aria-hidden
