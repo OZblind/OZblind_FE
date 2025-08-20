@@ -45,6 +45,10 @@ export default function TestFreeBoardList() {
   const pageRef = useRef(1);
   const hasMoreRef = useRef(true);
 
+  // 본문 스크롤용
+  const scrollRootRef = useRef<HTMLDivElement | null>(null);
+  const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
+
   useEffect(() => {
     return () => {
       mountedRef.current = false;
@@ -83,8 +87,8 @@ export default function TestFreeBoardList() {
   }, [page]);
 
   const { sentinelRef } = useInfiniteScroll({
-    root: null,
-    rootMargin: "1000px 0px",
+    root: rootEl,
+    rootMargin: "600px 0px",
     threshold: 0,
     disabled: busy || !hasMore || !!err, // 외부 가드
     onIntersect: loadMore,
@@ -135,7 +139,8 @@ export default function TestFreeBoardList() {
         </div>
       </header>
 
-      <section className="rounded-xl border p-3">
+      {/* ❗️ 본문 내 스크롤 적용 시 부모(wrapper)엔 높이가 있어야 함 ❗️ */}
+      <section className="rounded-xl border p-3 pb-8 h-[calc(100vh-100px)] overflow-hidden">
         <div className="text-xs opacity-70 mb-2">
           page: {page} / hasMore: {String(hasMore)} / busy: {String(busy)} /
           items: {items.length}
@@ -158,6 +163,10 @@ export default function TestFreeBoardList() {
           errorText={err ?? undefined}
           hasMore={hasMore}
           sentinelRef={sentinelRef}
+          scrollRootRef={(el) => {
+            scrollRootRef.current = el;
+            setRootEl(el);
+          }}
           empty={{
             message: "조건에 맞는 게시글이 없습니다.",
             actionLabel: "초기화",
