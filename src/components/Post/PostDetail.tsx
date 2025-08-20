@@ -27,6 +27,14 @@ import AssignedTagList from "../tags/AssignedTagList";
 import { RepoPreviewCard } from "../Board/RepoPreviewCard";
 import LinkPreviewCard from "../Board/LinkPreviewCard";
 
+const BOARD_LABEL: Record<string, string> = {
+  free: "자유게시판",
+  job: "취업게시판",
+  info: "정보게시판",
+  survey: "설문게시판",
+  github: "깃헙게시판",
+};
+
 // ================== Main ==================
 export default function PostDetail({ post }: { post: PostMeta }) {
   const [like, setLike] = useState(false);
@@ -145,7 +153,7 @@ export default function PostDetail({ post }: { post: PostMeta }) {
       <div className="flex items-center justify-between text-sm text-base-content/70">
         <div className="flex items-center gap-2">
           <span className="font-medium text-base-content">
-            {post.boardName}
+            {BOARD_LABEL[post.boardName] ?? post.boardName}
           </span>
           <span>•</span>
           <span>{fmtDate(post.createdAt)}</span>
@@ -213,7 +221,7 @@ export default function PostDetail({ post }: { post: PostMeta }) {
       })()}
       {/* 본문 */}
       <div className="m-2 bg-base-100 shadow-none">
-        <p className="whitespace-pre-wrap">{post.content}</p>
+        <div dangerouslySetInnerHTML={{ __html: post.content }} />
       </div>
 
       {/* 리액션 바 */}
