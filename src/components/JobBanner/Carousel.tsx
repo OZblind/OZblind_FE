@@ -5,10 +5,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 type Props = {
   items: JobCard[];
   hasMore?: boolean;
-  onEndReached?: () => void; // 끝에서 더 보기
+  onEndReached?: () => void;
 };
 
-// 컨테이너 너비 → 화면당 카드 개수
 function calcItemsPerPage(width: number): number {
   if (width >= 1536) return 6;
   if (width >= 1280) return 5;
@@ -27,11 +26,9 @@ export default function Carousel({
   const [perPage, setPerPage] = useState<number>(4);
   const [page, setPage] = useState<number>(0);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const safeItems: JobCard[] = Array.isArray(items) ? items : [];
   const total = safeItems.length;
 
-  // 레이아웃 계산
   useEffect(() => {
     const el = wrapRef.current;
     if (!el || typeof ResizeObserver === "undefined") return;
@@ -43,7 +40,6 @@ export default function Carousel({
     return () => ro.disconnect();
   }, []);
 
-  // perPage가 바뀌면 첫 페이지로
   useEffect(() => {
     setPage(0);
   }, [perPage]);
@@ -58,16 +54,13 @@ export default function Carousel({
 
   const atEndPage = page >= totalPages - 1;
   const prevDisabled = page <= 0;
-  // 끝이고 더 없으면 비활성, 더 있으면 활성(누르면 onEndReached)
   const nextDisabled = atEndPage && !hasMore;
 
   const handlePrev = () => setPage((p) => Math.max(0, p - 1));
 
   const handleNext = () => {
     if (atEndPage) {
-      // 끝인데 더 로드 가능 → 상위에 요청
       if (hasMore && onEndReached) onEndReached();
-      // onEndReached 이후 items가 늘어나면 total/totalPages가 변해 다음 클릭부터 자연스럽게 이동됨
       return;
     }
     setPage((p) => Math.min(totalPages - 1, p + 1));
@@ -76,13 +69,15 @@ export default function Carousel({
   return (
     <div className="relative" ref={wrapRef}>
       {total === 0 ? (
-        <div className="grid h-48 place-items-center">공고 없음</div>
+        <div className="grid h-48 place-items-center text-gray-500">
+          공고가 없습니다
+        </div>
       ) : (
         <>
-          {/* 좌우 화살표 */}
+          {/* 좌우 화살표 - 카드에 더 가깝게 */}
           <button
             type="button"
-            className="btn btn-circle btn-sm absolute left-1 top-1/2 z-10 -translate-y-1/2"
+            className="btn btn-circle btn-sm absolute -left-6 top-12 z-10"
             onClick={handlePrev}
             disabled={prevDisabled}
             aria-label="이전"
@@ -91,7 +86,7 @@ export default function Carousel({
           </button>
           <button
             type="button"
-            className="btn btn-circle btn-sm absolute right-1 top-1/2 z-10 -translate-y-1/2"
+            className="btn btn-circle btn-sm absolute -right-6 top-12 z-10"
             onClick={handleNext}
             disabled={nextDisabled}
             aria-label="다음"
@@ -99,48 +94,81 @@ export default function Carousel({
             ▶
           </button>
 
-          {/* 그리드로 균등 분할 */}
-          <div className="p-2">
+          {/* 카드 그리드 - 여백 추가 */}
+          <div className="px-4">
             <div
-              className="grid gap-4"
+              className="grid gap-2"
               style={{
                 gridTemplateColumns: `repeat(${perPage}, minmax(0, 1fr))`,
               }}
             >
               {visible.map((j) => (
-                <article
+                <a
                   key={j.id}
-                  className="h-full rounded-2xl border border-base-300 bg-base-100 p-4 shadow-sm"
+                  href={j.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block"
                 >
-                  <div className="mb-2 flex items-center gap-2">
-                    <CompanyLogo src={j.logo} company={j.company} size={36} />
-                    <div className="min-w-0">
-                      <div className="truncate text-xs text-gray-500">
-                        {j.company}
+                  <article className="relative h-32 rounded-lg border border-base-300 bg-base-200 p-3 hover:shadow-md transition-shadow cursor-pointer">
+                    {/* 상단: 회사 로고와 이니셜 */}
+                    <div className="flex items-center justify-between mb-1">
+                      <CompanyLogo src={j.logo} company={j.company} size={22} />
+                      <div className="w-5 h-5 bg-primary rounded flex items-center justify-center text-xs font-bold text-primary-content">
+                        {(j.company || "C")[0].toUpperCase()}
                       </div>
-                      <a
-                        href={j.url}
-                        className="block truncate font-semibold hover:underline"
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {j.title}
-                      </a>
                     </div>
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-gray-500">
-                    <span className="truncate">
-                      {j.location ?? (j.remote ? "Remote" : "")}
-                    </span>
-                    <time>{j.publishedAt?.slice(0, 10)}</time>
-                  </div>
-                </article>
+
+                    {/* 회사명 */}
+                    <div className="text-xs text-base-content mb-1">
+                      {j.company || "Unknown Company"}
+                    </div>
+
+                    {/* 제목 */}
+                    <div className="h-10 mb-1 overflow-hidden">
+                      <div className="font-medium text-base-content text-sm leading-tight">
+                        <div
+                          className="overflow-hidden text-ellipsis"
+                          style={{
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                          }}
+                        >
+                          {j.title}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 하단 정보 */}
+                    <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-neutral-content">
+                      <span>
+                        {j.remote ? "Remote" : j.location || "위치 미정"}
+                      </span>
+                      {j.publishedAt && (
+                        <time>
+                          {(() => {
+                            // Unix 타임스탬프인 경우 (숫자만으로 구성된 문자열)
+                            if (/^\d+$/.test(j.publishedAt)) {
+                              const timestamp = parseInt(j.publishedAt) * 1000; // 초 단위를 밀리초로 변환
+                              return new Date(timestamp)
+                                .toISOString()
+                                .slice(0, 10);
+                            }
+                            // 일반 날짜 문자열인 경우
+                            return j.publishedAt.slice(0, 10);
+                          })()}
+                        </time>
+                      )}
+                    </div>
+                  </article>
+                </a>
               ))}
             </div>
           </div>
 
-          {/* 페이지/더보기 상태 안내 */}
-          <div className="mt-1 text-center text-xs opacity-70">
+          {/* 페이지 정보 */}
+          <div className="mt-1 text-center text-xs text-gray-500">
             {page + 1} / {totalPages}
           </div>
         </>
@@ -148,4 +176,3 @@ export default function Carousel({
     </div>
   );
 }
-
