@@ -18,6 +18,24 @@ const WritePostPage = () => {
 
   // 쿼리 헬퍼
   const [sp, setSp] = useSearchParams();
+
+  // URL이 바뀔 때마다 쿼리 파라미터와 state 동기화
+  useEffect(() => {
+    const boardFromQuery = sp.get("board");
+
+    if (
+      boardFromQuery &&
+      boardOptions.some((option) => option.value === boardFromQuery)
+    ) {
+      setSelectedBoard(boardFromQuery);
+    } else {
+      setSelectedBoard("free");
+      const next = new URLSearchParams(sp);
+      next.set("board", "free");
+      setSp(next, { replace: true });
+    }
+  }, [sp, setSp]);
+
   const setBoardQuery = (value: string | undefined) => {
     const next = new URLSearchParams(sp);
     if (value) next.set("board", value);
@@ -25,22 +43,10 @@ const WritePostPage = () => {
     setSp(next, { replace: true });
   };
 
-  // 첫 렌더 시 URL에 board 없으면 기본값 반영(free)
-  useEffect(() => {
-    if (!sp.get("board")) setBoardQuery("free");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   return (
-    <div className="flex flex-col h-full max-w-4xl mx-auto px-4 py-8 gap-2 text-black">
+    <div className="flex flex-col h-full gap-2 text-black">
       {/* 1. 게시판 선택 */}
       <div>
-        <label
-          htmlFor="board-select"
-          className="block font-semibold mb-2 text-white"
-        >
-          게시판 작성
-        </label>
         <select
           id="board-select"
           className="w-full border border-gray-300 rounded p-2"
