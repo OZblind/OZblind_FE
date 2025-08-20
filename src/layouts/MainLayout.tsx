@@ -1,9 +1,10 @@
-import { Outlet } from "react-router-dom";
+import { Link, Outlet } from "react-router-dom";
 import Sidebar from "@components/Sidebar/Sidebar";
 import { useEffect, useMemo, useState } from "react";
 import NavUnifiedSearch from "@src/components/navigation/NavUnifiedSearch";
 import { useThemeIcon } from "@src/hooks/useThemeIcon";
 import { logos } from "@src/assets";
+import { PATHS } from "@src/constants/paths";
 
 export default function MainLayout() {
   const [showAd, setShowAd] = useState(false);
@@ -38,7 +39,9 @@ export default function MainLayout() {
       <div className="flex-1 flex justify-center">
         <div className="flex flex-col gap-2 items-center justify-center w-[820px] h-full">
           <div className="flex items-center gap-4  w-[800px] my-8">
-            <img src={logo} alt="logo" className="w-24" />
+            <Link to={PATHS.MAIN}>
+              <img src={logo} alt="logo" className="w-24" />
+            </Link>
             <NavUnifiedSearch className="w-full" placeholder="통합검색" />
           </div>
           <Outlet />
