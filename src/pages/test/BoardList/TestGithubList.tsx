@@ -127,6 +127,7 @@ export default function TestGithubList() {
 
         <GithubList
           items={items}
+          onItemClick={(id) => console.log("go detail:", id)}
           topBar={{
             boardName: "GitHub 게시판",
             onOpenSort: () => console.log("정렬 필터 열기"),
