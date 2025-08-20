@@ -1,4 +1,3 @@
-// src/api/auth.ts
 import api, { tokenStore } from "./client";
 
 // 서버 응답 타입들
