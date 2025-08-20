@@ -5,6 +5,13 @@ import axios, {
   type AxiosRequestConfig,
 } from "axios";
 
+const API_BASE_URL =
+  (import.meta.env.VITE_API_BASE_URL as string | undefined) ??
+  "https://www.ozboard.shop";
+
+const API_WITH_CREDENTIALS =
+  String(import.meta.env.VITE_API_WITH_CREDENTIALS ?? "false") === "true";
+
 /** 토큰 저장 유틸 */
 interface TokenStore {
   readonly access: string;
@@ -41,8 +48,24 @@ interface RetryableConfig extends AxiosRequestConfig {
 
 /** 공용 인스턴스 */
 export const api: AxiosInstance = axios.create({
-  baseURL: "/api",
+  baseURL: API_BASE_URL,
   timeout: 15_000,
+  withCredentials: API_WITH_CREDENTIALS,
+  headers: {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  },
+});
+
+/** 인터셉터 미적용 "순수" 인스턴스 (리프레시 전용) */
+const raw: AxiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 15_000,
+  withCredentials: API_WITH_CREDENTIALS,
+  headers: {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  },
 });
 
 /** AxiosHeaders.from의 1번째 파라미터 타입을 그대로 추출 (any 불가피성 제거) */
@@ -104,8 +127,8 @@ function rejectQueue(err: unknown) {
 async function refreshAccessToken(): Promise<string> {
   const refresh = tokens.refresh;
   if (!refresh) throw new Error("NO_REFRESH_TOKEN");
-  // 기본 axios로 호출해 인터셉터 재귀 방지
-  const { data } = await axios.post<{ access: string }>(
+  // 절대 URL(= baseURL 붙은 전용 raw 인스턴스)로 호출해야 프록시 제거 후에도 정상 동작
+  const { data } = await raw.post<{ access: string }>(
     "/api/auth/token/refresh/",
     { refresh }
   );
