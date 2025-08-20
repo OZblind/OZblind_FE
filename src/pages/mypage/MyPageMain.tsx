@@ -61,7 +61,17 @@ const Card: React.FC<CardProps> = ({
       {/* 카드 헤더 */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <span className="text-2xl">{icon}</span>
+          <span className="text-2xl">
+            {title === "북마크" ? (
+              <img
+                src="/src/assets/icons/icon-bookmark-color.svg"
+                alt="북마크"
+                className="w-6 h-6"
+              />
+            ) : (
+              icon
+            )}
+          </span>
           <h3 className="text-lg font-medium text-base-content">{title}</h3>
           <span className="text-sm text-neutral-content">({count})</span>
         </div>
@@ -135,7 +145,17 @@ const Card: React.FC<CardProps> = ({
           ))
         ) : (
           <div className="text-center py-8">
-            <div className="text-neutral-content text-3xl mb-2">{icon}</div>
+            <div className="text-neutral-content text-3xl mb-2">
+              {title === "북마크" ? (
+                <img
+                  src="/src/assets/icons/icon-bookmark-color.svg"
+                  alt="북마크"
+                  className="w-8 h-8 mx-auto"
+                />
+              ) : (
+                icon
+              )}
+            </div>
             <p className="text-neutral-content text-sm">
               {getEmptyMessage(title)}
             </p>
@@ -163,7 +183,7 @@ const MyPageMain: React.FC = () => {
   // setTimeout 대신 pendingPath로 안전한 네비게이션 관리
   const pendingPathRef = useRef<string | null>(null);
 
-  // ✅ 목업 데이터 사용
+  // 임시로 기존 방식 유지 (SVG import 문제로 인해)
   const cardData: MyPageCardData[] = mockMyPageCards;
 
   // setTimeout 제거: 애니메이션 이벤트 기반으로 네비게이션
@@ -220,7 +240,7 @@ const MyPageMain: React.FC = () => {
         </div>
       </div>
 
-      {/* ✅ setTimeout 제거: onAnimationEnd 이벤트로 안정적 네비게이션 */}
+      {/* setTimeout 제거: onAnimationEnd 이벤트로 안정적 네비게이션 */}
       {isExpanding && (
         <div
           className="fixed inset-0 bg-base-100 z-30"

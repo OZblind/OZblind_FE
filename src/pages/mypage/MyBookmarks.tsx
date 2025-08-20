@@ -91,9 +91,13 @@ const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
         {bookmark.date}
       </div>
 
-      {/* 북마크 아이콘 */}
+      {/* 북마크 아이콘 - SVG로 변경 */}
       <div className="w-8 h-8 flex items-center justify-center">
-        <span className="text-warning text-lg">🔖</span>
+        <img
+          src="/src/assets/icons/icon-bookmark-color.svg"
+          alt="북마크"
+          className="w-5 h-5"
+        />
       </div>
     </div>
   );
@@ -153,7 +157,7 @@ const MyBookmarks: React.FC = () => {
         throw new Error("북마크 데이터를 불러오는데 실패했습니다.");
       }
 
-      // ✅ 수정: mockBookmarks 사용
+      // 수정: mockBookmarks 사용
       setAllBookmarks(mockBookmarks);
       setIsLoading(false);
     } catch (err) {
@@ -327,7 +331,13 @@ const MyBookmarks: React.FC = () => {
           {/* 에러 상태 */}
           {error && (
             <div className="text-center py-12">
-              <div className="text-6xl mb-4">🔖</div>
+              <div className="text-6xl mb-4">
+                <img
+                  src="/src/assets/icons/icon-bookmark-color.svg"
+                  alt="북마크"
+                  className="w-16 h-16 mx-auto"
+                />
+              </div>
               <h3 className="text-lg font-medium text-base-content mb-2">
                 문제가 발생했습니다
               </h3>
@@ -425,7 +435,11 @@ const MyBookmarks: React.FC = () => {
                   allBookmarks.length === 0 && (
                     <div className="text-center py-12">
                       <div className="text-neutral-content text-4xl mb-4">
-                        🔖
+                        <img
+                          src="/src/assets/icons/icon-bookmark-color.svg"
+                          alt="북마크"
+                          className="w-12 h-12 mx-auto"
+                        />
                       </div>
                       <h3 className="text-neutral-content text-lg font-medium mb-2">
                         북마크한 글이 없습니다
