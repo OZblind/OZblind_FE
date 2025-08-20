@@ -127,6 +127,12 @@ export default function TestGithubList() {
 
         <GithubList
           items={items}
+          topBar={{
+            boardName: "GitHub 게시판",
+            onOpenSort: () => console.log("정렬 필터 열기"),
+            onOpenTag: () => console.log("태그 필터 열기"),
+            onWrite: () => console.log("글쓰기 이동"),
+          }}
           lastLoadedAt={lastLoadedAt}
           onRefresh={handleRefresh}
           isLoading={isFetchingNextPage}
