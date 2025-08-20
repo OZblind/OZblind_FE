@@ -214,20 +214,6 @@ export default function AppRouter() {
         {/* 인증 로비(공개) */}
         <Route path={PATHS.AUTH} element={<LandingPage />} />
 
-        {/* 보호: /main (JWT + 인증 완료) */}
-        <Route
-          path={PATHS.MAIN}
-          element={
-            isAuthed && isOzAuthenticated === true ? (
-              <MainPage />
-            ) : isAuthed && isOzAuthenticated === false ? (
-              <Navigate to={PATHS.KEY_VERIFY} replace />
-            ) : (
-              redirectWithIntent(PATHS.AUTH, location)
-            )
-          }
-        />
-
         {/* 보호: 마이페이지 (JWT + 인증 완료) */}
         <Route
           path={PATHS.MYPAGE}
