@@ -96,7 +96,8 @@ export default function PostList({
             {/* 데스크톱(테이블) */}
             <div className="hidden md:block">
               <div
-                className={`${FREE_LIST_GRID} gap-2 py-2 text-xs font-medium text-base-content/60`}
+                className={`${FREE_LIST_GRID} gap-2 py-2 text-xs font-medium text-base-content/60 sticky top-0 z-10
+                bg-base-100 border-b border-base-300`}
               >
                 <div className="text-center">번호</div>
                 <div className="text-center">제목</div>
