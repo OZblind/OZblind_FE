@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { forwardRef, useEffect, useMemo, useState } from "react";
 
 import filterDark from "@assets/icons/icon-filter-list-dark.svg";
 import filterLight from "@assets/icons/icon-filter-list-light.svg";
@@ -7,10 +7,9 @@ import tagLight from "@assets/icons/icon-label-light.svg";
 
 type Kind = "sort" | "tag";
 
-type Props = {
+type Props = Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "type"> & {
   kind: Kind; // "sort" | "tag"
-  onClick?: () => void;
-  className?: string;
+  active?: boolean;
   "aria-label"?: string;
 };
 
@@ -21,52 +20,66 @@ function readIsDarkFromDOM(): boolean {
   return theme === "oz_dark";
 }
 
-export default function FilterIconButton(props: Props) {
-  const { kind, onClick, className } = props;
-  const [isDark, setIsDark] = useState<boolean>(() => readIsDarkFromDOM());
+const FilterIconButton = forwardRef<HTMLButtonElement, Props>(
+  ({ kind, active = false, onClick, className, ...rest }, ref) => {
+    const [isDark, setIsDark] = useState<boolean>(() => readIsDarkFromDOM());
 
-  useEffect(() => {
-    if (typeof document === "undefined") return;
+    useEffect(() => {
+      if (typeof document === "undefined") return;
 
-    const el = document.documentElement;
-    // data-theme 변경 감지
-    const obs = new MutationObserver((muts) => {
-      for (const m of muts) {
-        if (m.type === "attributes" && m.attributeName === "data-theme") {
-          setIsDark(readIsDarkFromDOM());
+      const el = document.documentElement;
+      const obs = new MutationObserver((muts) => {
+        for (const m of muts) {
+          if (m.type === "attributes" && m.attributeName === "data-theme") {
+            setIsDark(readIsDarkFromDOM());
+          }
         }
-      }
-    });
-    obs.observe(el, { attributes: true, attributeFilter: ["data-theme"] });
+      });
+      obs.observe(el, { attributes: true, attributeFilter: ["data-theme"] });
 
-    // 다른 탭에서 localStorage("theme") 수정 시 대응
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === "theme") setIsDark(readIsDarkFromDOM());
-    };
-    window.addEventListener("storage", onStorage);
+      const onStorage = (e: StorageEvent) => {
+        if (e.key === "theme") setIsDark(readIsDarkFromDOM());
+      };
+      window.addEventListener("storage", onStorage);
 
-    return () => {
-      obs.disconnect();
-      window.removeEventListener("storage", onStorage);
-    };
-  }, []);
+      return () => {
+        obs.disconnect();
+        window.removeEventListener("storage", onStorage);
+      };
+    }, []);
 
-  const src = useMemo(() => {
-    if (kind === "sort") return isDark ? filterDark : filterLight;
-    return isDark ? tagDark : tagLight;
-  }, [kind, isDark]);
+    const src = useMemo(() => {
+      if (kind === "sort") return isDark ? filterDark : filterLight;
+      return isDark ? tagDark : tagLight;
+    }, [kind, isDark]);
 
-  const label =
-    props["aria-label"] ?? (kind === "sort" ? "정렬 필터" : "태그 필터");
+    const label =
+      rest["aria-label"] ?? (kind === "sort" ? "정렬 필터" : "태그 필터");
 
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      className={`inline-flex items-center justify-center rounded-md border border-base-300 p-1.5 hover:bg-base-200/60 ${className ?? ""}`}
-    >
-      <img src={src} alt="" className="h-5 w-5" />
-    </button>
-  );
-}
+    return (
+      <button
+        ref={ref}
+        type="button"
+        aria-pressed={active || undefined}
+        onClick={onClick}
+        aria-label={label}
+        {...rest}
+        className={[
+          "relative inline-flex items-center justify-center rounded-md border border-base-300 p-1.5 hover:bg-base-200/60",
+          className ?? "",
+        ].join(" ")}
+      >
+        <img src={src} alt="" className="h-5 w-5" />
+        {active && (
+          <span
+            aria-hidden
+            className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-primary ring-2 ring-base-100"
+          />
+        )}
+      </button>
+    );
+  }
+);
+
+FilterIconButton.displayName = "FilterIconButton";
+export default FilterIconButton;

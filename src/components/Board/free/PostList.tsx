@@ -5,6 +5,9 @@ import EmptyState, {
 import PostRow, { type FreeBoardItem, FREE_LIST_GRID } from "./PostRow";
 import PostCard from "./PostCard";
 import { LastLoadedBar, BoardTopBar } from "../common";
+import { useRef, useState } from "react";
+import SortRadioPopover from "@components/Board/common/sort/SortRadioPopover";
+import type { SortValue } from "@src/types/sort";
 
 export type PostListProps = {
   items: FreeBoardItem[];
@@ -48,6 +51,11 @@ export default function PostList({
   empty,
   className,
 }: PostListProps) {
+  const sortBtnRef = useRef<HTMLButtonElement>(null);
+  const [openSort, setOpenSort] = useState(false);
+  const [sort, setSort] = useState<SortValue>("latest"); // UI 전용 상태 (나중에 로직 연결)
+  const sortActive = sort !== "latest";
+
   const isEmpty = items.length === 0;
 
   return (
@@ -55,9 +63,11 @@ export default function PostList({
       {topBar && (
         <BoardTopBar
           boardName={topBar.boardName}
-          onOpenSort={topBar.onOpenSort}
+          onOpenSort={() => setOpenSort((v) => !v)} // 로컬 토글
           onOpenTag={topBar.onOpenTag}
           onWrite={topBar.onWrite}
+          sortButtonRef={sortBtnRef} // 앵커 ref 전달
+          sortActive={sortActive}
           className="mb-2 px-3"
           meta={
             <LastLoadedBar
@@ -131,6 +141,17 @@ export default function PostList({
           </>
         )}
       </div>
+
+      {/* ✅ 정렬 팝오버 (UI 전용) */}
+      <SortRadioPopover
+        open={openSort}
+        anchorRef={sortBtnRef}
+        value={sort}
+        onChange={(v) => {
+          setSort(v); /* 지금은 UI만 */
+        }}
+        onRequestClose={() => setOpenSort(false)}
+      />
     </section>
   );
 }
