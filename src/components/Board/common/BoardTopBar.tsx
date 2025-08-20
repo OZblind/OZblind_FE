@@ -9,6 +9,8 @@ type Props = {
   onWrite?: () => void; // 글쓰기 버튼
   meta?: React.ReactNode;
   className?: string;
+  sortButtonRef?: React.Ref<HTMLButtonElement>;
+  sortActive?: boolean;
 };
 
 export default function BoardTopBar({
@@ -18,6 +20,8 @@ export default function BoardTopBar({
   onWrite,
   meta,
   className,
+  sortButtonRef,
+  sortActive,
 }: Props) {
   return (
     <div className={`space-y-0.5 ${className ?? ""}`}>
@@ -31,7 +35,9 @@ export default function BoardTopBar({
         {/* 버튼군: 기본 36px, ≤380px 28px */}
         <div className="inline-flex items-center gap-2 max-[380px]:gap-1">
           <FilterIconButton
+            ref={sortButtonRef}
             kind="sort"
+            active={sortActive}
             onClick={onOpenSort}
             className="h-9 w-9 p-2 max-[380px]:size-7 max-[380px]:p-1"
           />

@@ -1,6 +1,9 @@
 import ScrollSentinel from "@components/commons/InfiniteScroll/ScrollSentinel";
 import { LastLoadedBar, BoardTopBar } from "@components/Board/common";
 import GithubCard, { type GithubCardProps } from "./GithubCard";
+import { useRef, useState } from "react";
+import SortRadioPopover from "@components/Board/common/sort/SortRadioPopover";
+import type { SortValue } from "@src/types/sort";
 
 export type GithubListItem = GithubCardProps;
 
@@ -51,15 +54,20 @@ export default function GithubList({
   scrollRootRef,
 }: GithubListProps) {
   const isEmpty = items.length === 0;
+  const sortBtnRef = useRef<HTMLButtonElement>(null);
+  const [openSort, setOpenSort] = useState(false);
+  const [sort, setSort] = useState<SortValue>("latest");
 
   return (
     <section className={`flex h-full flex-col ${className ?? ""}`}>
       {topBar && (
         <BoardTopBar
           boardName={topBar.boardName}
-          onOpenSort={topBar.onOpenSort}
+          onOpenSort={() => setOpenSort((v) => !v)}
           onOpenTag={topBar.onOpenTag}
           onWrite={topBar.onWrite}
+          sortButtonRef={sortBtnRef}
+          sortActive={sort !== "latest"}
           className="mb-2 px-3 flex-none"
           meta={
             <LastLoadedBar
@@ -127,6 +135,15 @@ export default function GithubList({
           </>
         )}
       </div>
+
+      {/* 정렬 팝오버(UI) */}
+      <SortRadioPopover
+        open={openSort}
+        anchorRef={sortBtnRef}
+        value={sort}
+        onChange={(v) => setSort(v)}
+        onRequestClose={() => setOpenSort(false)}
+      />
     </section>
   );
 }
