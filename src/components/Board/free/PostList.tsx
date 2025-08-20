@@ -54,7 +54,6 @@ export default function PostList({
   const isEmpty = items.length === 0;
 
   return (
-    // 섹션을 컬럼 레이아웃 + 높이 100% 로 만들고
     <section className={`flex h-full flex-col ${className ?? ""}`}>
       {topBar && (
         <BoardTopBar
