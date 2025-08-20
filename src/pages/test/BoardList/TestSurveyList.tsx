@@ -32,9 +32,11 @@ export default function TestSurveyList() {
     [data]
   );
 
+  const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
+
   const { sentinelRef } = useInfiniteScroll({
-    root: null,
-    rootMargin: "1000px 0px",
+    root: rootEl,
+    rootMargin: "600px 0px",
     threshold: 0,
     disabled: isFetchingNextPage || !hasNextPage || !!forcedError || isError,
     onIntersect: async () => {
@@ -98,7 +100,8 @@ export default function TestSurveyList() {
         </div>
       </header>
 
-      <section className="rounded-xl border p-3">
+      {/* ❗️ 본문 내 스크롤 적용 시 부모(wrapper)엔 높이가 있어야 함 ❗️ */}
+      <section className="rounded-xl border p-3 pb-8 h-[calc(100vh-100px)] overflow-hidden">
         <div className="text-xs opacity-70 mb-2">
           hasMore: {String(!!hasNextPage)} / busy: {String(isFetchingNextPage)}{" "}
           / items: {items.length}
@@ -125,6 +128,7 @@ export default function TestSurveyList() {
           errorText={forcedError ?? (error as Error)?.message}
           hasMore={!!hasNextPage}
           sentinelRef={sentinelRef}
+          scrollRootRef={setRootEl}
           empty={{ message: "등록된 설문이 없습니다." }}
         />
       </section>

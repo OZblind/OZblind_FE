@@ -34,6 +34,8 @@ export type PostListProps = {
   empty?: EmptyStateProps;
 
   className?: string;
+
+  scrollRootRef?: (el: HTMLDivElement | null) => void;
 };
 
 export default function PostList({
@@ -50,6 +52,7 @@ export default function PostList({
   noMoreText = "마지막 페이지입니다.",
   empty,
   className,
+  scrollRootRef,
 }: PostListProps) {
   const sortBtnRef = useRef<HTMLButtonElement>(null);
   const [openSort, setOpenSort] = useState(false);
@@ -59,7 +62,7 @@ export default function PostList({
   const isEmpty = items.length === 0;
 
   return (
-    <section className={className ?? ""}>
+    <section className={`flex h-full flex-col ${className ?? ""}`}>
       {topBar && (
         <BoardTopBar
           boardName={topBar.boardName}
@@ -68,7 +71,7 @@ export default function PostList({
           onWrite={topBar.onWrite}
           sortButtonRef={sortBtnRef} // 앵커 ref 전달
           sortActive={sortActive}
-          className="mb-2 px-3"
+          className="mb-2 px-3 flex-none"
           meta={
             <LastLoadedBar
               lastLoadedAt={lastLoadedAt}
@@ -80,7 +83,11 @@ export default function PostList({
         />
       )}
 
-      <div className="px-3">
+      {/* 본문만 스크롤되도록 */}
+      <div
+        ref={scrollRootRef}
+        className="px-3 flex-1 min-h-0 overflow-y-auto overscroll-contain"
+      >
         {isError && (
           <div className="py-10 text-center text-sm text-red-500">
             {errorText ?? "오류가 발생했습니다."}
@@ -98,7 +105,8 @@ export default function PostList({
             {/* 데스크톱(테이블) */}
             <div className="hidden md:block">
               <div
-                className={`${FREE_LIST_GRID} gap-2 py-2 text-xs font-medium text-base-content/60`}
+                className={`${FREE_LIST_GRID} gap-2 py-2 text-xs font-medium text-base-content/60 sticky top-0 z-10
+                bg-base-100 border-b border-base-300`}
               >
                 <div className="text-center">번호</div>
                 <div className="text-center">제목</div>
@@ -142,7 +150,7 @@ export default function PostList({
         )}
       </div>
 
-      {/* ✅ 정렬 팝오버 (UI 전용) */}
+      {/* 정렬 팝오버 (UI) */}
       <SortRadioPopover
         open={openSort}
         anchorRef={sortBtnRef}

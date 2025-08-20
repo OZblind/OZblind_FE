@@ -31,6 +31,8 @@ export type SurveyListProps = {
   empty?: EmptyStateProps;
 
   className?: string;
+
+  scrollRootRef?: (el: HTMLDivElement | null) => void;
 };
 
 export default function SurveyList({
@@ -47,6 +49,7 @@ export default function SurveyList({
   noMoreText = "마지막 페이지입니다.",
   empty,
   className,
+  scrollRootRef,
 }: SurveyListProps) {
   const isEmpty = items.length === 0;
   const sortBtnRef = useRef<HTMLButtonElement>(null);
@@ -61,9 +64,9 @@ export default function SurveyList({
           onOpenSort={() => setOpenSort((v) => !v)} // 로컬 토글
           onOpenTag={topBar.onOpenTag}
           onWrite={topBar.onWrite}
-          sortButtonRef={sortBtnRef} // 팝오버 앵커
-          sortActive={sort !== "latest"} // 활성 배지
-          className="mb-2 px-3"
+          sortButtonRef={sortBtnRef}
+          sortActive={sort !== "latest"}
+          className="mb-2 px-3 flex-none"
           meta={
             <LastLoadedBar
               lastLoadedAt={lastLoadedAt}
@@ -75,7 +78,10 @@ export default function SurveyList({
         />
       )}
 
-      <div className="px-3">
+      <div
+        ref={scrollRootRef}
+        className="px-3 flex-1 min-h-0 overflow-y-auto overscroll-contain"
+      >
         {isError && (
           <div className="py-10 text-center text-sm text-red-500">
             {errorText ?? "오류가 발생했습니다."}
