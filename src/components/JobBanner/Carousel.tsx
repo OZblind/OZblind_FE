@@ -13,7 +13,7 @@ function calcItemsPerPage(width: number): number {
   if (width >= 1280) return 5;
   if (width >= 1024) return 4;
   if (width >= 768) return 3;
-  if (width >= 480) return 3; // 2에서 3으로 변경
+  if (width >= 480) return 2;
   return 1;
 }
 
@@ -74,10 +74,10 @@ export default function Carousel({
         </div>
       ) : (
         <>
-          {/* 좌우 화살표 - 카드와 더 떨어뜨리기 */}
+          {/* 좌우 화살표 - 카드에 더 가깝게 */}
           <button
             type="button"
-            className="btn btn-circle btn-sm absolute -left-6 top-14 z-10"
+            className="btn btn-circle btn-sm absolute -left-6 top-16 z-10"
             onClick={handlePrev}
             disabled={prevDisabled}
             aria-label="이전"
@@ -86,7 +86,7 @@ export default function Carousel({
           </button>
           <button
             type="button"
-            className="btn btn-circle btn-sm absolute -right-6 top-14 z-10"
+            className="btn btn-circle btn-sm absolute -right-6 top-16 z-10"
             onClick={handleNext}
             disabled={nextDisabled}
             aria-label="다음"
@@ -94,8 +94,8 @@ export default function Carousel({
             ▶
           </button>
 
-          {/* 카드 그리드 */}
-          <div className="p-2 mx-6">
+          {/* 카드 그리드 - 여백 추가 */}
+          <div className="px-4">
             <div
               className="grid gap-2"
               style={{
@@ -103,44 +103,59 @@ export default function Carousel({
               }}
             >
               {visible.map((j) => (
-                <article
+                <a
                   key={j.id}
-                  className="h-32 rounded-lg border border-gray-200 bg-white p-5 hover:shadow-md transition-shadow flex flex-col"
+                  href={j.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block"
                 >
-                  {/* 회사 로고와 정보 */}
-                  <div className="flex items-center gap-3 mb-3">
-                    <CompanyLogo src={j.logo} company={j.company} size={32} />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs text-gray-500 mb-1">
-                        {j.company || "Unknown"}
+                  <article className="relative h-32 rounded-lg border border-base-300 bg-base-200 p-3 hover:shadow-md transition-shadow cursor-pointer">
+                    {/* 상단: 회사 로고와 이니셜 */}
+                    <div className="flex items-center justify-between mb-1">
+                      <CompanyLogo src={j.logo} company={j.company} size={22} />
+                      <div className="w-5 h-5 bg-primary rounded flex items-center justify-center text-xs font-bold text-primary-content">
+                        {(j.company || "C")[0].toUpperCase()}
                       </div>
-                      <a
-                        href={j.url}
-                        className="block font-medium text-gray-900 hover:text-blue-600 transition-colors"
-                        target="_blank"
-                        rel="noreferrer"
-                        title={j.title}
-                      >
-                        <div className="line-clamp-2 text-sm leading-tight">
+                    </div>
+
+                    {/* 회사명 */}
+                    <div className="text-xs text-base-content mb-1">
+                      {j.company || "Unknown Company"}
+                    </div>
+
+                    {/* 제목 */}
+                    <div className="h-10 mb-1 overflow-hidden">
+                      <div className="font-medium text-base-content text-sm leading-tight">
+                        <div
+                          className="overflow-hidden text-ellipsis"
+                          style={{
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                          }}
+                        >
                           {j.title}
                         </div>
-                      </a>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* 하단 정보 */}
-                  <div className="mt-auto flex items-center justify-between text-xs text-gray-500">
-                    <span className="truncate max-w-20">
-                      {j.location ?? (j.remote ? "Remote" : "위치 미정")}
-                    </span>
-                    {j.publishedAt && <time>{j.publishedAt.slice(0, 10)}</time>}
-                  </div>
-                </article>
+                    {/* 하단 정보 */}
+                    <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-neutral-content">
+                      <span>
+                        {j.remote ? "Remote" : j.location || "위치 미정"}
+                      </span>
+                      {j.publishedAt && (
+                        <time>{j.publishedAt.slice(0, 10)}</time>
+                      )}
+                    </div>
+                  </article>
+                </a>
               ))}
             </div>
           </div>
 
-          {/* 페이지 정보 - 기존과 동일 */}
+          {/* 페이지 정보 */}
           <div className="mt-1 text-center text-xs text-gray-500">
             {page + 1} / {totalPages}
           </div>

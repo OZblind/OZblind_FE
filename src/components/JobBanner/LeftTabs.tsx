@@ -14,13 +14,15 @@ export default function LeftTabs({
   ];
 
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-2 border-b border-base-300">
       {tabs.map((t) => (
         <button
           key={t.key}
           onClick={() => onChange(t.key)}
-          className={`rounded px-3 py-2 text-sm ${
-            value === t.key ? "bg-primary text-white" : "hover:bg-base-200"
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            value === t.key
+              ? "text-primary border-primary"
+              : "text-neutral-content border-transparent hover:text-base-content"
           }`}
         >
           {t.label}
