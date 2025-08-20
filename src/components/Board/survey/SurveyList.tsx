@@ -2,6 +2,9 @@ import ScrollSentinel from "@components/commons/InfiniteScroll/ScrollSentinel";
 import SurveyCard, { type SurveyCardProps } from "./SurveyCard";
 import EmptyState, { type EmptyStateProps } from "../common/EmptyState";
 import { LastLoadedBar, BoardTopBar } from "../common";
+import { useRef, useState } from "react";
+import SortRadioPopover from "@components/Board/common/sort/SortRadioPopover";
+import type { SortValue } from "@src/types/sort";
 
 export type SurveyListProps = {
   items: SurveyCardProps[];
@@ -46,15 +49,20 @@ export default function SurveyList({
   className,
 }: SurveyListProps) {
   const isEmpty = items.length === 0;
+  const sortBtnRef = useRef<HTMLButtonElement>(null);
+  const [openSort, setOpenSort] = useState(false);
+  const [sort, setSort] = useState<SortValue>("latest"); // 기본값: 최신
 
   return (
     <section className={className ?? ""}>
       {topBar && (
         <BoardTopBar
           boardName={topBar.boardName}
-          onOpenSort={topBar.onOpenSort}
+          onOpenSort={() => setOpenSort((v) => !v)} // 로컬 토글
           onOpenTag={topBar.onOpenTag}
           onWrite={topBar.onWrite}
+          sortButtonRef={sortBtnRef} // 팝오버 앵커
+          sortActive={sort !== "latest"} // 활성 배지
           className="mb-2 px-3"
           meta={
             <LastLoadedBar
@@ -113,6 +121,15 @@ export default function SurveyList({
           </>
         )}
       </div>
+
+      {/* 정렬 팝오버(UI) */}
+      <SortRadioPopover
+        open={openSort}
+        anchorRef={sortBtnRef}
+        value={sort}
+        onChange={(v) => setSort(v)} // 지금은 상태만 변경
+        onRequestClose={() => setOpenSort(false)}
+      />
     </section>
   );
 }
