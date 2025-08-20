@@ -7,7 +7,7 @@ export const PATHS = {
 
   // 게시판
   FREE_BOARD: "/board/free",
-  JOBS_BOARD: "/board/career",
+  JOBS_BOARD: "/board/jobs",
   INFORMATION_BOARD: "/board/information",
   SURVEY_BOARD: "/board/survey",
   GITHUB_BOARD: "/board/github",
