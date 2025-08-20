@@ -2,11 +2,15 @@
 import { create } from "zustand";
 import { tokenStore } from "@api/client";
 
+/** 역할 타입(소문자 기준으로 정규화) */
+export type Role = "admin" | "moderator" | "user";
+
 export type User = {
   id?: string | number;
   email?: string;
   name?: string;
-  profile_image?: string; // 필요시 유지
+  profile_image?: string;
+  role?: Role; // ← 추가
 };
 
 export type Tokens = {
@@ -20,7 +24,7 @@ type SetFromAuthPayloadArg = {
   isOzAuthenticated?: boolean | null;
 };
 
-type AuthState = {
+export type AuthState = {
   user: User | null;
   tokens: Tokens;
   isOzAuthenticated: boolean | null;
@@ -31,19 +35,58 @@ type AuthState = {
   reset: () => void;
 };
 
+/** .env 값 → 강제 사용자 초기값 생성 */
+function getForcedUserFromEnv(): { user: User | null; isOz: boolean | null } {
+  const force = import.meta.env.VITE_FORCE_AUTH === "true";
+  if (!force) return { user: null, isOz: null };
+
+  // role은 소문자로 정규화하여 Role에 맞추기
+  const roleRaw = (import.meta.env.VITE_FORCE_AUTH_ROLE ?? "USER").toString();
+  const role = roleRaw.toLowerCase() as Role;
+
+  const user: User = {
+    id: import.meta.env.VITE_FORCE_AUTH_USER_ID ?? "forced-id",
+    email: import.meta.env.VITE_FORCE_AUTH_EMAIL ?? "forced@example.com",
+    name: import.meta.env.VITE_FORCE_AUTH_NAME ?? "개발자",
+    role, // ← 여기 중요
+  };
+
+  const isOz = (() => {
+    const v = import.meta.env.VITE_FORCE_AUTH_OZKEY;
+    if (v === undefined || v === null) return null;
+    return String(v) === "true";
+  })();
+
+  return { user, isOz };
+}
+
+/** user 병합 시 role을 소문자로 정규화 */
+function normalizeUser(
+  u: Partial<User> | null | undefined
+): Partial<User> | null | undefined {
+  if (!u) return u;
+  const next: Partial<User> = { ...u };
+  if (next.role) next.role = next.role.toLowerCase() as Role;
+  return next;
+}
+
+const { user: forcedUser, isOz: forcedOz } = getForcedUserFromEnv();
+
 export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
+  // 초기 상태: .env로 강제 로그인(있으면) + 토큰은 비워둠
+  user: forcedUser,
   tokens: {},
-  isOzAuthenticated: null,
+  isOzAuthenticated: forcedOz,
 
   setFromAuthPayload: ({ user, tokens, isOzAuthenticated }) => {
     set((state) => {
-      // 1) user 병합/초기화
+      // 1) user 병합/초기화 (role 정규화)
+      const incomingUser = normalizeUser(user);
       const nextUser =
         user === null
           ? null
-          : user
-          ? { ...(state.user ?? {}), ...user }
+          : incomingUser
+          ? { ...(state.user ?? {}), ...incomingUser }
           : state.user;
 
       // 2) tokens 병합
@@ -52,7 +95,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           ? { ...state.tokens, ...tokens }
           : state.tokens;
 
-      // 3) tokenStore 동기화 (부분 갱신 안전 처리)
+      // 3) tokenStore 동기화
       if (tokens) {
         const at =
           tokens.accessToken !== undefined
@@ -63,7 +106,6 @@ export const useAuthStore = create<AuthState>((set) => ({
             ? tokens.refreshToken
             : tokenStore.refresh;
 
-        // 둘 다 빈 값이면 clear, 아니면 set
         if (!at && !rt) tokenStore.clear();
         else tokenStore.set(at ?? "", rt ?? "");
       }
@@ -83,14 +125,17 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   setUser: (user) =>
-    set((state) => ({
-      user: user === null ? null : { ...(state.user ?? {}), ...user },
-    })),
+    set((state) => {
+      const incomingUser = normalizeUser(user);
+      return {
+        user: user === null ? null : { ...(state.user ?? {}), ...incomingUser },
+      };
+    }),
 
   setTokens: (tokens) =>
     set((state) => {
       const merged = { ...state.tokens, ...tokens };
-      // tokenStore 동기화
+
       const at =
         tokens.accessToken !== undefined
           ? tokens.accessToken
