@@ -45,8 +45,6 @@ export default function TestFreeBoardList() {
   const pageRef = useRef(1);
   const hasMoreRef = useRef(true);
 
-  // 본문 스크롤용
-  const scrollRootRef = useRef<HTMLDivElement | null>(null);
   const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -163,10 +161,7 @@ export default function TestFreeBoardList() {
           errorText={err ?? undefined}
           hasMore={hasMore}
           sentinelRef={sentinelRef}
-          scrollRootRef={(el) => {
-            scrollRootRef.current = el;
-            setRootEl(el);
-          }}
+          scrollRootRef={setRootEl}
           empty={{
             message: "조건에 맞는 게시글이 없습니다.",
             actionLabel: "초기화",

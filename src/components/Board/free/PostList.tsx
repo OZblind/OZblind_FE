@@ -32,7 +32,7 @@ export type PostListProps = {
 
   className?: string;
 
-  scrollRootRef?: (el: HTMLDivElement | null) => void; // 본문 스크롤
+  scrollRootRef?: (el: HTMLDivElement | null) => void;
 };
 
 export default function PostList({
