@@ -7,15 +7,13 @@ import { PATHS } from "@constants/paths";
 export default function PostListSection() {
   const themeIcon = useThemeIcon();
 
-  const { freeIcon, githubIcon, informationIcon, jobsIcon, surveyIcon } =
+  const { freeIcon, githubIcon, infoIcon, jobsIcon, surveyIcon } =
     useMemo(() => {
       const dark = themeIcon === "oz_dark";
       return {
         freeIcon: dark ? icons.free.dark : icons.free.light,
         githubIcon: dark ? icons.github.dark : icons.github.light,
-        informationIcon: dark
-          ? icons.information.dark
-          : icons.information.light,
+        infoIcon: dark ? icons.info.dark : icons.info.light,
         jobsIcon: dark ? icons.jobs.dark : icons.jobs.light,
         surveyIcon: dark ? icons.survey.dark : icons.survey.light,
       };
@@ -35,10 +33,10 @@ export default function PostListSection() {
       path: PATHS.JOBS_BOARD,
     },
     {
-      key: "information",
+      key: "info",
       label: "정보 게시판",
-      icon: informationIcon,
-      path: PATHS.INFORMATION_BOARD,
+      icon: infoIcon,
+      path: PATHS.INFO_BOARD,
     },
     {
       key: "survey",

@@ -7,15 +7,13 @@ import { PATHS } from "@src/constants/paths";
 export default function FoldedPostListSection() {
   const themeIcon = useThemeIcon();
 
-  const { freeIcon, githubIcon, informationIcon, jobsIcon, surveyIcon } =
+  const { freeIcon, githubIcon, infoIcon, jobsIcon, surveyIcon } =
     useMemo(() => {
       const dark = themeIcon === "oz_dark";
       return {
         freeIcon: dark ? icons.free.dark : icons.free.light,
         githubIcon: dark ? icons.github.dark : icons.github.light,
-        informationIcon: dark
-          ? icons.information.dark
-          : icons.information.light,
+        infoIcon: dark ? icons.info.dark : icons.info.light,
         jobsIcon: dark ? icons.jobs.dark : icons.jobs.light,
         surveyIcon: dark ? icons.survey.dark : icons.survey.light,
       };
@@ -25,10 +23,10 @@ export default function FoldedPostListSection() {
     { key: "free", icon: freeIcon, alt: "freeIcon", path: PATHS.FREE_BOARD },
     { key: "jobs", icon: jobsIcon, alt: "jobsIcon", path: PATHS.JOBS_BOARD },
     {
-      key: "information",
-      icon: informationIcon,
-      alt: "informationIcon",
-      path: PATHS.INFORMATION_BOARD,
+      key: "info",
+      icon: infoIcon,
+      alt: "infoIcon",
+      path: PATHS.INFO_BOARD,
     },
     {
       key: "survey",
