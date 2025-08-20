@@ -255,10 +255,7 @@ export default function AppRouter() {
           <Route path={PATHS.MAIN} element={<MainPage />} />
           <Route path={PATHS.FREE_BOARD} element={<TestFreeBoardList />} />
           <Route path={PATHS.JOBS_BOARD} element={<TestFreeBoardList />} />
-          <Route
-            path={PATHS.INFORMATION_BOARD}
-            element={<TestFreeBoardList />}
-          />
+          <Route path={PATHS.INFO_BOARD} element={<TestFreeBoardList />} />
           <Route path={PATHS.SURVEY_BOARD} element={<TestSurveyList />} />
           <Route path={PATHS.GITHUB_BOARD} element={<TestGithubList />} />
         </Route>
