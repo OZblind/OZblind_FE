@@ -29,6 +29,8 @@ export type GithubListProps = {
   noMoreText?: string;
   emptyText?: string;
   className?: string;
+
+  scrollRootRef?: (el: HTMLDivElement | null) => void;
 };
 
 export default function GithubList({
@@ -46,18 +48,19 @@ export default function GithubList({
   noMoreText = "마지막 페이지입니다.",
   emptyText = "등록된 게시글이 없습니다.",
   className,
+  scrollRootRef,
 }: GithubListProps) {
   const isEmpty = items.length === 0;
 
   return (
-    <section className={className ?? ""}>
+    <section className={`flex h-full flex-col ${className ?? ""}`}>
       {topBar && (
         <BoardTopBar
           boardName={topBar.boardName}
           onOpenSort={topBar.onOpenSort}
           onOpenTag={topBar.onOpenTag}
           onWrite={topBar.onWrite}
-          className="mb-2 px-3"
+          className="mb-2 px-3 flex-none"
           meta={
             <LastLoadedBar
               lastLoadedAt={lastLoadedAt}
@@ -69,7 +72,10 @@ export default function GithubList({
         />
       )}
 
-      <div className="px-3">
+      <div
+        ref={scrollRootRef}
+        className="px-3 flex-1 min-h-0 overflow-y-auto overscroll-contain"
+      >
         {isError && (
           <div className="py-10 text-center text-sm text-red-500">
             {errorText ?? "오류가 발생했습니다."}
