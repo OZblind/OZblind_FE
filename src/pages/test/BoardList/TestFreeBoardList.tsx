@@ -3,6 +3,8 @@ import PostList from "@components/Board/free/PostList";
 import type { FreeBoardItem } from "@components/Board/free/PostRow";
 import { useInfiniteScroll } from "@hooks/useInfiniteScroll";
 import { formatYyMmDd, formatYyyyMmDdHms } from "@utils/date";
+import { urlForPost } from "@utils/urlForPost";
+import { useNavigate } from "react-router-dom";
 
 const PAGE_SIZE = 15;
 const MAX_PAGES = 4;
@@ -30,6 +32,10 @@ function makeMockItems(count: number, startIndex: number): FreeBoardItem[] {
 }
 
 export default function TestFreeBoardList() {
+  const navigate = useNavigate();
+
+  const currentBoard: "free" | "jobs" | "info" = "free";
+
   const [page, setPage] = useState(1);
   const [items, setItems] = useState<FreeBoardItem[]>(() =>
     makeMockItems(PAGE_SIZE, 0)
@@ -147,12 +153,12 @@ export default function TestFreeBoardList() {
 
         <PostList
           items={items}
-          onItemClick={(id) => console.log("go detail:", id)}
+          onItemClick={(id) => navigate(urlForPost.postDetail("free", id))} // id에 해당하는 게시글 상세 페이지로
           topBar={{
             boardName: "자유 게시판",
             onOpenSort: () => console.log("정렬 필터 열기"),
             onOpenTag: () => console.log("태그 필터 열기"),
-            onWrite: () => console.log("글쓰기 이동"),
+            onWrite: () => navigate(urlForPost.postCreate(currentBoard)), // 자유게시판으로 설정해둠
           }}
           lastLoadedAt={lastLoadedAt}
           onRefresh={handleRefresh}

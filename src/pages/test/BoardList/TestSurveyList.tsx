@@ -5,11 +5,15 @@ import { useInfiniteScroll } from "@hooks/useInfiniteScroll";
 import { formatYyyyMmDdHms } from "@utils/date";
 import { useSurveysMock } from "@hooks/useSurveys.mock";
 import type { SurveyCardProps } from "@components/Board/survey/SurveyCard";
+import { useNavigate } from "react-router-dom";
+import { urlForPost } from "@src/utils/urlForPost";
 
 type Page = { items: SurveyCardProps[]; hasMore: boolean };
 const SURVEYS_MOCK_KEY = ["surveys-mock"] as const;
 
 export default function TestSurveyList() {
+  const navigate = useNavigate();
+
   const qc = useQueryClient();
   const [lastLoadedAt, setLastLoadedAt] = useState(
     formatYyyyMmDdHms(new Date())
@@ -114,12 +118,12 @@ export default function TestSurveyList() {
 
         <SurveyList
           items={items}
-          onItemClick={(id) => console.log("go detail:", id)}
+          onItemClick={(id) => navigate(urlForPost.postDetail("survey", id))}
           topBar={{
             boardName: "설문 게시판",
             onOpenSort: () => console.log("정렬 필터 열기"),
             onOpenTag: () => console.log("태그 필터 열기"),
-            onWrite: () => console.log("글쓰기 이동"),
+            onWrite: () => navigate(urlForPost.postCreate("survey")),
           }}
           lastLoadedAt={lastLoadedAt}
           onRefresh={handleRefresh}
