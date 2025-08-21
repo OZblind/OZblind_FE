@@ -5,5 +5,4 @@ export type Tag = {
   label: string;
   category: TagCategory; // cohort or position
   color?: string;
-  locked: true; // 지정태그
 };

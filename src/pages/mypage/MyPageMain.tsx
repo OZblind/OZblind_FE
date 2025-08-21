@@ -1,10 +1,12 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { PATHS } from "@constants/paths";
 import { ANIMATION_TIMINGS, ANIMATION_KEYFRAMES } from "@constants/animations";
 import { LIST_SETTINGS, EMPTY_MESSAGES } from "@constants/ui";
 import { mockMyPageCards } from "@src/mocks/mypage.mock";
 import type { MyPageCardData } from "@src/types/mypage";
+// SVG import 문제로 임시 주석 처리
+// import BookmarkIconSvg from "@assets/icons/icon-bookmark-color.svg";
 
 // 개별 카드 컴포넌트
 interface CardProps {
@@ -20,6 +22,7 @@ interface CardProps {
   onClick: () => void;
   isExpanding?: boolean;
   isClicked?: boolean;
+  getIconPath: (iconType: string) => string; // 추가
 }
 
 const Card: React.FC<CardProps> = ({
@@ -30,6 +33,7 @@ const Card: React.FC<CardProps> = ({
   onClick,
   isExpanding,
   isClicked,
+  getIconPath,
 }) => {
   const getEmptyMessage = (title: string) => {
     switch (title) {
@@ -61,7 +65,29 @@ const Card: React.FC<CardProps> = ({
       {/* 카드 헤더 */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <span className="text-2xl">{icon}</span>
+          <span className="text-2xl">
+            {title === "북마크" ? (
+              <img
+                src={getIconPath("bookmark")}
+                alt="북마크"
+                className="w-6 h-6"
+              />
+            ) : title === "작성글" ? (
+              <img
+                src={getIconPath("writing")}
+                alt="작성글"
+                className="w-6 h-6"
+              />
+            ) : title === "작성댓글" ? (
+              <img
+                src={getIconPath("chat")}
+                alt="작성댓글"
+                className="w-6 h-6"
+              />
+            ) : (
+              icon
+            )}
+          </span>
           <h3 className="text-lg font-medium text-base-content">{title}</h3>
           <span className="text-sm text-neutral-content">({count})</span>
         </div>
@@ -135,7 +161,29 @@ const Card: React.FC<CardProps> = ({
           ))
         ) : (
           <div className="text-center py-8">
-            <div className="text-neutral-content text-3xl mb-2">{icon}</div>
+            <div className="text-neutral-content text-3xl mb-2">
+              {title === "북마크" ? (
+                <img
+                  src={getIconPath("bookmark")}
+                  alt="북마크"
+                  className="w-8 h-8 mx-auto"
+                />
+              ) : title === "작성글" ? (
+                <img
+                  src={getIconPath("writing")}
+                  alt="작성글"
+                  className="w-8 h-8 mx-auto"
+                />
+              ) : title === "작성댓글" ? (
+                <img
+                  src={getIconPath("chat")}
+                  alt="작성댓글"
+                  className="w-8 h-8 mx-auto"
+                />
+              ) : (
+                icon
+              )}
+            </div>
             <p className="text-neutral-content text-sm">
               {getEmptyMessage(title)}
             </p>
@@ -163,7 +211,67 @@ const MyPageMain: React.FC = () => {
   // setTimeout 대신 pendingPath로 안전한 네비게이션 관리
   const pendingPathRef = useRef<string | null>(null);
 
-  // ✅ 목업 데이터 사용
+  // 다크모드 감지 (document.documentElement의 data-theme 또는 class 확인)
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    const checkTheme = () => {
+      const theme = document.documentElement.getAttribute("data-theme");
+      const htmlClass = document.documentElement.className;
+
+      // 다크 테마 감지 로직 (oz_dark 추가)
+      const isDark =
+        theme === "dark" ||
+        theme === "oz_dark" || // 프로젝트 커스텀 다크 테마 추가
+        theme === "night" ||
+        htmlClass.includes("dark") ||
+        (!theme && window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+      setIsDarkMode(isDark);
+    };
+
+    checkTheme();
+
+    // 테마 변경 감지
+    const observer = new MutationObserver(() => {
+      checkTheme();
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme", "class"],
+    });
+
+    // 시스템 다크모드 변경 감지
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleSystemThemeChange = () => {
+      checkTheme();
+    };
+
+    mediaQuery.addEventListener("change", handleSystemThemeChange);
+
+    return () => {
+      observer.disconnect();
+      mediaQuery.removeEventListener("change", handleSystemThemeChange);
+    };
+  }, []);
+
+  // 테마에 따른 아이콘 경로 반환
+  const getIconPath = (iconType: string) => {
+    const theme = isDarkMode ? "light" : "dark";
+    switch (iconType) {
+      case "writing":
+        return `/src/assets/icons/icon-mypage-writing-${theme}.svg`;
+      case "chat":
+        return `/src/assets/icons/icon-mypage-chat-${theme}.svg`;
+      case "bookmark":
+        return `/src/assets/icons/icon-mypage-bookmark-${theme}.svg`;
+      default:
+        return "";
+    }
+  };
+
+  // 임시로 기존 방식 유지 (SVG import 문제로 인해)
   const cardData: MyPageCardData[] = mockMyPageCards;
 
   // setTimeout 제거: 애니메이션 이벤트 기반으로 네비게이션
@@ -215,6 +323,7 @@ const MyPageMain: React.FC = () => {
               onClick={() => handleCardClick(card.path)}
               isExpanding={isExpanding}
               isClicked={clickedCard === card.path}
+              getIconPath={getIconPath}
             />
           ))}
         </div>

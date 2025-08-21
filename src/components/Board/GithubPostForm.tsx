@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Button } from "@components/ui/Button";
 import ToastEditor from "@components/Board/editor/ToastEditor";
 import { RepoPreviewCard } from "./RepoPreviewCard";
+import { useNavigate } from "react-router-dom";
+import { createGithubPost } from "@src/api/posts.special";
 
 interface Props {
   onCancel: () => void;
@@ -12,6 +14,7 @@ export default function GitRepoPostForm({ onCancel }: Props) {
   const [content, setContent] = useState("");
   const [repoLink, setRepoLink] = useState("");
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const urlPattern = /^(https?:\/\/)[^\s$.?#].[^\s]*$/i;
 
@@ -21,9 +24,8 @@ export default function GitRepoPostForm({ onCancel }: Props) {
     if (!repoLink.trim()) return alert("작성한 레포 주소를 입력하세요.");
 
     // 실제 API 연동
-    // await createGitRepoPost({ title, content, repoLink });
-
-    console.log({ title, content, repoLink });
+    const res = await createGithubPost({ title, content, link: repoLink });
+    navigate(`/posts/${res.post_id}`);
     alert("깃 레포 게시글이 등록되었습니다. (mock)");
     onCancel();
   };

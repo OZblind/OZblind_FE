@@ -17,12 +17,11 @@ const POSITION_ID = (position: string) => `position-${position}`; // 필요시 �
 
 export function mapUserToTags(cohort: string, position: string): Tag[] {
   return [
-    { id: COHORT_ID(cohort), label: cohort, category: "cohort", locked: true },
+    { id: COHORT_ID(cohort), label: cohort, category: "cohort" },
     {
       id: POSITION_ID(position),
       label: position,
       category: "position",
-      locked: true,
     },
   ];
 }

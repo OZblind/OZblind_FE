@@ -22,6 +22,7 @@ interface BookmarkListItemProps {
   isSelected: boolean;
   onSelectionChange: (id: number, checked: boolean) => void;
   isExiting?: boolean;
+  getBookmarkIconPath: () => string; // 추가
 }
 
 const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
@@ -31,6 +32,7 @@ const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
   isSelected,
   onSelectionChange,
   isExiting = false,
+  getBookmarkIconPath,
 }) => {
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
@@ -91,9 +93,9 @@ const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
         {bookmark.date}
       </div>
 
-      {/* 북마크 아이콘 */}
+      {/* 북마크 아이콘 - 테마에 맞는 SVG */}
       <div className="w-8 h-8 flex items-center justify-center">
-        <span className="text-warning text-lg">🔖</span>
+        <img src={getBookmarkIconPath()} alt="북마크" className="w-5 h-5" />
       </div>
     </div>
   );
@@ -118,6 +120,54 @@ const MyBookmarks: React.FC = () => {
   const totalPages = Math.ceil(allBookmarks.length / ITEMS_PER_PAGE);
 
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 다크모드 감지
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    const checkTheme = () => {
+      const theme = document.documentElement.getAttribute("data-theme");
+      const htmlClass = document.documentElement.className;
+
+      const isDark =
+        theme === "dark" ||
+        theme === "oz_dark" ||
+        theme === "night" ||
+        htmlClass.includes("dark") ||
+        (!theme && window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+      setIsDarkMode(isDark);
+    };
+
+    checkTheme();
+
+    const observer = new MutationObserver(() => {
+      checkTheme();
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme", "class"],
+    });
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleSystemThemeChange = () => {
+      checkTheme();
+    };
+
+    mediaQuery.addEventListener("change", handleSystemThemeChange);
+
+    return () => {
+      observer.disconnect();
+      mediaQuery.removeEventListener("change", handleSystemThemeChange);
+    };
+  }, []);
+
+  // 테마에 따른 북마크 아이콘 경로
+  const getBookmarkIconPath = () => {
+    const theme = isDarkMode ? "light" : "dark";
+    return `/src/assets/icons/icon-mypage-bookmark-${theme}.svg`;
+  };
 
   // 페이지네이션 계산 함수
   const updatePageData = useCallback(() => {
@@ -153,7 +203,7 @@ const MyBookmarks: React.FC = () => {
         throw new Error("북마크 데이터를 불러오는데 실패했습니다.");
       }
 
-      // ✅ 수정: mockBookmarks 사용
+      // 수정: mockBookmarks 사용
       setAllBookmarks(mockBookmarks);
       setIsLoading(false);
     } catch (err) {
@@ -327,7 +377,13 @@ const MyBookmarks: React.FC = () => {
           {/* 에러 상태 */}
           {error && (
             <div className="text-center py-12">
-              <div className="text-6xl mb-4">🔖</div>
+              <div className="text-6xl mb-4">
+                <img
+                  src={getBookmarkIconPath()}
+                  alt="북마크"
+                  className="w-16 h-16 mx-auto"
+                />
+              </div>
               <h3 className="text-lg font-medium text-base-content mb-2">
                 문제가 발생했습니다
               </h3>
@@ -418,6 +474,7 @@ const MyBookmarks: React.FC = () => {
                       isSelected={selectedIds.has(bookmark.id)}
                       onSelectionChange={handleSelectionChange}
                       isExiting={isExiting}
+                      getBookmarkIconPath={getBookmarkIconPath}
                     />
                   ))
                 : !isLoading &&
@@ -425,7 +482,11 @@ const MyBookmarks: React.FC = () => {
                   allBookmarks.length === 0 && (
                     <div className="text-center py-12">
                       <div className="text-neutral-content text-4xl mb-4">
-                        🔖
+                        <img
+                          src={getBookmarkIconPath()}
+                          alt="북마크"
+                          className="w-12 h-12 mx-auto"
+                        />
                       </div>
                       <h3 className="text-neutral-content text-lg font-medium mb-2">
                         북마크한 글이 없습니다
