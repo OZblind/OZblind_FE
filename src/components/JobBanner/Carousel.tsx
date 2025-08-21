@@ -26,6 +26,7 @@ export default function Carousel({
   const [perPage, setPerPage] = useState<number>(4);
   const [page, setPage] = useState<number>(0);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const safeItems: JobCard[] = Array.isArray(items) ? items : [];
   const total = safeItems.length;
 
@@ -74,10 +75,10 @@ export default function Carousel({
         </div>
       ) : (
         <>
-          {/* 좌우 화살표 - z-index 낮춤 */}
+          {/* 좌우 화살표 - 여백 공간에 배치 */}
           <button
             type="button"
-            className="btn btn-circle btn-sm absolute -left-6 top-14 z-[1]"
+            className="btn btn-circle btn-sm absolute left-1 top-14 z-[1]"
             onClick={handlePrev}
             disabled={prevDisabled}
             aria-label="이전"
@@ -86,7 +87,7 @@ export default function Carousel({
           </button>
           <button
             type="button"
-            className="btn btn-circle btn-sm absolute -right-6 top-14 z-[1]"
+            className="btn btn-circle btn-sm absolute right-1 top-14 z-[1]"
             onClick={handleNext}
             disabled={nextDisabled}
             aria-label="다음"
@@ -94,10 +95,10 @@ export default function Carousel({
             ▶
           </button>
 
-          {/* 카드 그리드 */}
-          <div className="px-4">
+          {/* 카드 그리드 - 좌우 여백 추가 */}
+          <div className="px-12">
             <div
-              className="grid gap-3"
+              className="grid gap-3 items-start"
               style={{
                 gridTemplateColumns: `repeat(${perPage}, minmax(0, 1fr))`,
               }}
@@ -117,14 +118,7 @@ export default function Carousel({
                         <div className="truncate text-xs text-neutral-content mb-1">
                           {j.company || "Unknown Company"}
                         </div>
-                        <div
-                          className="font-semibold text-base-content text-sm leading-tight overflow-hidden"
-                          style={{
-                            display: "-webkit-box",
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: "vertical",
-                          }}
-                        >
+                        <div className="truncate font-semibold text-base-content text-sm">
                           {j.title}
                         </div>
                       </div>
