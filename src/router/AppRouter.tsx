@@ -309,6 +309,7 @@ export default function AppRouter() {
           <Route path={PATHS.SURVEY_BOARD} element={<TestSurveyList />} />
           <Route path={PATHS.GITHUB_BOARD} element={<TestGithubList />} />
           <Route path={PATHS.POST_CREATE} element={<WritePostPage />} />
+          <Route path={PATHS.POST_DETAIL} element={<PostDetailPage />}></Route>
         </Route>
 
         {/* 에러 */}
