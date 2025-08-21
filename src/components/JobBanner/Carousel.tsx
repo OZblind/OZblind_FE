@@ -26,7 +26,6 @@ export default function Carousel({
   const [perPage, setPerPage] = useState<number>(4);
   const [page, setPage] = useState<number>(0);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const safeItems: JobCard[] = Array.isArray(items) ? items : [];
   const total = safeItems.length;
 
@@ -94,7 +93,6 @@ export default function Carousel({
           >
             ▶
           </button>
-
           {/* 카드 그리드 - 좌우 여백 추가 */}
           <div className="px-12">
             <div

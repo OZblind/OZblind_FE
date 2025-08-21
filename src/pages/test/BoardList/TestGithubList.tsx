@@ -9,13 +9,19 @@ import {
 import GithubList from "@components/Board/github/GithubList";
 import { useInfiniteScroll } from "@hooks/useInfiniteScroll";
 import { formatYyyyMmDdHms } from "@utils/date";
+import { useNavigate } from "react-router-dom";
+import { urlForPost } from "@src/utils/urlForPost";
 
 export default function TestGithubList() {
+  const navigate = useNavigate();
+
   const qc = useQueryClient();
   const [lastLoadedAt, setLastLoadedAt] = useState(
     formatYyyyMmDdHms(new Date())
   );
   const [forcedError, setForcedError] = useState<string | null>(null);
+
+  const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
 
   const {
     data,
@@ -32,8 +38,8 @@ export default function TestGithubList() {
 
   // 센티넬
   const { sentinelRef } = useInfiniteScroll({
-    root: null,
-    rootMargin: "1000px 0px",
+    root: rootEl,
+    rootMargin: "600px 0px",
     threshold: 0,
     disabled: isFetchingNextPage || !hasNextPage || !!forcedError || isError,
     onIntersect: async () => {
@@ -112,7 +118,8 @@ export default function TestGithubList() {
         </div>
       </header>
 
-      <section className="rounded-xl border p-3">
+      {/* ❗️ 본문 내 스크롤 적용 시 부모(wrapper)엔 높이가 있어야 함 ❗️ */}
+      <section className="rounded-xl border p-3 pb-8 h-[calc(100vh-100px)] overflow-hidden">
         <div className="text-xs opacity-70 mb-2">
           {debugText}
           {(isError || !!forcedError) && (
@@ -124,6 +131,13 @@ export default function TestGithubList() {
 
         <GithubList
           items={items}
+          onItemClick={(id) => navigate(urlForPost.postDetail("github", id))}
+          topBar={{
+            boardName: "GitHub 게시판",
+            onOpenSort: () => console.log("정렬 필터 열기"),
+            onOpenTag: () => console.log("태그 필터 열기"),
+            onWrite: () => navigate(urlForPost.postCreate("github")),
+          }}
           lastLoadedAt={lastLoadedAt}
           onRefresh={handleRefresh}
           isLoading={isFetchingNextPage}
@@ -131,6 +145,7 @@ export default function TestGithubList() {
           errorText={forcedError ?? (error as Error)?.message}
           hasMore={!!hasNextPage}
           sentinelRef={sentinelRef}
+          scrollRootRef={setRootEl}
         />
       </section>
     </div>

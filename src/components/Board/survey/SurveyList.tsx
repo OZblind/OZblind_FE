@@ -2,6 +2,9 @@ import ScrollSentinel from "@components/commons/InfiniteScroll/ScrollSentinel";
 import SurveyCard, { type SurveyCardProps } from "./SurveyCard";
 import EmptyState, { type EmptyStateProps } from "../common/EmptyState";
 import { LastLoadedBar, BoardTopBar } from "../common";
+import { useRef, useState } from "react";
+import SortRadioPopover from "@components/Board/common/sort/SortRadioPopover";
+import type { SortValue } from "@src/types/sort";
 
 export type SurveyListProps = {
   items: SurveyCardProps[];
@@ -28,6 +31,8 @@ export type SurveyListProps = {
   empty?: EmptyStateProps;
 
   className?: string;
+
+  scrollRootRef?: (el: HTMLDivElement | null) => void;
 };
 
 export default function SurveyList({
@@ -44,18 +49,24 @@ export default function SurveyList({
   noMoreText = "마지막 페이지입니다.",
   empty,
   className,
+  scrollRootRef,
 }: SurveyListProps) {
   const isEmpty = items.length === 0;
+  const sortBtnRef = useRef<HTMLButtonElement>(null);
+  const [openSort, setOpenSort] = useState(false);
+  const [sort, setSort] = useState<SortValue>("latest"); // 기본값: 최신
 
   return (
-    <section className={className ?? ""}>
+    <section className={`flex h-full flex-col ${className ?? ""}`}>
       {topBar && (
         <BoardTopBar
           boardName={topBar.boardName}
-          onOpenSort={topBar.onOpenSort}
+          onOpenSort={() => setOpenSort((v) => !v)} // 로컬 토글
           onOpenTag={topBar.onOpenTag}
           onWrite={topBar.onWrite}
-          className="mb-2 px-3"
+          sortButtonRef={sortBtnRef}
+          sortActive={sort !== "latest"}
+          className="mb-2 px-3 flex-none"
           meta={
             <LastLoadedBar
               lastLoadedAt={lastLoadedAt}
@@ -67,7 +78,10 @@ export default function SurveyList({
         />
       )}
 
-      <div className="px-3">
+      <div
+        ref={scrollRootRef}
+        className="px-3 flex-1 min-h-0 overflow-y-auto overscroll-contain"
+      >
         {isError && (
           <div className="py-10 text-center text-sm text-red-500">
             {errorText ?? "오류가 발생했습니다."}
@@ -113,6 +127,15 @@ export default function SurveyList({
           </>
         )}
       </div>
+
+      {/* 정렬 팝오버(UI) */}
+      <SortRadioPopover
+        open={openSort}
+        anchorRef={sortBtnRef}
+        value={sort}
+        onChange={(v) => setSort(v)} // 지금은 상태만 변경
+        onRequestClose={() => setOpenSort(false)}
+      />
     </section>
   );
 }
