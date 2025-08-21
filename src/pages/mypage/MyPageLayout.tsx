@@ -1,5 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { Outlet } from "react-router-dom";
+import AssignedTagList from "@src/components/tags/AssignedTagList";
+import { profileToTagsMock } from "@src/mocks/tags.mock";
+import profileImage from "@assets/images/profile.jpg";
 
 // 사용자 프로필 타입 정의
 interface UserProfile {
@@ -7,6 +10,8 @@ interface UserProfile {
   userId?: string;
   profileImage?: string;
   hasKey?: boolean;
+  cohort?: string; // 기수 정보 추가
+  department?: string; // 부서 정보 추가
 }
 
 interface MyPageLayoutProps {
@@ -19,6 +24,8 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
     nickname: "익명",
     userId: "FE001",
     hasKey: false,
+    cohort: "11기",
+    department: "프론트",
   },
   className,
 }) => {
@@ -29,41 +36,13 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
     setIsSettingsOpen(true);
   };
 
-  // useMemo로 계산값 최적화
-  const userType = useMemo(() => {
-    const userId = userProfile.userId || "";
-    if (userId.startsWith("FE")) return "FE";
-    if (userId.startsWith("BE")) return "BE";
-    return "FE"; // 기본값
-  }, [userProfile.userId]);
-
-  const userGeneration = useMemo(() => {
-    const userId = userProfile.userId || "";
-    const idNumber = parseInt(userId.slice(-1)) || 1;
-    return idNumber % 2 === 1 ? "11기" : "12기";
-  }, [userProfile.userId]);
-
-  const typeColor = useMemo(() => {
-    switch (userType) {
-      case "FE":
-        return "bg-gradient-to-r from-blue-500 to-purple-600";
-      case "BE":
-        return "bg-gradient-to-r from-green-500 to-teal-600";
-      default:
-        return "bg-gradient-to-r from-blue-500 to-purple-600";
-    }
-  }, [userType]);
-
-  const generationColor = useMemo(() => {
-    switch (userGeneration) {
-      case "11기":
-        return "bg-gradient-to-r from-orange-500 to-red-500";
-      case "12기":
-        return "bg-gradient-to-r from-purple-500 to-pink-500";
-      default:
-        return "bg-gradient-to-r from-gray-500 to-gray-600";
-    }
-  }, [userGeneration]);
+  // 태그 생성 (팀원의 시스템 사용)
+  const tags = useMemo(() => {
+    return profileToTagsMock(
+      userProfile.cohort || "11기",
+      userProfile.department || "프론트"
+    );
+  }, [userProfile.cohort, userProfile.department]);
 
   return (
     <div className={`min-h-screen bg-base-100 ${className || ""}`}>
@@ -95,11 +74,11 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
                       className="w-full h-full rounded-full object-cover"
                     />
                   ) : (
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-base-100 rounded-full flex items-center justify-center">
-                      <span className="text-base-content text-lg sm:text-2xl">
-                        👤
-                      </span>
-                    </div>
+                    <img
+                      src={profileImage}
+                      alt="프로필"
+                      className="w-full h-full rounded-full object-cover"
+                    />
                   )}
                 </div>
 
@@ -134,25 +113,9 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
               )}
             </div>
 
-            {/* 사용자 정보 - 최적화된 태그들 */}
-            <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
-              {/* 기수 태그 */}
-              <div
-                className={`inline-flex items-center justify-center ${generationColor} text-white px-4 py-1.5 rounded-full font-bold shadow-lg select-none text-sm min-w-[60px]`}
-                role="tag"
-                aria-label={`${userGeneration} 기수`}
-              >
-                <span>{userGeneration}</span>
-              </div>
-
-              {/* FE/BE 태그 */}
-              <div
-                className={`inline-flex items-center justify-center ${typeColor} text-white px-4 py-1.5 rounded-full font-bold shadow-lg select-none text-sm min-w-[60px]`}
-                role="tag"
-                aria-label={`${userType} 개발자`}
-              >
-                <span>{userType}</span>
-              </div>
+            {/* 🔥 기존 하드코딩된 태그를 팀원의 태그 시스템으로 교체 */}
+            <div className="flex flex-wrap items-center justify-center gap-1.5 mb-3">
+              <AssignedTagList tags={tags} />
             </div>
 
             {/* 키 인증 안내 */}

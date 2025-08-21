@@ -44,10 +44,16 @@ import TestPostReadPage from "@src/pages/test/TestPostReadPage";
 import TestMainPage from "@src/pages/test/TestMainPage";
 import TestSurveyList from "@src/pages/test/BoardList/TestSurveyList";
 import TestJobBannerPage from "@src/pages/test/TestJobBanner";
+
 import { isValidOzKeyLocal, resolveCohortNumber } from "@src/utils/auth/ozKey";
 import PostDetailPage from "@src/pages/PostDetailPage";
 import PostListPage from "@src/pages/PostListPage";
 import SurveyListPage from "@src/pages/SurveyListPage";
+
+import TestGithubList from "@src/pages/test/BoardList/TestGithubList";
+import MainLayout from "@src/layouts/MainLayout";
+import WritePostPage from "@src/components/Board/WritePostPage";
+
 
 /** 공개(보호 불필요) 경로 목록 */
 const PUBLIC_PATHS: ReadonlySet<string> = new Set([
@@ -241,6 +247,7 @@ export default function AppRouter() {
         <Route path="/test/main" element={<TestMainPage />}></Route>
         <Route path="/test/board/free-list" element={<TestFreeBoardList />} />
         <Route path="/test/board/survey-list" element={<TestSurveyList />} />
+        <Route path="/test/board/github-list" element={<TestGithubList />} />
         <Route path="/test/jobbanner" element={<TestJobBannerPage />} />
 
         {/* API 테스트 라우트 */}
@@ -256,20 +263,6 @@ export default function AppRouter() {
 
         {/* 인증 로비(공개) */}
         <Route path={PATHS.AUTH} element={<LandingPage />} />
-
-        {/* 보호: /main (JWT + 인증 완료) */}
-        <Route
-          path={PATHS.MAIN}
-          element={
-            isAuthed && isOzAuthenticated === true ? (
-              <MainPage />
-            ) : isAuthed && isOzAuthenticated === false ? (
-              <Navigate to={PATHS.KEY_VERIFY} replace />
-            ) : (
-              redirectWithIntent(PATHS.AUTH, location)
-            )
-          }
-        />
 
         {/* 보호: 마이페이지 (JWT + 인증 완료) */}
         <Route
@@ -304,6 +297,17 @@ export default function AppRouter() {
             )
           }
         />
+
+        {/* 메인 페이지 + 게시글 포함 */}
+        <Route element={<MainLayout />}>
+          <Route path={PATHS.MAIN} element={<MainPage />} />
+          <Route path={PATHS.FREE_BOARD} element={<TestFreeBoardList />} />
+          <Route path={PATHS.JOBS_BOARD} element={<TestFreeBoardList />} />
+          <Route path={PATHS.INFO_BOARD} element={<TestFreeBoardList />} />
+          <Route path={PATHS.SURVEY_BOARD} element={<TestSurveyList />} />
+          <Route path={PATHS.GITHUB_BOARD} element={<TestGithubList />} />
+          <Route path={PATHS.POST_CREATE} element={<WritePostPage />} />
+        </Route>
 
         {/* 에러 */}
         <Route path={PATHS.ERROR_403} element={<Error403 />} />

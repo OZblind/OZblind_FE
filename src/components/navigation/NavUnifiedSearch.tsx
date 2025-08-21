@@ -3,14 +3,20 @@ import { IoSearch, IoClose } from "react-icons/io5";
 import type { NavUnifiedSearchProps, Category } from "../../types/search";
 import { useSearchLogic } from "../../hooks/useSearchLogic";
 import { useKeyboardNavigation } from "../../hooks/useKeyboardNavigation";
+import { useThemeIcon } from "../../hooks/useThemeIcon"; // 팀의 테마 훅 사용
 import CategoryDropdown from "./CategoryDropdown";
 import SearchDropdown from "./SearchDropdown";
 
-const NavUnifiedSearch: React.FC<NavUnifiedSearchProps> = ({
+interface ThemedNavUnifiedSearchProps extends NavUnifiedSearchProps {
+  isDark?: boolean;
+}
+
+const NavUnifiedSearch: React.FC<ThemedNavUnifiedSearchProps> = ({
   className = "",
   placeholder = "검색...",
   mode = "default",
   maxPreviewResults = mode === "detail" ? 8 : 5,
+  isDark, // 상위에서 전달받거나 팀 테마 시스템에서 자동 감지
 }) => {
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] =
     useState<boolean>(false);
@@ -18,6 +24,12 @@ const NavUnifiedSearch: React.FC<NavUnifiedSearchProps> = ({
   const searchRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
+
+  // 팀의 테마 훅 사용
+  const teamTheme = useThemeIcon();
+
+  // isDark가 전달되지 않으면 팀 테마 시스템 사용
+  const currentTheme = isDark !== undefined ? isDark : teamTheme === "oz_dark";
 
   // 검색 로직 훅
   const {
@@ -54,7 +66,6 @@ const NavUnifiedSearch: React.FC<NavUnifiedSearchProps> = ({
     searchInputRef: searchRef,
   });
 
-  // 카테고리 드롭다운 핸들러
   const handleCategoryToggle = () => {
     setIsCategoryDropdownOpen(!isCategoryDropdownOpen);
   };
@@ -68,19 +79,16 @@ const NavUnifiedSearch: React.FC<NavUnifiedSearchProps> = ({
     }, 100);
   };
 
-  // 검색창 닫기 핸들러 확장
   const handleCloseWithDropdown = () => {
     handleClose();
     setIsCategoryDropdownOpen(false);
     searchRef.current?.blur();
   };
 
-  // 외부 클릭 감지
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent): void => {
       const target = event.target as Node;
 
-      // 카테고리 드롭다운 외부 클릭
       if (
         categoryDropdownRef.current &&
         !categoryDropdownRef.current.contains(target)
@@ -88,7 +96,6 @@ const NavUnifiedSearch: React.FC<NavUnifiedSearchProps> = ({
         setIsCategoryDropdownOpen(false);
       }
 
-      // 전체 검색 결과 외부 클릭
       if (resultsRef.current && !resultsRef.current.contains(target)) {
         setIsOpen(false);
         setIsCategoryDropdownOpen(false);
@@ -99,18 +106,41 @@ const NavUnifiedSearch: React.FC<NavUnifiedSearchProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [setIsOpen]);
 
+  // 테마별 스타일 정의
+  const themeStyles = {
+    container: currentTheme
+      ? "!bg-neutral-800 !border-neutral-600 hover:!border-neutral-500"
+      : "!bg-white !border-gray-300 hover:!border-gray-400",
+    focusedContainer: currentTheme
+      ? "!border-neutral-400 !shadow-lg"
+      : "!border-blue-400 !shadow-lg",
+    input: currentTheme
+      ? "!text-white placeholder:!text-neutral-400"
+      : "!text-gray-900 placeholder:!text-gray-500",
+    button: currentTheme
+      ? "!text-neutral-400 hover:!text-white hover:!bg-neutral-700"
+      : "!text-gray-500 hover:!text-gray-700 hover:!bg-gray-100",
+    divider: currentTheme ? "!bg-neutral-600" : "!bg-gray-300",
+  };
+
   return (
     <div className={`relative ${className}`} ref={resultsRef}>
-      {/* 검색창 + 드롭다운 */}
       <div className="relative">
         <div
-          className={`flex items-center bg-neutral-800 rounded-full border transition-all duration-200 ${
-            isOpen || isCategoryDropdownOpen
-              ? "border-neutral-400 shadow-lg"
-              : "border-neutral-600 hover:border-neutral-500"
+          className={`flex items-center rounded-full border transition-all duration-200 ${
+            themeStyles.container
+          } ${
+            isOpen || isCategoryDropdownOpen ? themeStyles.focusedContainer : ""
           }`}
+          style={{
+            backgroundColor: currentTheme
+              ? "#262626 !important"
+              : "#ffffff !important",
+            borderColor: currentTheme
+              ? "#525252 !important"
+              : "#d1d5db !important",
+          }}
         >
-          {/* 카테고리 드롭다운 (왼쪽) */}
           <CategoryDropdown
             selectedCategory={selectedCategory}
             isOpen={isCategoryDropdownOpen}
@@ -119,10 +149,8 @@ const NavUnifiedSearch: React.FC<NavUnifiedSearchProps> = ({
             dropdownRef={categoryDropdownRef}
           />
 
-          {/* 구분선 */}
-          <div className="w-px h-6 bg-neutral-600 mx-2"></div>
+          <div className={`w-px h-6 mx-2 ${themeStyles.divider}`}></div>
 
-          {/* 검색 입력창 (중앙) */}
           <input
             ref={searchRef}
             type="text"
@@ -130,18 +158,20 @@ const NavUnifiedSearch: React.FC<NavUnifiedSearchProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={handleFocus}
-            className="flex-1 bg-transparent text-white placeholder-neutral-400 px-2 py-3 outline-none text-sm"
+            className={`flex-1 bg-transparent px-2 py-3 outline-none text-sm ${themeStyles.input}`}
+            style={{
+              color: currentTheme ? "#ffffff !important" : "#111827 !important",
+            }}
             aria-label="검색어 입력"
             aria-expanded={isOpen}
             aria-haspopup="listbox"
             autoComplete="off"
           />
 
-          {/* 검색 버튼 또는 닫기 버튼 (오른쪽) */}
           {isOpen ? (
             <button
               onClick={handleCloseWithDropdown}
-              className="mr-4 text-neutral-400 hover:text-white transition-colors p-1 rounded-full hover:bg-neutral-700"
+              className={`mr-4 transition-colors p-1 rounded-full ${themeStyles.button}`}
               aria-label="검색창 닫기"
             >
               <IoClose className="w-5 h-5" />
@@ -155,7 +185,7 @@ const NavUnifiedSearch: React.FC<NavUnifiedSearchProps> = ({
                   searchRef.current?.focus();
                 }
               }}
-              className="mr-4 text-neutral-400 hover:text-white transition-colors p-1 rounded-full hover:bg-neutral-700"
+              className={`mr-4 transition-colors p-1 rounded-full ${themeStyles.button}`}
               aria-label="검색 실행"
             >
               <IoSearch className="w-5 h-5" />
@@ -164,7 +194,6 @@ const NavUnifiedSearch: React.FC<NavUnifiedSearchProps> = ({
         </div>
       </div>
 
-      {/* 검색 미리보기 드롭다운 */}
       <SearchDropdown
         isOpen={isOpen}
         searchQuery={searchQuery}
@@ -178,6 +207,7 @@ const NavUnifiedSearch: React.FC<NavUnifiedSearchProps> = ({
         onPostSelect={handlePostSelect}
         onViewAllResults={handleViewAllResults}
         onRetry={handleRetry}
+        isDark={currentTheme}
       />
     </div>
   );

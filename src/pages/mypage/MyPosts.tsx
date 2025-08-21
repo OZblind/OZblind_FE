@@ -21,18 +21,9 @@ import {
   normalizeError,
   safeParseInt,
   safeString,
-  isValidArray,
 } from "@src/utils/errorUtils";
-
-// 게시글 데이터 타입
-interface PostItem {
-  id: number;
-  category: string;
-  title: string;
-  date: string;
-  views?: number;
-  comments?: number;
-}
+import { mockPosts } from "@src/mocks/mypage.mock";
+import type { PostItem } from "@src/types/mypage";
 
 interface PostListItemProps {
   post: PostItem;
@@ -136,60 +127,8 @@ const MyPosts: React.FC = () => {
         throw new Error(ERROR_MESSAGES.LOAD_POSTS);
       }
 
-      const dummyPosts: PostItem[] = [
-        {
-          id: 1,
-          category: "자유",
-          title: "아프면 병원을가 [21]",
-          date: "2024.01.15",
-          views: 124,
-          comments: 21,
-        },
-        {
-          id: 2,
-          category: "질문",
-          title: "동료들과의 관계에 대해서~",
-          date: "2024.01.14",
-          views: 67,
-          comments: 5,
-        },
-        {
-          id: 3,
-          category: "자유",
-          title: "점심 뭐 먹을까 고민입니다",
-          date: "2024.01.13",
-          views: 89,
-          comments: 12,
-        },
-        {
-          id: 4,
-          category: "익명",
-          title: "회사 생활 처음인데 조언 구해요",
-          date: "2024.01.12",
-          views: 156,
-          comments: 8,
-        },
-        {
-          id: 5,
-          category: "자유",
-          title: "오늘 날씨 정말 좋네요 [4]",
-          date: "2024.01.11",
-          views: 43,
-          comments: 4,
-        },
-        {
-          id: 6,
-          category: "질문",
-          title: "신입이 물어보기 어려운 질문들 [3]",
-          date: "2024.01.10",
-          views: 234,
-          comments: 15,
-        },
-      ];
-
-      // 안전한 데이터 검증
-      const validPosts = isValidArray(dummyPosts) ? dummyPosts : [];
-      setPosts(validPosts);
+      // ✅ 목업 데이터 사용 (타입 안전성 확보)
+      setPosts(mockPosts);
       setIsLoading(false);
     } catch (err) {
       const errorMessage = normalizeError(err);
@@ -204,10 +143,12 @@ const MyPosts: React.FC = () => {
 
   // setTimeout 정리가 포함된 뒤로가기 핸들러
   const handleBackClick = () => {
+    // 기존 timeout 정리
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
+
     setIsExiting(true);
     timeoutRef.current = setTimeout(() => {
       navigate("/mypage");

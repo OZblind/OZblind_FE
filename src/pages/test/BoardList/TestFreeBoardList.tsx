@@ -3,6 +3,8 @@ import PostList from "@components/Board/free/PostList";
 import type { FreeBoardItem } from "@components/Board/free/PostRow";
 import { useInfiniteScroll } from "@hooks/useInfiniteScroll";
 import { formatYyMmDd, formatYyyyMmDdHms } from "@utils/date";
+import { urlForPost } from "@utils/urlForPost";
+import { useNavigate } from "react-router-dom";
 
 const PAGE_SIZE = 15;
 const MAX_PAGES = 4;
@@ -30,6 +32,10 @@ function makeMockItems(count: number, startIndex: number): FreeBoardItem[] {
 }
 
 export default function TestFreeBoardList() {
+  const navigate = useNavigate();
+
+  const currentBoard: "free" | "jobs" | "info" = "free";
+
   const [page, setPage] = useState(1);
   const [items, setItems] = useState<FreeBoardItem[]>(() =>
     makeMockItems(PAGE_SIZE, 0)
@@ -44,6 +50,8 @@ export default function TestFreeBoardList() {
   const busyRef = useRef(false);
   const pageRef = useRef(1);
   const hasMoreRef = useRef(true);
+
+  const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
 
   useEffect(() => {
     return () => {
@@ -83,8 +91,8 @@ export default function TestFreeBoardList() {
   }, [page]);
 
   const { sentinelRef } = useInfiniteScroll({
-    root: null,
-    rootMargin: "1000px 0px",
+    root: rootEl,
+    rootMargin: "600px 0px",
     threshold: 0,
     disabled: busy || !hasMore || !!err, // 외부 가드
     onIntersect: loadMore,
@@ -135,7 +143,8 @@ export default function TestFreeBoardList() {
         </div>
       </header>
 
-      <section className="rounded-xl border p-3">
+      {/* ❗️ 본문 내 스크롤 적용 시 부모(wrapper)엔 높이가 있어야 함 ❗️ */}
+      <section className="rounded-xl border p-3 pb-8 h-[calc(100vh-100px)] overflow-hidden">
         <div className="text-xs opacity-70 mb-2">
           page: {page} / hasMore: {String(hasMore)} / busy: {String(busy)} /
           items: {items.length}
@@ -144,12 +153,12 @@ export default function TestFreeBoardList() {
 
         <PostList
           items={items}
-          onItemClick={(id) => console.log("go detail:", id)}
+          onItemClick={(id) => navigate(urlForPost.postDetail("free", id))} // id에 해당하는 게시글 상세 페이지로
           topBar={{
             boardName: "자유 게시판",
             onOpenSort: () => console.log("정렬 필터 열기"),
             onOpenTag: () => console.log("태그 필터 열기"),
-            onWrite: () => console.log("글쓰기 이동"),
+            onWrite: () => navigate(urlForPost.postCreate(currentBoard)), // 자유게시판으로 설정해둠
           }}
           lastLoadedAt={lastLoadedAt}
           onRefresh={handleRefresh}
@@ -158,6 +167,7 @@ export default function TestFreeBoardList() {
           errorText={err ?? undefined}
           hasMore={hasMore}
           sentinelRef={sentinelRef}
+          scrollRootRef={setRootEl}
           empty={{
             message: "조건에 맞는 게시글이 없습니다.",
             actionLabel: "초기화",

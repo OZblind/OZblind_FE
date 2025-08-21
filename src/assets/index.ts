@@ -24,6 +24,18 @@ export { default as iconDelete } from "./icons/icon-delete.svg";
 export { default as iconFilterListDark } from "./icons/icon-filter-list-dark.svg";
 export { default as iconFilterListLight } from "./icons/icon-filter-list-light.svg";
 
+export { default as iconFreeDark } from "./icons/icon-free-dark.svg";
+export { default as iconFreeLight } from "./icons/icon-free-light.svg";
+
+export { default as iconGithubDark } from "./icons/icon-github-dark.svg";
+export { default as iconGithubLight } from "./icons/icon-github-light.svg";
+
+export { default as iconInfoDark } from "./icons/icon-info-dark.svg";
+export { default as iconInfoLight } from "./icons/icon-info-light.svg";
+
+export { default as iconJobsDark } from "./icons/icon-jobs-dark.svg";
+export { default as iconJobsLight } from "./icons/icon-jobs-light.svg";
+
 export { default as iconKeyboardArrowDownDark } from "./icons/icon-keyboard-arrow-down-dark.svg";
 export { default as iconKeyboardArrowDownLight } from "./icons/icon-keyboard-arrow-down-light.svg";
 export { default as iconKeyboardArrowUpDark } from "./icons/icon-keyboard-arrow-up-dark.svg";
@@ -45,6 +57,9 @@ export { default as iconNotificationsOnDark } from "./icons/icon-notifications-o
 export { default as iconNotificationsOnLight } from "./icons/icon-notifications-on-light.svg";
 
 export { default as iconSearch } from "./icons/icon-search.svg";
+
+export { default as iconSurveyDark } from "./icons/icon-survey-dark.svg";
+export { default as iconSurveyLight } from "./icons/icon-survey-light.svg";
 
 export { default as iconThumbDownColor } from "./icons/icon-thumb-down-color.svg";
 export { default as iconThumbDownDark } from "./icons/icon-thumb-down-dark.svg";
@@ -79,6 +94,14 @@ import {
   iconDelete,
   iconFilterListDark,
   iconFilterListLight,
+  iconFreeDark,
+  iconFreeLight,
+  iconGithubDark,
+  iconGithubLight,
+  iconInfoDark,
+  iconInfoLight,
+  iconJobsDark,
+  iconJobsLight,
   iconKeyboardArrowDownDark,
   iconKeyboardArrowDownLight,
   iconKeyboardArrowUpDark,
@@ -95,6 +118,8 @@ import {
   iconNotificationsOnDark,
   iconNotificationsOnLight,
   iconSearch,
+  iconSurveyDark,
+  iconSurveyLight,
   iconThumbDownColor,
   iconThumbDownDark,
   iconThumbDownLight,
@@ -144,6 +169,22 @@ export const icons = {
     dark: iconFilterListDark,
     light: iconFilterListLight,
   },
+  free: {
+    dark: iconFreeDark,
+    light: iconFreeLight,
+  },
+  github: {
+    dark: iconGithubDark,
+    light: iconGithubLight,
+  },
+  info: {
+    dark: iconInfoDark,
+    light: iconInfoLight,
+  },
+  jobs: {
+    dark: iconJobsDark,
+    light: iconJobsLight,
+  },
   keyboardArrowDown: {
     dark: iconKeyboardArrowDownDark,
     light: iconKeyboardArrowDownLight,
@@ -177,6 +218,10 @@ export const icons = {
   },
   search: {
     default: iconSearch,
+  },
+  survey: {
+    dark: iconSurveyDark,
+    light: iconSurveyLight,
   },
   thumbDown: {
     dark: iconThumbDownDark,

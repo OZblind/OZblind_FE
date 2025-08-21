@@ -26,6 +26,8 @@ import { profileToTagsMock } from "@src/mocks/tags.mock";
 import AssignedTagList from "../tags/AssignedTagList";
 import { RepoPreviewCard } from "../Board/RepoPreviewCard";
 import LinkPreviewCard from "../Board/LinkPreviewCard";
+import { useNavigate } from "react-router-dom";
+import { urlForPost } from "@src/utils/urlForPost";
 
 const BOARD_LABEL: Record<string, string> = {
   free: "자유게시판",
@@ -44,6 +46,8 @@ export default function PostDetail({ post }: { post: PostMeta }) {
   const [submitting, setSubmitting] = useState(false);
 
   const [comments, setComments] = useState<CommentMeta[]>(() => demoComments);
+
+  const navigate = useNavigate();
 
   const reaction = useMemo(
     () => ({
@@ -133,6 +137,7 @@ export default function PostDetail({ post }: { post: PostMeta }) {
         icon: <Pencil className="h-4 w-4" />,
         onSelect: () => {
           // TODO: 수정 페이지 이동
+          navigate(urlForPost.postEdit(String(post.id))); // UI 테스트 연결용
         },
       },
       {

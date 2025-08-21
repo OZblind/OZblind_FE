@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToastStore } from "@src/store/toastStore";
 import { PageHeader } from "@src/components/commons/MyPage/PageHeader";
@@ -9,18 +9,11 @@ import {
   getDurationClass,
   SlideInStyles,
 } from "@constants/animations";
+import { mockBookmarks } from "@src/mocks/mypage.mock";
+import type { BookmarkItem } from "@src/types/mypage";
 
-// 북마크 데이터 타입
-interface BookmarkItem {
-  id: number;
-  postId: number;
-  category: string;
-  title: string;
-  date: string;
-  bookmarkedDate: string;
-  views?: number;
-  comments?: number;
-}
+// 페이지네이션 설정
+const ITEMS_PER_PAGE = 5;
 
 interface BookmarkListItemProps {
   bookmark: BookmarkItem;
@@ -29,6 +22,7 @@ interface BookmarkListItemProps {
   isSelected: boolean;
   onSelectionChange: (id: number, checked: boolean) => void;
   isExiting?: boolean;
+  getBookmarkIconPath: () => string; // 추가
 }
 
 const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
@@ -38,6 +32,7 @@ const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
   isSelected,
   onSelectionChange,
   isExiting = false,
+  getBookmarkIconPath,
 }) => {
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
@@ -67,7 +62,7 @@ const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
           type="checkbox"
           checked={isSelected}
           onChange={handleCheckboxChange}
-          className="checkbox checkbox-primary checkbox-sm border-white bg-transparent"
+          className="checkbox checkbox-primary checkbox-sm border border-base-content bg-transparent"
           onClick={(e) => e.stopPropagation()}
         />
       </div>
@@ -98,9 +93,9 @@ const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
         {bookmark.date}
       </div>
 
-      {/* 북마크 아이콘 */}
+      {/* 북마크 아이콘 - 테마에 맞는 SVG */}
       <div className="w-8 h-8 flex items-center justify-center">
-        <span className="text-warning text-lg">🔖</span>
+        <img src={getBookmarkIconPath()} alt="북마크" className="w-5 h-5" />
       </div>
     </div>
   );
@@ -111,8 +106,9 @@ const MyBookmarks: React.FC = () => {
   const [isExiting, setIsExiting] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // 간단한 상태 관리
-  const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
+  // 상태 관리
+  const [allBookmarks, setAllBookmarks] = useState<BookmarkItem[]>([]); // 전체 데이터
+  const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]); // 현재 페이지 데이터
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -121,9 +117,70 @@ const MyBookmarks: React.FC = () => {
 
   // 페이지네이션 상태
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = 4;
+  const totalPages = Math.ceil(allBookmarks.length / ITEMS_PER_PAGE);
 
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 다크모드 감지
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    const checkTheme = () => {
+      const theme = document.documentElement.getAttribute("data-theme");
+      const htmlClass = document.documentElement.className;
+
+      const isDark =
+        theme === "dark" ||
+        theme === "oz_dark" ||
+        theme === "night" ||
+        htmlClass.includes("dark") ||
+        (!theme && window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+      setIsDarkMode(isDark);
+    };
+
+    checkTheme();
+
+    const observer = new MutationObserver(() => {
+      checkTheme();
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme", "class"],
+    });
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleSystemThemeChange = () => {
+      checkTheme();
+    };
+
+    mediaQuery.addEventListener("change", handleSystemThemeChange);
+
+    return () => {
+      observer.disconnect();
+      mediaQuery.removeEventListener("change", handleSystemThemeChange);
+    };
+  }, []);
+
+  // 테마에 따른 북마크 아이콘 경로
+  const getBookmarkIconPath = () => {
+    const theme = isDarkMode ? "light" : "dark";
+    return `/src/assets/icons/icon-mypage-bookmark-${theme}.svg`;
+  };
+
+  // 페이지네이션 계산 함수
+  const updatePageData = useCallback(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const pageData = allBookmarks.slice(startIndex, endIndex);
+    setBookmarks(pageData);
+  }, [currentPage, allBookmarks]);
+
+  // 페이지 변경 시 데이터 업데이트
+  useEffect(() => {
+    updatePageData();
+  }, [updatePageData]);
 
   // 컴포넌트 마운트 시 애니메이션
   useEffect(() => {
@@ -146,61 +203,8 @@ const MyBookmarks: React.FC = () => {
         throw new Error("북마크 데이터를 불러오는데 실패했습니다.");
       }
 
-      // 임시 북마크 데이터
-      const dummyBookmarks: BookmarkItem[] = [
-        {
-          id: 1,
-          postId: 1,
-          category: "자유",
-          title: "안녕하세요 처음 가입했어요 ㅎㅎ ㅎㅎㅎ [21]",
-          date: "2024.01.15",
-          bookmarkedDate: "2024.01.16",
-          views: 124,
-          comments: 21,
-        },
-        {
-          id: 2,
-          postId: 4,
-          category: "익명",
-          title: "회사 생활 처음인데 조언 구해요",
-          date: "2024.01.12",
-          bookmarkedDate: "2024.01.14",
-          views: 156,
-          comments: 8,
-        },
-        {
-          id: 3,
-          postId: 6,
-          category: "질문",
-          title: "신입이 물어보기 어려운 질문들 [3]",
-          date: "2024.01.10",
-          bookmarkedDate: "2024.01.13",
-          views: 234,
-          comments: 15,
-        },
-        {
-          id: 4,
-          postId: 8,
-          category: "자유",
-          title: "점심시간 맛집 추천 받아요!",
-          date: "2024.01.09",
-          bookmarkedDate: "2024.01.12",
-          views: 89,
-          comments: 12,
-        },
-        {
-          id: 5,
-          postId: 12,
-          category: "질문",
-          title: "이직 준비 어떻게 하셨나요?",
-          date: "2024.01.08",
-          bookmarkedDate: "2024.01.11",
-          views: 178,
-          comments: 23,
-        },
-      ];
-
-      setBookmarks(dummyBookmarks);
+      // 수정: mockBookmarks 사용
+      setAllBookmarks(mockBookmarks);
       setIsLoading(false);
     } catch (err) {
       setError(
@@ -216,10 +220,12 @@ const MyBookmarks: React.FC = () => {
   }, []);
 
   const handleBackClick = () => {
+    // 기존 timeout 정리
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
+
     setIsExiting(true);
     timeoutRef.current = setTimeout(() => {
       navigate("/mypage");
@@ -251,6 +257,8 @@ const MyBookmarks: React.FC = () => {
   // 페이지 변경 핸들러
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+    // 선택 상태 초기화 (페이지 이동 시)
+    setSelectedIds(new Set());
     console.log(`북마크 페이지 ${page}로 이동`);
   };
 
@@ -267,10 +275,12 @@ const MyBookmarks: React.FC = () => {
     });
   };
 
-  // 전체 선택/해제 핸들러
+  // 전체 선택/해제 핸들러 (현재 페이지만)
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(new Set(bookmarks.map((b) => b.id)));
+      // 현재 페이지의 북마크들만 선택
+      const currentPageIds = bookmarks.map((b) => b.id);
+      setSelectedIds(new Set(currentPageIds));
     } else {
       setSelectedIds(new Set());
     }
@@ -286,9 +296,9 @@ const MyBookmarks: React.FC = () => {
         ? "선택한 북마크를 삭제하시겠습니까?"
         : `선택한 ${count}개의 북마크를 삭제하시겠습니까?`;
 
-    if (!confirm(message)) return;
+    if (!window.confirm(message)) return;
 
-    const selectedBookmarks = bookmarks.filter((b) => selectedIds.has(b.id));
+    const selectedBookmarks = allBookmarks.filter((b) => selectedIds.has(b.id));
     const deleteMessage =
       count === 1
         ? `"${selectedBookmarks[0].title.slice(
@@ -297,7 +307,8 @@ const MyBookmarks: React.FC = () => {
           )}..." 북마크가 삭제되었습니다`
         : `${count}개의 북마크가 삭제되었습니다`;
 
-    setBookmarks((prev) => prev.filter((b) => !selectedIds.has(b.id)));
+    // 전체 데이터에서 삭제
+    setAllBookmarks((prev) => prev.filter((b) => !selectedIds.has(b.id)));
     performActualDelete(Array.from(selectedIds));
 
     useToastStore.getState().push({
@@ -314,11 +325,11 @@ const MyBookmarks: React.FC = () => {
     console.log(`북마크 ${bookmarkIds.join(", ")} 삭제됨 (서버 API 호출)`);
   };
 
-  // 전체 선택 상태 계산
+  // 전체 선택 상태 계산 (현재 페이지 기준)
   const isAllSelected =
-    bookmarks.length > 0 && selectedIds.size === bookmarks.length;
-  const isPartiallySelected =
-    selectedIds.size > 0 && selectedIds.size < bookmarks.length;
+    bookmarks.length > 0 &&
+    bookmarks.every((bookmark) => selectedIds.has(bookmark.id));
+  const isPartiallySelected = selectedIds.size > 0 && !isAllSelected;
 
   return (
     <>
@@ -336,7 +347,7 @@ const MyBookmarks: React.FC = () => {
         {/* PageHeader 컴포넌트 */}
         <PageHeader
           title="북마크"
-          count={bookmarks.length}
+          count={allBookmarks.length}
           onBackClick={handleBackClick}
           isExiting={isExiting}
           isLoading={isLoading}
@@ -366,7 +377,13 @@ const MyBookmarks: React.FC = () => {
           {/* 에러 상태 */}
           {error && (
             <div className="text-center py-12">
-              <div className="text-6xl mb-4">🔖</div>
+              <div className="text-6xl mb-4">
+                <img
+                  src={getBookmarkIconPath()}
+                  alt="북마크"
+                  className="w-16 h-16 mx-auto"
+                />
+              </div>
               <h3 className="text-lg font-medium text-base-content mb-2">
                 문제가 발생했습니다
               </h3>
@@ -409,7 +426,7 @@ const MyBookmarks: React.FC = () => {
                           if (input) input.indeterminate = isPartiallySelected;
                         }}
                         onChange={(e) => handleSelectAll(e.target.checked)}
-                        className="checkbox checkbox-primary checkbox-sm border-white bg-transparent"
+                        className="checkbox checkbox-primary checkbox-sm border border-base-content bg-transparent"
                       />
                       <span className="text-sm">전체 선택</span>
                     </label>
@@ -447,43 +464,52 @@ const MyBookmarks: React.FC = () => {
               )}
 
               {/* 북마크 리스트 또는 빈 상태 */}
-              {bookmarks.length > 0 ? (
-                bookmarks.map((bookmark, index) => (
-                  <BookmarkListItem
-                    key={bookmark.id}
-                    bookmark={bookmark}
-                    onPostClick={() => handlePostClick(bookmark.postId)}
-                    index={index}
-                    isSelected={selectedIds.has(bookmark.id)}
-                    onSelectionChange={handleSelectionChange}
-                    isExiting={isExiting}
-                  />
-                ))
-              ) : (
-                <div className="text-center py-12">
-                  <div className="text-neutral-content text-4xl mb-4">🔖</div>
-                  <h3 className="text-neutral-content text-lg font-medium mb-2">
-                    북마크한 글이 없습니다
-                  </h3>
-                  <p className="text-neutral-content text-sm mb-6">
-                    마음에 드는 글을 북마크해보세요!
-                  </p>
-                  <button
-                    onClick={() => navigate("/board")}
-                    className={`bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-md text-sm font-medium transition-colors ${getDurationClass(
-                      ANIMATION_TIMINGS.HOVER_TRANSITION
-                    )}`}
-                  >
-                    게시판 보기
-                  </button>
-                </div>
-              )}
+              {bookmarks.length > 0
+                ? bookmarks.map((bookmark, index) => (
+                    <BookmarkListItem
+                      key={bookmark.id}
+                      bookmark={bookmark}
+                      onPostClick={() => handlePostClick(bookmark.postId)}
+                      index={index}
+                      isSelected={selectedIds.has(bookmark.id)}
+                      onSelectionChange={handleSelectionChange}
+                      isExiting={isExiting}
+                      getBookmarkIconPath={getBookmarkIconPath}
+                    />
+                  ))
+                : !isLoading &&
+                  !error &&
+                  allBookmarks.length === 0 && (
+                    <div className="text-center py-12">
+                      <div className="text-neutral-content text-4xl mb-4">
+                        <img
+                          src={getBookmarkIconPath()}
+                          alt="북마크"
+                          className="w-12 h-12 mx-auto"
+                        />
+                      </div>
+                      <h3 className="text-neutral-content text-lg font-medium mb-2">
+                        북마크한 글이 없습니다
+                      </h3>
+                      <p className="text-neutral-content text-sm mb-6">
+                        마음에 드는 글을 북마크해보세요!
+                      </p>
+                      <button
+                        onClick={() => navigate("/board")}
+                        className={`bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-md text-sm font-medium transition-colors ${getDurationClass(
+                          ANIMATION_TIMINGS.HOVER_TRANSITION
+                        )}`}
+                      >
+                        게시판 보기
+                      </button>
+                    </div>
+                  )}
             </>
           )}
         </div>
 
         {/* 페이지네이션 - 데이터가 있을 때만 표시 */}
-        {!isLoading && !error && bookmarks.length > 0 && (
+        {!isLoading && !error && allBookmarks.length > 0 && (
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
