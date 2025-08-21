@@ -37,8 +37,8 @@ export default function MainLayout() {
     <div className="flex w-full min-h-screen">
       <Sidebar />
       <div className="flex-1 flex justify-center">
-        <div className="flex flex-col gap-2 items-center justify-center w-[820px] h-full">
-          <div className="flex items-center gap-4  w-[800px] my-8">
+        <div className="flex flex-col gap-2 items-center w-[820px] h-full pt-1">
+          <div className="flex items-center gap-4 w-[800px] my-8">
             <Link to={PATHS.MAIN}>
               <img src={logo} alt="logo" className="w-24" />
             </Link>

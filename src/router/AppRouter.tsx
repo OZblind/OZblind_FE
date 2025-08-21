@@ -46,6 +46,7 @@ import TestSurveyList from "@src/pages/test/BoardList/TestSurveyList";
 import TestJobBannerPage from "@src/pages/test/TestJobBanner";
 import TestGithubList from "@src/pages/test/BoardList/TestGithubList";
 import MainLayout from "@src/layouts/MainLayout";
+import FreeBoard from "@src/pages/boards/FreeBoard";
 
 /** 공개(보호 불필요) 경로 목록 */
 const PUBLIC_PATHS: ReadonlySet<string> = new Set([
@@ -90,7 +91,7 @@ function KeyVerifyPlaceholder() {
     } catch (err: unknown) {
       const msg =
         typeof err === "object" && err && "message" in err
-          ? (err as { message?: string }).message ?? "인증 실패"
+          ? ((err as { message?: string }).message ?? "인증 실패")
           : "인증 실패";
       push({ message: msg, type: "error" });
     }
@@ -253,7 +254,7 @@ export default function AppRouter() {
         {/* 메인 페이지 + 게시글 포함 */}
         <Route element={<MainLayout />}>
           <Route path={PATHS.MAIN} element={<MainPage />} />
-          <Route path={PATHS.FREE_BOARD} element={<TestFreeBoardList />} />
+          <Route path={PATHS.FREE_BOARD} element={<FreeBoard />} />
           <Route path={PATHS.JOBS_BOARD} element={<TestFreeBoardList />} />
           <Route path={PATHS.INFO_BOARD} element={<TestFreeBoardList />} />
           <Route path={PATHS.SURVEY_BOARD} element={<TestSurveyList />} />
