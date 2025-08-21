@@ -46,6 +46,8 @@ import TestSurveyList from "@src/pages/test/BoardList/TestSurveyList";
 import TestJobBannerPage from "@src/pages/test/TestJobBanner";
 import { isValidOzKeyLocal, resolveCohortNumber } from "@src/utils/auth/ozKey";
 import PostDetailPage from "@src/pages/PostDetailPage";
+import PostListPage from "@src/pages/PostListPage";
+import SurveyListPage from "@src/pages/SurveyListPage";
 
 /** 공개(보호 불필요) 경로 목록 */
 const PUBLIC_PATHS: ReadonlySet<string> = new Set([
@@ -243,6 +245,15 @@ export default function AppRouter() {
 
         {/* API 테스트 라우트 */}
         <Route path="/posts/:id" element={<PostDetailPage />} />
+        <Route path="/boards/free" element={<PostListPage board="free" />} />
+        <Route path="/boards/job" element={<PostListPage board="job" />} />
+        <Route path="/boards/info" element={<PostListPage board="info" />} />
+        <Route path="/boards/survey" element={<SurveyListPage />} />
+        <Route
+          path="/boards/github"
+          element={<PostListPage board="github" />}
+        />
+
         {/* 인증 로비(공개) */}
         <Route path={PATHS.AUTH} element={<LandingPage />} />
 

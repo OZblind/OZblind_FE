@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { fetchPostDetail, type PostDetail as ApiPostDetail } from "@api/posts";
 import PostDetail from "@components/Post/PostDetail"; // 네가 준 컴포넌트
 import type { PostMeta } from "@src/types/post";
+import { fetchGithubExtra, fetchSurveyExtra } from "@src/api/posts.special";
 
 const BOARD_ALIAS: Record<
   number,
@@ -15,11 +16,14 @@ const BOARD_ALIAS: Record<
   5: "github", // 깃헙게시판
 };
 
+type Extra = { formLink?: string; endDate?: string; repoUrl?: string };
+
 export default function PostDetailPage() {
   const { id } = useParams();
   const [data, setData] = useState<ApiPostDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [extra, setExtra] = useState<Extra>({});
 
   useEffect(() => {
     if (!id) return;
@@ -31,6 +35,31 @@ export default function PostDetailPage() {
       .catch((e: any) => setErr(e?.message ?? "게시글을 불러오지 못했습니다."))
       .finally(() => setLoading(false));
   }, [id]);
+
+  // 설문/깃헙 추가정보 GET
+  useEffect(() => {
+    if (!data) return;
+    let cancelled = false;
+    const alias = BOARD_ALIAS[data.board] ?? "free";
+    (async () => {
+      try {
+        if (alias === "survey") {
+          const ex = await fetchSurveyExtra(data.id);
+          if (!cancelled) setExtra({ formLink: ex.link, endDate: ex.end_date });
+        } else if (alias === "github") {
+          const ex = await fetchGithubExtra(data.id);
+          if (!cancelled) setExtra({ repoUrl: ex.link });
+        } else {
+          if (!cancelled) setExtra({});
+        }
+      } catch {
+        if (!cancelled) setExtra({});
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [data]);
 
   const postMeta: PostMeta | null = useMemo(() => {
     if (!data) return null;
@@ -53,11 +82,11 @@ export default function PostDetailPage() {
       },
       createdAt: data.created_at,
       // 선택 필드들 (설문/깃헙 전용 카드가 있어도 빈 값이면 카드가 안 뜸)
-      formLink: undefined,
-      endDate: undefined,
-      repoUrl: undefined,
+      formLink: extra.formLink,
+      endDate: extra.endDate,
+      repoUrl: extra.repoUrl,
     } as unknown as PostMeta;
-  }, [data]);
+  }, [data, extra]);
 
   if (loading) return <div className="p-4">불러오는 중...</div>;
   if (err) return <div className="p-4 text-red-500">{err}</div>;

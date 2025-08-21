@@ -22,7 +22,11 @@ export default function TestHub() {
     { to: "/test/main", label: "메인 페이지 테스트" },
     { to: "/test/board/free-list", label: "자유·취업·정보 리스트 본문 테스트" },
     { to: "/test/board/survey-list", label: "설문 게시글 목록 테스트" },
-    { to: "/test/jobbanner", label: "취업 배너 테스트" },
+    { to: "/boards/free", label: "자유 게시판" },
+    { to: "/boards/job", label: "취업 게시판" },
+    { to: "/boards/info", label: "정보 게시판" },
+    { to: "/boards/survey", label: "설문 게시판" },
+    { to: "/boards/github", label: "GitHub 게시판" },
 
     // 404는 없는 주소
     // --- 인증 관련 테스트 링크 ---

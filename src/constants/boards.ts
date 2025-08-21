@@ -1,7 +1,9 @@
-export type BoardSlug = "free" | "job" | "info";
+export type BoardSlug = "free" | "job" | "info" | "survey" | "github";
 
 export const BOARD_ID: Record<BoardSlug, number> = {
   free: 1,
-  job: 2,
-  info: 3,
+  info: 2,
+  job: 3,
+  survey: 4,
+  github: 5,
 };
