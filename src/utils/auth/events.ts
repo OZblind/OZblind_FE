@@ -5,7 +5,11 @@ export const STORAGE_KEYS = {
   TOKENS: "AUTH_TOKENS",
 } as const;
 
-export type AuthTokens = { accessToken: string; refreshToken?: string | null };
+export type AuthTokens = {
+  expiresIn: number;
+  accessToken: string;
+  refreshToken?: string | null;
+};
 
 export type AuthEvent =
   | { type: "TOKEN_UPDATE"; tokens: AuthTokens }

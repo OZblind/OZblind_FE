@@ -87,7 +87,6 @@ export function normalizeUserToAssignedTags(raw: RawUserProfile): Tag[] {
       id: COHORT_ID(cohort),
       label: cohort,
       category: "cohort",
-      locked: true,
     });
   }
   if (position) {
@@ -95,7 +94,6 @@ export function normalizeUserToAssignedTags(raw: RawUserProfile): Tag[] {
       id: POSITION_ID(position),
       label: position,
       category: "position",
-      locked: true,
     });
   }
   return tags;
