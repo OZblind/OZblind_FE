@@ -10,7 +10,7 @@ export default function LeftTabs({
   const tabs: { key: Source; label: string }[] = [
     { key: "remoteok", label: "원격" },
     { key: "arbeitnow", label: "해외" },
-    { key: "ashby", label: "신생" },
+    { key: "ashby", label: "스타트업" },
   ];
 
   return (

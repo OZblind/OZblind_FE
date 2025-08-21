@@ -49,7 +49,7 @@ export default function CompanyLogo({
     <div
       aria-hidden="true"
       className={[
-        "grid place-items-center rounded bg-gray-100 text-xs font-semibold text-gray-600",
+        "grid place-items-center rounded-lg bg-primary text-primary-content text-xs font-bold border border-base-300",
         className ?? "",
         `h-[${size}px] w-[${size}px]`,
       ].join(" ")}

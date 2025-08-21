@@ -69,15 +69,15 @@ export default function Carousel({
   return (
     <div className="relative" ref={wrapRef}>
       {total === 0 ? (
-        <div className="grid h-48 place-items-center text-gray-500">
+        <div className="grid h-48 place-items-center text-neutral-content">
           공고가 없습니다
         </div>
       ) : (
         <>
-          {/* 좌우 화살표 - 카드에 더 가깝게 */}
+          {/* 좌우 화살표 - z-index 낮춤 */}
           <button
             type="button"
-            className="btn btn-circle btn-sm absolute -left-6 top-12 z-10"
+            className="btn btn-circle btn-sm absolute -left-6 top-14 z-[1]"
             onClick={handlePrev}
             disabled={prevDisabled}
             aria-label="이전"
@@ -86,7 +86,7 @@ export default function Carousel({
           </button>
           <button
             type="button"
-            className="btn btn-circle btn-sm absolute -right-6 top-12 z-10"
+            className="btn btn-circle btn-sm absolute -right-6 top-14 z-[1]"
             onClick={handleNext}
             disabled={nextDisabled}
             aria-label="다음"
@@ -94,10 +94,10 @@ export default function Carousel({
             ▶
           </button>
 
-          {/* 카드 그리드 - 여백 추가 */}
+          {/* 카드 그리드 */}
           <div className="px-4">
             <div
-              className="grid gap-2"
+              className="grid gap-3"
               style={{
                 gridTemplateColumns: `repeat(${perPage}, minmax(0, 1fr))`,
               }}
@@ -110,25 +110,15 @@ export default function Carousel({
                   rel="noreferrer"
                   className="block"
                 >
-                  <article className="relative h-32 rounded-lg border border-base-300 bg-base-200 p-3 hover:shadow-md transition-shadow cursor-pointer">
-                    {/* 상단: 회사 로고와 이니셜 */}
-                    <div className="flex items-center justify-between mb-1">
-                      <CompanyLogo src={j.logo} company={j.company} size={22} />
-                      <div className="w-5 h-5 bg-primary rounded flex items-center justify-center text-xs font-bold text-primary-content">
-                        {(j.company || "C")[0].toUpperCase()}
-                      </div>
-                    </div>
-
-                    {/* 회사명 */}
-                    <div className="text-xs text-base-content mb-1">
-                      {j.company || "Unknown Company"}
-                    </div>
-
-                    {/* 제목 */}
-                    <div className="h-10 mb-1 overflow-hidden">
-                      <div className="font-medium text-base-content text-sm leading-tight">
+                  <article className="h-32 rounded-lg border border-base-300 bg-base-200 p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col">
+                    <div className="mb-3 flex items-center gap-3">
+                      <CompanyLogo src={j.logo} company={j.company} size={32} />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-xs text-neutral-content mb-1">
+                          {j.company || "Unknown Company"}
+                        </div>
                         <div
-                          className="overflow-hidden text-ellipsis"
+                          className="font-semibold text-base-content text-sm leading-tight overflow-hidden"
                           style={{
                             display: "-webkit-box",
                             WebkitLineClamp: 2,
@@ -140,22 +130,19 @@ export default function Carousel({
                       </div>
                     </div>
 
-                    {/* 하단 정보 */}
-                    <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-neutral-content">
-                      <span>
-                        {j.remote ? "Remote" : j.location || "위치 미정"}
+                    <div className="mt-auto flex items-center justify-between text-xs text-neutral-content">
+                      <span className="truncate flex-1 mr-2">
+                        {j.location || (j.remote ? "Remote" : "위치 미정")}
                       </span>
                       {j.publishedAt && (
-                        <time>
+                        <time className="flex-shrink-0">
                           {(() => {
-                            // Unix 타임스탬프인 경우 (숫자만으로 구성된 문자열)
                             if (/^\d+$/.test(j.publishedAt)) {
-                              const timestamp = parseInt(j.publishedAt) * 1000; // 초 단위를 밀리초로 변환
+                              const timestamp = parseInt(j.publishedAt) * 1000;
                               return new Date(timestamp)
                                 .toISOString()
                                 .slice(0, 10);
                             }
-                            // 일반 날짜 문자열인 경우
                             return j.publishedAt.slice(0, 10);
                           })()}
                         </time>
@@ -168,7 +155,7 @@ export default function Carousel({
           </div>
 
           {/* 페이지 정보 */}
-          <div className="mt-1 text-center text-xs text-gray-500">
+          <div className="mt-2 text-center text-xs text-neutral-content">
             {page + 1} / {totalPages}
           </div>
         </>
