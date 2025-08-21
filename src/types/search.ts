@@ -38,7 +38,7 @@ export type Category = (typeof categories)[number];
 export const categoryMapping: Record<Category, string> = {
   전체: "all",
   자유: "free",
-  취업: "job",
+  취업: "jobs",
   정보: "info",
   설문: "survey",
   GitHub: "github", // 백엔드와 대소문자 확인 필요

@@ -9,11 +9,11 @@ import { PostList } from "@src/components/Board/free";
 const PAGE_SIZE = 20;
 
 const BOARD_LABEL: Record<BoardSlug, string> = {
-  free: "자유게시판",
-  info: "정보게시판",
-  job: "취업게시판",
-  survey: "설문게시판",
-  github: "GitHub게시판",
+  free: "자유 게시판",
+  info: "정보 게시판",
+  jobs: "취업 게시판",
+  survey: "설문 게시판",
+  github: "GitHub 게시판",
 };
 
 export default function PostListPage({ board }: { board: BoardSlug }) {
