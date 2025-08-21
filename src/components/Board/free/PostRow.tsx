@@ -15,18 +15,24 @@ type Props = {
   item: FreeBoardItem;
   onClick?: (id: FreeBoardItem["id"]) => void;
   className?: string;
+  /** 작성자 아래 한 줄 (예: “프론트엔드 11기”) */
+  authorSubText?: React.ReactNode;
 };
 
-export default function PostRow({ item, onClick, className }: Props) {
-  const views = Math.max(0, item.views ?? 0); // 음수/null/undefined → 0
+export default function PostRow({
+  item,
+  onClick,
+  className,
+  authorSubText,
+}: Props) {
+  const views = Math.max(0, item.views ?? 0);
   const likes = Math.max(0, item.likes ?? 0);
 
   return (
     <button
       type="button"
       onClick={() => onClick?.(item.id)}
-      className={`${FREE_LIST_GRID} w-full items-center gap-2 rounded-md px-0 py-2 text-sm
-                  hover:bg-base-200/60 focus:outline-none focus:ring-2 focus:ring-primary/40 ${className ?? ""}`}
+      className={`${FREE_LIST_GRID} w-full items-center gap-2 rounded-md px-0 py-2 text-sm hover:bg-base-200/60 focus:outline-none focus:ring-2 focus:ring-primary/40 ${className ?? ""}`}
       aria-label={`게시글 ${item.title}`}
     >
       {/* 번호 */}
@@ -39,9 +45,14 @@ export default function PostRow({ item, onClick, className }: Props) {
         {item.title}
       </span>
 
-      {/* 글쓴이 */}
-      <span className="block w-full truncate text-center text-base-content">
-        {item.author}
+      {/* 글쓴이 + 서브텍스트 */}
+      <span className="block w-full text-center text-base-content">
+        <span className="block truncate">{item.author}</span>
+        {authorSubText ? (
+          <span className="mt-0.5 block text-xs opacity-70 truncate">
+            {authorSubText}
+          </span>
+        ) : null}
       </span>
 
       {/* 등록일 */}
