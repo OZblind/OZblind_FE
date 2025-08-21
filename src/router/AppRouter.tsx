@@ -52,6 +52,9 @@ import SurveyListPage from "@src/pages/SurveyListPage";
 
 import TestGithubList from "@src/pages/test/BoardList/TestGithubList";
 import MainLayout from "@src/layouts/MainLayout";
+import FreeBoard from "@src/pages/boards/FreeBoard";
+import JobsBoard from "@src/pages/boards/JobsBoard";
+import InfoBoard from "@src/pages/boards/InfoBoard";
 import WritePostPage from "@src/components/Board/WritePostPage";
 
 
@@ -118,7 +121,7 @@ function KeyVerifyPlaceholder() {
     } catch (err: unknown) {
       const msg =
         typeof err === "object" && err && "message" in err
-          ? (err as { message?: string }).message ?? "인증 실패"
+          ? ((err as { message?: string }).message ?? "인증 실패")
           : "인증 실패";
       push({ message: msg, type: "error" });
     }
@@ -301,9 +304,9 @@ export default function AppRouter() {
         {/* 메인 페이지 + 게시글 포함 */}
         <Route element={<MainLayout />}>
           <Route path={PATHS.MAIN} element={<MainPage />} />
-          <Route path={PATHS.FREE_BOARD} element={<TestFreeBoardList />} />
-          <Route path={PATHS.JOBS_BOARD} element={<TestFreeBoardList />} />
-          <Route path={PATHS.INFO_BOARD} element={<TestFreeBoardList />} />
+          <Route path={PATHS.FREE_BOARD} element={<FreeBoard />} />
+          <Route path={PATHS.JOBS_BOARD} element={<JobsBoard />} />
+          <Route path={PATHS.INFO_BOARD} element={<InfoBoard />} />
           <Route path={PATHS.SURVEY_BOARD} element={<TestSurveyList />} />
           <Route path={PATHS.GITHUB_BOARD} element={<TestGithubList />} />
           <Route path={PATHS.POST_CREATE} element={<WritePostPage />} />

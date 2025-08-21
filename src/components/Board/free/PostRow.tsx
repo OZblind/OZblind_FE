@@ -3,6 +3,7 @@ export const FREE_LIST_GRID =
 
 export type FreeBoardItem = {
   id: string | number;
+  authorId?: string;
   no?: number;
   title: string;
   author: string;
@@ -15,10 +16,16 @@ type Props = {
   item: FreeBoardItem;
   onClick?: (id: FreeBoardItem["id"]) => void;
   className?: string;
+  authorLabel?: React.ReactNode;
 };
 
-export default function PostRow({ item, onClick, className }: Props) {
-  const views = Math.max(0, item.views ?? 0); // 음수/null/undefined → 0
+export default function PostRow({
+  item,
+  onClick,
+  className,
+  authorLabel,
+}: Props) {
+  const views = Math.max(0, item.views ?? 0);
   const likes = Math.max(0, item.likes ?? 0);
 
   return (
@@ -40,8 +47,8 @@ export default function PostRow({ item, onClick, className }: Props) {
       </span>
 
       {/* 글쓴이 */}
-      <span className="block w-full truncate text-center text-base-content">
-        {item.author}
+      <span className="block w-full text-center text-base-content truncate">
+        {authorLabel ?? item.author}
       </span>
 
       {/* 등록일 */}

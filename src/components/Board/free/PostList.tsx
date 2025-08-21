@@ -5,7 +5,7 @@ import EmptyState, {
 import PostRow, { type FreeBoardItem, FREE_LIST_GRID } from "./PostRow";
 import PostCard from "./PostCard";
 import { LastLoadedBar, BoardTopBar } from "../common";
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import SortRadioPopover from "@components/Board/common/sort/SortRadioPopover";
 import type { SortValue } from "@src/types/sort";
 
@@ -15,6 +15,7 @@ export type PostListProps = {
 
   topBar?: {
     boardName: string;
+    // onOpenSort는 외부에서 넘기지 않아도 됨(내부 제어)
     onOpenSort?: () => void;
     onOpenTag?: () => void;
     onWrite?: () => void;
@@ -32,10 +33,11 @@ export type PostListProps = {
   noMoreText?: string;
 
   empty?: EmptyStateProps;
-
   className?: string;
 
   scrollRootRef?: (el: HTMLDivElement | null) => void;
+
+  renderAuthorLabel?: (item: FreeBoardItem) => ReactNode;
 };
 
 export default function PostList({
@@ -53,10 +55,11 @@ export default function PostList({
   empty,
   className,
   scrollRootRef,
+  renderAuthorLabel,
 }: PostListProps) {
   const sortBtnRef = useRef<HTMLButtonElement>(null);
   const [openSort, setOpenSort] = useState(false);
-  const [sort, setSort] = useState<SortValue>("latest"); // UI 전용 상태 (나중에 로직 연결)
+  const [sort, setSort] = useState<SortValue>("latest"); // UI 전용
   const sortActive = sort !== "latest";
 
   const isEmpty = items.length === 0;
@@ -66,10 +69,10 @@ export default function PostList({
       {topBar && (
         <BoardTopBar
           boardName={topBar.boardName}
-          onOpenSort={() => setOpenSort((v) => !v)} // 로컬 토글
+          onOpenSort={() => setOpenSort((v) => !v)}
           onOpenTag={topBar.onOpenTag}
           onWrite={topBar.onWrite}
-          sortButtonRef={sortBtnRef} // 앵커 ref 전달
+          sortButtonRef={sortBtnRef}
           sortActive={sortActive}
           className="mb-2 px-3 flex-none"
           meta={
@@ -83,30 +86,35 @@ export default function PostList({
         />
       )}
 
-      {/* 본문만 스크롤되도록 */}
+      {/* 본문 스크롤 컨테이너 */}
       <div
         ref={scrollRootRef}
-        className="px-3 flex-1 min-h-0 overflow-y-auto overscroll-contain"
+        className="w-full px-3 flex-1 min-h-0 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]"
       >
         {isError && (
-          <div className="py-10 text-center text-sm text-red-500">
+          <div className="w-full py-10 text-center text-sm text-red-500">
             {errorText ?? "오류가 발생했습니다."}
           </div>
         )}
 
         {!isError && isLoading && isEmpty && (
-          <div className="py-6 text-center text-sm">불러오는 중…</div>
+          <div className="w-full py-6 text-center text-sm">
+            게시글 불러오는 중…
+          </div>
         )}
 
-        {!isError && !isLoading && isEmpty && <EmptyState {...empty} />}
+        {!isError && !isLoading && isEmpty && (
+          <div className="w-full py-6">
+            <EmptyState {...empty} />
+          </div>
+        )}
 
         {!isError && !(isLoading && isEmpty) && !isEmpty && (
           <>
-            {/* 데스크톱(테이블) */}
+            {/* 데스크톱(테이블) — 작성자 라인을 텍스트로 대체 */}
             <div className="hidden md:block">
               <div
-                className={`${FREE_LIST_GRID} gap-2 py-2 text-xs font-medium text-base-content/60 sticky top-0 z-10
-                bg-base-100 border-b border-base-300`}
+                className={`${FREE_LIST_GRID} gap-2 py-2 text-xs font-medium text-base-content/60 sticky top-0 z-10 bg-base-100 border-b border-base-300`}
               >
                 <div className="text-center">번호</div>
                 <div className="text-center">제목</div>
@@ -119,27 +127,45 @@ export default function PostList({
               <ul className="divide-y divide-base-300">
                 {items.map((it) => (
                   <li key={String(it.id)}>
-                    <PostRow item={it} onClick={onItemClick} />
+                    <PostRow
+                      item={it}
+                      onClick={onItemClick}
+                      authorLabel={renderAuthorLabel?.(it)}
+                    />
                   </li>
                 ))}
               </ul>
             </div>
 
-            {/* 모바일(카드) */}
+            {/* 모바일(카드) — 작성자 라인을 텍스트로 대체 */}
             <div className="md:hidden">
               <ul className="space-y-2 max-[360px]:space-y-1.5">
                 {items.map((it) => (
                   <li key={String(it.id)}>
-                    <PostCard item={it} onClick={onItemClick} />
+                    <PostCard
+                      item={it}
+                      onClick={onItemClick}
+                      authorLabel={renderAuthorLabel?.(it)}
+                    />
                   </li>
                 ))}
               </ul>
             </div>
 
-            {/* 센티넬 & 마지막 페이지 문구 */}
+            {/* 센티넬 */}
             <div className="mt-2">
               {hasMore !== false && <ScrollSentinel innerRef={sentinelRef} />}
             </div>
+
+            {isLoading && items.length > 0 && (
+              <div
+                className="py-3 text-center text-xs opacity-70"
+                aria-live="polite"
+                role="status"
+              >
+                게시글 더 불러오는 중…
+              </div>
+            )}
 
             {!isLoading && hasMore === false && (
               <div className="py-6 text-center text-xs text-base-content/60">
@@ -155,9 +181,7 @@ export default function PostList({
         open={openSort}
         anchorRef={sortBtnRef}
         value={sort}
-        onChange={(v) => {
-          setSort(v); /* 지금은 UI만 */
-        }}
+        onChange={(v) => setSort(v)}
         onRequestClose={() => setOpenSort(false)}
       />
     </section>
