@@ -12,6 +12,10 @@ import {
 import { mockBookmarks } from "@src/mocks/mypage.mock";
 import type { BookmarkItem } from "@src/types/mypage";
 
+// 북마크 아이콘 import
+import bookmarkDarkIcon from "@assets/icons/icon-mypage-bookmark-dark.svg";
+import bookmarkLightIcon from "@assets/icons/icon-mypage-bookmark-light.svg";
+
 // 페이지네이션 설정
 const ITEMS_PER_PAGE = 5;
 
@@ -22,7 +26,7 @@ interface BookmarkListItemProps {
   isSelected: boolean;
   onSelectionChange: (id: number, checked: boolean) => void;
   isExiting?: boolean;
-  getBookmarkIconPath: () => string; // 추가
+  getBookmarkIconPath: () => string;
 }
 
 const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
@@ -93,7 +97,7 @@ const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
         {bookmark.date}
       </div>
 
-      {/* 북마크 아이콘 - 테마에 맞는 SVG */}
+      {/* 북마크 아이콘 */}
       <div className="w-8 h-8 flex items-center justify-center">
         <img src={getBookmarkIconPath()} alt="북마크" className="w-5 h-5" />
       </div>
@@ -107,8 +111,8 @@ const MyBookmarks: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
 
   // 상태 관리
-  const [allBookmarks, setAllBookmarks] = useState<BookmarkItem[]>([]); // 전체 데이터
-  const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]); // 현재 페이지 데이터
+  const [allBookmarks, setAllBookmarks] = useState<BookmarkItem[]>([]);
+  const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -165,8 +169,7 @@ const MyBookmarks: React.FC = () => {
 
   // 테마에 따른 북마크 아이콘 경로
   const getBookmarkIconPath = () => {
-    const theme = isDarkMode ? "light" : "dark";
-    return `/src/assets/icons/icon-mypage-bookmark-${theme}.svg`;
+    return isDarkMode ? bookmarkLightIcon : bookmarkDarkIcon;
   };
 
   // 페이지네이션 계산 함수
@@ -193,17 +196,14 @@ const MyBookmarks: React.FC = () => {
       setIsLoading(true);
       setError(null);
 
-      // 시뮬레이션: 네트워크 지연
       await new Promise((resolve) =>
         setTimeout(resolve, ANIMATION_TIMINGS.LOADING_DELAY_BOOKMARKS)
       );
 
-      // 시뮬레이션: 가끔 에러 발생 (테스트용)
       if (Math.random() < 0.1) {
         throw new Error("북마크 데이터를 불러오는데 실패했습니다.");
       }
 
-      // 수정: mockBookmarks 사용
       setAllBookmarks(mockBookmarks);
       setIsLoading(false);
     } catch (err) {
@@ -220,7 +220,6 @@ const MyBookmarks: React.FC = () => {
   }, []);
 
   const handleBackClick = () => {
-    // 기존 timeout 정리
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -233,7 +232,6 @@ const MyBookmarks: React.FC = () => {
     }, ANIMATION_TIMINGS.PAGE_TRANSITION);
   };
 
-  // 컴포넌트 언마운트 시 setTimeout 정리
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
@@ -243,26 +241,20 @@ const MyBookmarks: React.FC = () => {
     };
   }, []);
 
-  // 게시글 클릭 핸들러
   const handlePostClick = (postId: number) => {
     console.log(`게시글 ${postId}로 이동`);
-    // navigate(`/post/${postId}`);
   };
 
-  // 재시도 핸들러
   const handleRetry = () => {
     loadBookmarks();
   };
 
-  // 페이지 변경 핸들러
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    // 선택 상태 초기화 (페이지 이동 시)
     setSelectedIds(new Set());
     console.log(`북마크 페이지 ${page}로 이동`);
   };
 
-  // 체크박스 선택 핸들러
   const handleSelectionChange = (id: number, checked: boolean) => {
     setSelectedIds((prev) => {
       const newSet = new Set(prev);
@@ -275,10 +267,8 @@ const MyBookmarks: React.FC = () => {
     });
   };
 
-  // 전체 선택/해제 핸들러 (현재 페이지만)
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      // 현재 페이지의 북마크들만 선택
       const currentPageIds = bookmarks.map((b) => b.id);
       setSelectedIds(new Set(currentPageIds));
     } else {
@@ -286,7 +276,6 @@ const MyBookmarks: React.FC = () => {
     }
   };
 
-  // 선택된 북마크들 삭제 핸들러
   const handleDeleteSelected = () => {
     if (selectedIds.size === 0) return;
 
@@ -307,7 +296,6 @@ const MyBookmarks: React.FC = () => {
           )}..." 북마크가 삭제되었습니다`
         : `${count}개의 북마크가 삭제되었습니다`;
 
-    // 전체 데이터에서 삭제
     setAllBookmarks((prev) => prev.filter((b) => !selectedIds.has(b.id)));
     performActualDelete(Array.from(selectedIds));
 
@@ -320,12 +308,10 @@ const MyBookmarks: React.FC = () => {
     setSelectedIds(new Set());
   };
 
-  // 실제 삭제 처리 (서버 API 호출)
   const performActualDelete = (bookmarkIds: number[]) => {
-    console.log(`북마크 ${bookmarkIds.join(", ")} 삭제됨 (서버 API 호출)`);
+    console.log(`북마크 ${bookmarkIds.join(", ")} 삭제됨`);
   };
 
-  // 전체 선택 상태 계산 (현재 페이지 기준)
   const isAllSelected =
     bookmarks.length > 0 &&
     bookmarks.every((bookmark) => selectedIds.has(bookmark.id));
@@ -344,7 +330,6 @@ const MyBookmarks: React.FC = () => {
             : ANIMATION_CLASSES.PAGE_INITIAL
         }`}
       >
-        {/* PageHeader 컴포넌트 */}
         <PageHeader
           title="북마크"
           count={allBookmarks.length}
@@ -354,7 +339,6 @@ const MyBookmarks: React.FC = () => {
           hasError={!!error}
         />
 
-        {/* 메인 컨텐츠 */}
         <div
           className={`bg-base-200 rounded-lg overflow-hidden transition-all ${getDurationClass(
             ANIMATION_TIMINGS.ITEM_APPEAR
@@ -364,7 +348,6 @@ const MyBookmarks: React.FC = () => {
               : ANIMATION_CLASSES.CONTAINER_ENTER
           }`}
         >
-          {/* 로딩 상태 */}
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-12">
               <span className="loading loading-spinner loading-primary loading-lg"></span>
@@ -374,7 +357,6 @@ const MyBookmarks: React.FC = () => {
             </div>
           )}
 
-          {/* 에러 상태 */}
           {error && (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">
@@ -411,10 +393,8 @@ const MyBookmarks: React.FC = () => {
             </div>
           )}
 
-          {/* 정상 상태 - 북마크 목록 */}
           {!isLoading && !error && (
             <>
-              {/* 선택 및 삭제 컨트롤 */}
               {bookmarks.length > 0 && (
                 <div className="flex items-center justify-between p-3 bg-base-300/30 border-b border-base-300">
                   <div className="flex items-center gap-3">
@@ -453,17 +433,15 @@ const MyBookmarks: React.FC = () => {
                 </div>
               )}
 
-              {/* 안내 메시지 */}
               {bookmarks.length > 0 && (
                 <div className="p-3 bg-info/10 border-b border-base-300">
                   <p className="text-sm text-info">
-                    💡 체크박스로 북마크를 선택하고 "선택 삭제" 버튼으로 일괄
+                    체크박스로 북마크를 선택하고 "선택 삭제" 버튼으로 일괄
                     삭제할 수 있습니다.
                   </p>
                 </div>
               )}
 
-              {/* 북마크 리스트 또는 빈 상태 */}
               {bookmarks.length > 0
                 ? bookmarks.map((bookmark, index) => (
                     <BookmarkListItem
@@ -508,7 +486,6 @@ const MyBookmarks: React.FC = () => {
           )}
         </div>
 
-        {/* 페이지네이션 - 데이터가 있을 때만 표시 */}
         {!isLoading && !error && allBookmarks.length > 0 && (
           <Pagination
             currentPage={currentPage}
@@ -520,7 +497,6 @@ const MyBookmarks: React.FC = () => {
         )}
       </div>
 
-      {/* 공통 CSS 애니메이션 컴포넌트 사용 */}
       <SlideInStyles />
     </>
   );

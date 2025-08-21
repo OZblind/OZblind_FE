@@ -5,8 +5,14 @@ import { ANIMATION_TIMINGS, ANIMATION_KEYFRAMES } from "@constants/animations";
 import { LIST_SETTINGS, EMPTY_MESSAGES } from "@constants/ui";
 import { mockMyPageCards } from "@src/mocks/mypage.mock";
 import type { MyPageCardData } from "@src/types/mypage";
-// SVG import 문제로 임시 주석 처리
-// import BookmarkIconSvg from "@assets/icons/icon-bookmark-color.svg";
+
+// 아이콘 import
+import bookmarkDarkIcon from "@assets/icons/icon-mypage-bookmark-dark.svg";
+import bookmarkLightIcon from "@assets/icons/icon-mypage-bookmark-light.svg";
+import writingDarkIcon from "@assets/icons/icon-mypage-writing-dark.svg";
+import writingLightIcon from "@assets/icons/icon-mypage-writing-light.svg";
+import chatDarkIcon from "@assets/icons/icon-mypage-chat-dark.svg";
+import chatLightIcon from "@assets/icons/icon-mypage-chat-light.svg";
 
 // 개별 카드 컴포넌트
 interface CardProps {
@@ -22,7 +28,7 @@ interface CardProps {
   onClick: () => void;
   isExpanding?: boolean;
   isClicked?: boolean;
-  getIconPath: (iconType: string) => string; // 추가
+  getIconPath: (iconType: string) => string;
 }
 
 const Card: React.FC<CardProps> = ({
@@ -211,7 +217,7 @@ const MyPageMain: React.FC = () => {
   // setTimeout 대신 pendingPath로 안전한 네비게이션 관리
   const pendingPathRef = useRef<string | null>(null);
 
-  // 다크모드 감지 (document.documentElement의 data-theme 또는 class 확인)
+  // 다크모드 감지
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
@@ -219,10 +225,9 @@ const MyPageMain: React.FC = () => {
       const theme = document.documentElement.getAttribute("data-theme");
       const htmlClass = document.documentElement.className;
 
-      // 다크 테마 감지 로직 (oz_dark 추가)
       const isDark =
         theme === "dark" ||
-        theme === "oz_dark" || // 프로젝트 커스텀 다크 테마 추가
+        theme === "oz_dark" ||
         theme === "night" ||
         htmlClass.includes("dark") ||
         (!theme && window.matchMedia("(prefers-color-scheme: dark)").matches);
@@ -232,7 +237,6 @@ const MyPageMain: React.FC = () => {
 
     checkTheme();
 
-    // 테마 변경 감지
     const observer = new MutationObserver(() => {
       checkTheme();
     });
@@ -242,7 +246,6 @@ const MyPageMain: React.FC = () => {
       attributeFilter: ["data-theme", "class"],
     });
 
-    // 시스템 다크모드 변경 감지
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleSystemThemeChange = () => {
       checkTheme();
@@ -256,22 +259,20 @@ const MyPageMain: React.FC = () => {
     };
   }, []);
 
-  // 테마에 따른 아이콘 경로 반환
+  // 테마에 따른 아이콘 경로 반환 (import된 아이콘 사용)
   const getIconPath = (iconType: string) => {
-    const theme = isDarkMode ? "light" : "dark";
     switch (iconType) {
       case "writing":
-        return `/src/assets/icons/icon-mypage-writing-${theme}.svg`;
+        return isDarkMode ? writingLightIcon : writingDarkIcon;
       case "chat":
-        return `/src/assets/icons/icon-mypage-chat-${theme}.svg`;
+        return isDarkMode ? chatLightIcon : chatDarkIcon;
       case "bookmark":
-        return `/src/assets/icons/icon-mypage-bookmark-${theme}.svg`;
+        return isDarkMode ? bookmarkLightIcon : bookmarkDarkIcon;
       default:
         return "";
     }
   };
 
-  // 임시로 기존 방식 유지 (SVG import 문제로 인해)
   const cardData: MyPageCardData[] = mockMyPageCards;
 
   // setTimeout 제거: 애니메이션 이벤트 기반으로 네비게이션
@@ -329,7 +330,7 @@ const MyPageMain: React.FC = () => {
         </div>
       </div>
 
-      {/* ✅ setTimeout 제거: onAnimationEnd 이벤트로 안정적 네비게이션 */}
+      {/* setTimeout 제거: onAnimationEnd 이벤트로 안정적 네비게이션 */}
       {isExpanding && (
         <div
           className="fixed inset-0 bg-base-100 z-30"
