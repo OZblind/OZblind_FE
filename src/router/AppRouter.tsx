@@ -47,6 +47,8 @@ import TestJobBannerPage from "@src/pages/test/TestJobBanner";
 import TestGithubList from "@src/pages/test/BoardList/TestGithubList";
 import MainLayout from "@src/layouts/MainLayout";
 import FreeBoard from "@src/pages/boards/FreeBoard";
+import JobsBoard from "@src/pages/boards/JobsBoard";
+import InfoBoard from "@src/pages/boards/InfoBoard";
 
 /** 공개(보호 불필요) 경로 목록 */
 const PUBLIC_PATHS: ReadonlySet<string> = new Set([
@@ -255,8 +257,8 @@ export default function AppRouter() {
         <Route element={<MainLayout />}>
           <Route path={PATHS.MAIN} element={<MainPage />} />
           <Route path={PATHS.FREE_BOARD} element={<FreeBoard />} />
-          <Route path={PATHS.JOBS_BOARD} element={<TestFreeBoardList />} />
-          <Route path={PATHS.INFO_BOARD} element={<TestFreeBoardList />} />
+          <Route path={PATHS.JOBS_BOARD} element={<JobsBoard />} />
+          <Route path={PATHS.INFO_BOARD} element={<InfoBoard />} />
           <Route path={PATHS.SURVEY_BOARD} element={<TestSurveyList />} />
           <Route path={PATHS.GITHUB_BOARD} element={<TestGithubList />} />
         </Route>
