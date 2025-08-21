@@ -22,6 +22,7 @@ interface BookmarkListItemProps {
   isSelected: boolean;
   onSelectionChange: (id: number, checked: boolean) => void;
   isExiting?: boolean;
+  getBookmarkIconPath: () => string; // 추가
 }
 
 const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
@@ -31,6 +32,7 @@ const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
   isSelected,
   onSelectionChange,
   isExiting = false,
+  getBookmarkIconPath,
 }) => {
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
@@ -91,13 +93,9 @@ const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
         {bookmark.date}
       </div>
 
-      {/* 북마크 아이콘 - SVG로 변경 */}
+      {/* 북마크 아이콘 - 테마에 맞는 SVG */}
       <div className="w-8 h-8 flex items-center justify-center">
-        <img
-          src="/src/assets/icons/icon-bookmark-color.svg"
-          alt="북마크"
-          className="w-5 h-5"
-        />
+        <img src={getBookmarkIconPath()} alt="북마크" className="w-5 h-5" />
       </div>
     </div>
   );
@@ -122,6 +120,54 @@ const MyBookmarks: React.FC = () => {
   const totalPages = Math.ceil(allBookmarks.length / ITEMS_PER_PAGE);
 
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 다크모드 감지
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    const checkTheme = () => {
+      const theme = document.documentElement.getAttribute("data-theme");
+      const htmlClass = document.documentElement.className;
+
+      const isDark =
+        theme === "dark" ||
+        theme === "oz_dark" ||
+        theme === "night" ||
+        htmlClass.includes("dark") ||
+        (!theme && window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+      setIsDarkMode(isDark);
+    };
+
+    checkTheme();
+
+    const observer = new MutationObserver(() => {
+      checkTheme();
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme", "class"],
+    });
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleSystemThemeChange = () => {
+      checkTheme();
+    };
+
+    mediaQuery.addEventListener("change", handleSystemThemeChange);
+
+    return () => {
+      observer.disconnect();
+      mediaQuery.removeEventListener("change", handleSystemThemeChange);
+    };
+  }, []);
+
+  // 테마에 따른 북마크 아이콘 경로
+  const getBookmarkIconPath = () => {
+    const theme = isDarkMode ? "light" : "dark";
+    return `/src/assets/icons/icon-mypage-bookmark-${theme}.svg`;
+  };
 
   // 페이지네이션 계산 함수
   const updatePageData = useCallback(() => {
@@ -333,7 +379,7 @@ const MyBookmarks: React.FC = () => {
             <div className="text-center py-12">
               <div className="text-6xl mb-4">
                 <img
-                  src="/src/assets/icons/icon-bookmark-color.svg"
+                  src={getBookmarkIconPath()}
                   alt="북마크"
                   className="w-16 h-16 mx-auto"
                 />
@@ -428,6 +474,7 @@ const MyBookmarks: React.FC = () => {
                       isSelected={selectedIds.has(bookmark.id)}
                       onSelectionChange={handleSelectionChange}
                       isExiting={isExiting}
+                      getBookmarkIconPath={getBookmarkIconPath}
                     />
                   ))
                 : !isLoading &&
@@ -436,7 +483,7 @@ const MyBookmarks: React.FC = () => {
                     <div className="text-center py-12">
                       <div className="text-neutral-content text-4xl mb-4">
                         <img
-                          src="/src/assets/icons/icon-bookmark-color.svg"
+                          src={getBookmarkIconPath()}
                           alt="북마크"
                           className="w-12 h-12 mx-auto"
                         />
