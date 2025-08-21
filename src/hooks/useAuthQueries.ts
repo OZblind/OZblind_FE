@@ -102,7 +102,11 @@ export function useLoginWithGoogleMutation() {
       }
 
       // active/activated → 토큰 저장 완료(auth.ts 내부에서 tokenStore.set 호출됨)
-      postTokenUpdate({ accessToken: res.access, refreshToken: res.refresh });
+      postTokenUpdate({
+        accessToken: res.access,
+        refreshToken: res.refresh,
+        expiresIn: 0,
+      });
 
       // 프로필 동기화
       const p = await getProfile();
@@ -139,7 +143,11 @@ export function useActivateWithKeyMutation() {
     mutationFn: activateWithKey,
     onSuccess: async (res) => {
       // 토큰 브로드캐스트
-      postTokenUpdate({ accessToken: res.access, refreshToken: res.refresh });
+      postTokenUpdate({
+        accessToken: res.access,
+        refreshToken: res.refresh,
+        expiresIn: 0,
+      });
 
       // 프로필 동기화
       const p = await getProfile();
