@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { Outlet } from "react-router-dom";
 import AssignedTagList from "@src/components/tags/AssignedTagList";
 import { profileToTagsMock } from "@src/mocks/tags.mock";
+import profileImage from "@assets/images/profile.jpg";
 
 // 사용자 프로필 타입 정의
 interface UserProfile {
@@ -35,7 +36,7 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
     setIsSettingsOpen(true);
   };
 
-  // 태그 생성
+  // 태그 생성 (팀원의 시스템 사용)
   const tags = useMemo(() => {
     return profileToTagsMock(
       userProfile.cohort || "11기",
@@ -73,11 +74,11 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
                       className="w-full h-full rounded-full object-cover"
                     />
                   ) : (
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-base-100 rounded-full flex items-center justify-center">
-                      <span className="text-base-content text-lg sm:text-2xl">
-                        👤
-                      </span>
-                    </div>
+                    <img
+                      src={profileImage}
+                      alt="프로필"
+                      className="w-full h-full rounded-full object-cover"
+                    />
                   )}
                 </div>
 

@@ -326,6 +326,19 @@ export const mockMyPageCards: MyPageCardData[] = [
     count: 8,
     icon: "🔖",
     path: "bookmarks",
-    items: [],
+    items: [
+      {
+        id: 1,
+        title: "안녕하세요 처음 가입했어요 ㅎㅎ",
+        date: "01.16",
+        category: "자유",
+      },
+      {
+        id: 2,
+        title: "회사 생활 처음인데 조언 구해요",
+        date: "01.14",
+        category: "익명",
+      },
+    ],
   },
 ];
