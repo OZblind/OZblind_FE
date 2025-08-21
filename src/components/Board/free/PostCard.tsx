@@ -4,14 +4,14 @@ type Props = {
   item: FreeBoardItem;
   onClick?: (id: FreeBoardItem["id"]) => void;
   className?: string;
-  authorBadges?: React.ReactNode;
+  authorLabel?: React.ReactNode;
 };
 
 export default function PostCard({
   item,
   onClick,
   className,
-  authorBadges,
+  authorLabel,
 }: Props) {
   const views = Math.max(0, item.views ?? 0);
   const likes = Math.max(0, item.likes ?? 0);
@@ -38,19 +38,21 @@ export default function PostCard({
         </span>
       </div>
 
+      {/* 메타: [No · 작성자] / [추천 · 조회] */}
       <div className="mt-2 grid grid-cols-2 items-start gap-x-3 gap-y-1 text-xs max-[380px]:text-[11px] max-[380px]:mt-1">
-        {/* 좌: No, 작성자, TagBadge */}
+        {/* 좌: No, 작성자 */}
         <div className="space-y-0.5">
           {item.no != null && (
             <div className="truncate text-base-content/60">No.{item.no}</div>
           )}
-          <div className="truncate text-base-content/60">{item.author}</div>
 
-          {/* TagBadge 영역 */}
-          {authorBadges ? <div className="pt-0.5">{authorBadges}</div> : null}
+          {/* 작성자 라인을 authorSubText로 대체, 없으면 기존 author */}
+          <div className="truncate text-base-content/60">
+            {authorLabel ?? item.author}
+          </div>
         </div>
 
-        {/* 우: 추천, 조회 (값 강조, 우측 정렬) */}
+        {/* 우: 추천, 조회 */}
         <div className="space-y-0.5 text-right">
           <div className="truncate">
             <span className="text-base-content/60">추천 </span>
