@@ -84,12 +84,11 @@ export const makeAssignedTags = (
   cohort: CohortLabel,
   position: PositionLabel
 ): Tag[] => [
-  { id: cohortId(cohort), label: cohort, category: "cohort", locked: true },
+  { id: cohortId(cohort), label: cohort, category: "cohort" },
   {
     id: positionId(position),
     label: position,
     category: "position",
-    locked: true,
   },
 ];
 
