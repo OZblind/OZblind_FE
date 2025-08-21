@@ -105,10 +105,8 @@ export default function MainPage() {
     setLastLoadedAt(formatYyyyMmDdHms(new Date()));
   };
   return (
-    <main>
-      <div className="w-[800px] h-[180px]">
-        <JobBannerTabs />
-      </div>
+    <main className="flex flex-col gap-2">
+      <JobBannerTabs />
       <HotBoard />
       <div className="w-[800px] pb-8">
         <p className="py-2 text-base-content/50">최신글</p>
