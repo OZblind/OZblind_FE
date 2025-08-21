@@ -38,21 +38,19 @@ export default function PostCard({
         </span>
       </div>
 
-      {/* 메타: [No · 작성자(+뱃지)] / [추천 · 조회] */}
       <div className="mt-2 grid grid-cols-2 items-start gap-x-3 gap-y-1 text-xs max-[380px]:text-[11px] max-[380px]:mt-1">
         {/* 좌: No, 작성자, TagBadge */}
         <div className="space-y-0.5">
           {item.no != null && (
             <div className="truncate text-base-content/60">No.{item.no}</div>
           )}
-
           <div className="truncate text-base-content/60">{item.author}</div>
 
           {/* TagBadge 영역 */}
           {authorBadges ? <div className="pt-0.5">{authorBadges}</div> : null}
         </div>
 
-        {/* 우: 추천, 조회 */}
+        {/* 우: 추천, 조회 (값 강조, 우측 정렬) */}
         <div className="space-y-0.5 text-right">
           <div className="truncate">
             <span className="text-base-content/60">추천 </span>

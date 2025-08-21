@@ -60,7 +60,7 @@ export default function PostList({
 }: PostListProps) {
   const sortBtnRef = useRef<HTMLButtonElement>(null);
   const [openSort, setOpenSort] = useState(false);
-  const [sort, setSort] = useState<SortValue>("latest");
+  const [sort, setSort] = useState<SortValue>("latest"); // UI 전용
   const sortActive = sort !== "latest";
 
   const isEmpty = items.length === 0;
@@ -87,6 +87,7 @@ export default function PostList({
         />
       )}
 
+      {/* 본문 스크롤 컨테이너 */}
       <div
         ref={scrollRootRef}
         className="px-3 flex-1 min-h-0 overflow-y-auto overscroll-contain"
@@ -160,6 +161,7 @@ export default function PostList({
         )}
       </div>
 
+      {/* 정렬 팝오버 (UI) */}
       <SortRadioPopover
         open={openSort}
         anchorRef={sortBtnRef}
