@@ -295,19 +295,17 @@ const MyPageMain: React.FC = () => {
             />
           ))}
         </div>
+        {isExpanding && (
+          <div
+            className="absolute inset-0 bg-base-100 z-30"
+            style={{
+              animation: `expandFromCenter ${ANIMATION_TIMINGS.CARD_EXPAND}ms cubic-bezier(0.4, 0, 0.2, 1) forwards`,
+              clipPath: "polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%)",
+            }}
+            onAnimationEnd={handleOverlayAnimationEnd}
+          />
+        )}
       </div>
-
-      {/* setTimeout 제거: onAnimationEnd 이벤트로 안정적 네비게이션 */}
-      {isExpanding && (
-        <div
-          className="fixed inset-0 bg-base-100 z-30"
-          style={{
-            animation: `expandFromCenter ${ANIMATION_TIMINGS.CARD_EXPAND}ms cubic-bezier(0.4, 0, 0.2, 1) forwards`,
-            clipPath: "polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%)",
-          }}
-          onAnimationEnd={handleOverlayAnimationEnd}
-        />
-      )}
 
       {/* 공통 애니메이션 스타일 사용 */}
       {React.createElement("style", {
