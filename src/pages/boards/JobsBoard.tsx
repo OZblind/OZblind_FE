@@ -5,7 +5,7 @@ import { useInfiniteScroll } from "@hooks/useInfiniteScroll";
 import { formatYyyyMmDdHms } from "@utils/date";
 import { urlForPost } from "@utils/urlForPost";
 import { useNavigate } from "react-router-dom";
-import { useBoardPosts } from "@src/hooks/useBoardPosts.mock";
+import { useBoardPosts } from "@src/mocks/useBoardPosts.mock";
 import {
   profileToTagsMock,
   COHORTS,

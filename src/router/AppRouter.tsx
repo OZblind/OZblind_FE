@@ -117,7 +117,7 @@ function KeyVerifyPlaceholder() {
     } catch (err: unknown) {
       const msg =
         typeof err === "object" && err && "message" in err
-          ? (err as { message?: string }).message ?? "인증 실패"
+          ? ((err as { message?: string }).message ?? "인증 실패")
           : "인증 실패";
       push({ message: msg, type: "error" });
     }
@@ -252,7 +252,7 @@ export default function AppRouter() {
         {/* API 테스트 라우트 */}
         <Route path="/posts/:id" element={<PostDetailPage />} />
         <Route path="/boards/free" element={<PostListPage board="free" />} />
-        <Route path="/boards/job" element={<PostListPage board="job" />} />
+        <Route path="/boards/jobs" element={<PostListPage board="jobs" />} />
         <Route path="/boards/info" element={<PostListPage board="info" />} />
         <Route path="/boards/survey" element={<SurveyListPage />} />
         <Route
@@ -286,7 +286,7 @@ export default function AppRouter() {
           />
           <Route
             path={PATHS.JOBS_BOARD}
-            element={<PostListPage board="job" />}
+            element={<PostListPage board="jobs" />}
           />
           <Route
             path={PATHS.INFO_BOARD}

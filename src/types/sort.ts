@@ -1,12 +1,12 @@
-export type SortValue = "latest" | "vote" | "views" | "comments";
+export type SortValue = "latest" | "oldest" | "mostViewed" | "leastViewed";
 
 export const SORT_LABELS: Record<SortValue, string> = {
   latest: "최신순",
-  vote: "추천순",
-  views: "조회순",
-  comments: "댓글순",
+  oldest: "오래된순",
+  mostViewed: "조회 많은순",
+  leastViewed: "조회 적은순",
 };
 
 export const SORT_OPTIONS: { value: SortValue; label: string }[] = (
-  ["latest", "vote", "views", "comments"] as const
+  ["latest", "oldest", "mostViewed", "leastViewed"] as const
 ).map((v) => ({ value: v, label: SORT_LABELS[v] }));

@@ -1,6 +1,7 @@
 export const EASTER_EGG_NICKNAMES = [
   "노예명우",
   "서연공듀",
+  "요정주영",
   "태현왕자",
   "오즈의왕",
   "오즈의발가락",

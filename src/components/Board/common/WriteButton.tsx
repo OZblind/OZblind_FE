@@ -1,3 +1,5 @@
+import { BUTTON_TEXT } from "@src/constants/ui";
+
 type Props = {
   onClick?: () => void;
   className?: string;
@@ -7,7 +9,7 @@ type Props = {
 export default function WriteButton({
   onClick,
   className,
-  label = "글쓰기",
+  label = BUTTON_TEXT.WRITE,
 }: Props) {
   return (
     <button

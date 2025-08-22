@@ -32,7 +32,7 @@ export type PostDetail = {
 };
 
 export type CreatePostPayload = {
-  board: BoardSlug; // "free" | "job" | "info"
+  board: BoardSlug; // "free" | "jobs" | "info"
   title: string;
   content: string;
   image?: string | File | Blob | null;
@@ -63,7 +63,7 @@ export async function fetchPosts(params?: {
     `/api/posts/?${query.toString()}`
   );
 
-  return Array.isArray(data) ? data : data?.results ?? [];
+  return Array.isArray(data) ? data : (data?.results ?? []);
 }
 
 export async function fetchPostDetail(id: number) {
