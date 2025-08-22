@@ -1,12 +1,12 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { PATHS } from "@constants/paths";
 import { ANIMATION_TIMINGS, ANIMATION_KEYFRAMES } from "@constants/animations";
 import { LIST_SETTINGS, EMPTY_MESSAGES } from "@constants/ui";
 import { mockMyPageCards } from "@src/mocks/mypage.mock";
 import type { MyPageCardData } from "@src/types/mypage";
-// SVG import 문제로 임시 주석 처리
-// import BookmarkIconSvg from "@assets/icons/icon-bookmark-color.svg";
+import { icons } from "@src/assets";
+import { useThemeIcon } from "@hooks/useThemeIcon";
 
 // 개별 카드 컴포넌트
 interface CardProps {
@@ -22,7 +22,7 @@ interface CardProps {
   onClick: () => void;
   isExpanding?: boolean;
   isClicked?: boolean;
-  getIconPath: (iconType: string) => string; // 추가
+  getIconPath: (iconType: string) => string;
 }
 
 const Card: React.FC<CardProps> = ({
@@ -211,67 +211,35 @@ const MyPageMain: React.FC = () => {
   // setTimeout 대신 pendingPath로 안전한 네비게이션 관리
   const pendingPathRef = useRef<string | null>(null);
 
-  // 다크모드 감지 (document.documentElement의 data-theme 또는 class 확인)
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  // 팀 훅 사용
+  const themeIcon = useThemeIcon();
 
-  useEffect(() => {
-    const checkTheme = () => {
-      const theme = document.documentElement.getAttribute("data-theme");
-      const htmlClass = document.documentElement.className;
-
-      // 다크 테마 감지 로직 (oz_dark 추가)
-      const isDark =
-        theme === "dark" ||
-        theme === "oz_dark" || // 프로젝트 커스텀 다크 테마 추가
-        theme === "night" ||
-        htmlClass.includes("dark") ||
-        (!theme && window.matchMedia("(prefers-color-scheme: dark)").matches);
-
-      setIsDarkMode(isDark);
+  // 테마에 따른 아이콘들을 useMemo로 메모이제이션
+  const { writingIcon, chatIcon, bookmarkIcon } = useMemo(() => {
+    const dark = themeIcon === "oz_dark";
+    return {
+      writingIcon: dark ? icons.writing?.light : icons.writing?.dark,
+      chatIcon: dark ? icons.chat?.light : icons.chat?.dark,
+      bookmarkIcon: dark
+        ? icons.mypageBookmark?.light
+        : icons.mypageBookmark?.dark,
     };
-
-    checkTheme();
-
-    // 테마 변경 감지
-    const observer = new MutationObserver(() => {
-      checkTheme();
-    });
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-theme", "class"],
-    });
-
-    // 시스템 다크모드 변경 감지
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleSystemThemeChange = () => {
-      checkTheme();
-    };
-
-    mediaQuery.addEventListener("change", handleSystemThemeChange);
-
-    return () => {
-      observer.disconnect();
-      mediaQuery.removeEventListener("change", handleSystemThemeChange);
-    };
-  }, []);
+  }, [themeIcon]);
 
   // 테마에 따른 아이콘 경로 반환
   const getIconPath = (iconType: string) => {
-    const theme = isDarkMode ? "light" : "dark";
     switch (iconType) {
       case "writing":
-        return `/src/assets/icons/icon-mypage-writing-${theme}.svg`;
+        return writingIcon;
       case "chat":
-        return `/src/assets/icons/icon-mypage-chat-${theme}.svg`;
+        return chatIcon;
       case "bookmark":
-        return `/src/assets/icons/icon-mypage-bookmark-${theme}.svg`;
+        return bookmarkIcon;
       default:
         return "";
     }
   };
 
-  // 임시로 기존 방식 유지 (SVG import 문제로 인해)
   const cardData: MyPageCardData[] = mockMyPageCards;
 
   // setTimeout 제거: 애니메이션 이벤트 기반으로 네비게이션
@@ -327,18 +295,19 @@ const MyPageMain: React.FC = () => {
             />
           ))}
         </div>
-
-        {isExpanding && (
-          <div
-            className="absolute inset-0 bg-base-100 z-30"
-            style={{
-              animation: `expandFromCenter ${ANIMATION_TIMINGS.CARD_EXPAND}ms cubic-bezier(0.4, 0, 0.2, 1) forwards`,
-              clipPath: "polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%)",
-            }}
-            onAnimationEnd={handleOverlayAnimationEnd}
-          />
-        )}
       </div>
+
+      {/* setTimeout 제거: onAnimationEnd 이벤트로 안정적 네비게이션 */}
+      {isExpanding && (
+        <div
+          className="fixed inset-0 bg-base-100 z-30"
+          style={{
+            animation: `expandFromCenter ${ANIMATION_TIMINGS.CARD_EXPAND}ms cubic-bezier(0.4, 0, 0.2, 1) forwards`,
+            clipPath: "polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%)",
+          }}
+          onAnimationEnd={handleOverlayAnimationEnd}
+        />
+      )}
 
       {/* 공통 애니메이션 스타일 사용 */}
       {React.createElement("style", {
