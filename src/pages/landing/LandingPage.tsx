@@ -29,7 +29,6 @@ export default function LandingPage() {
   const onClickGoogle = useCallback(async () => {
     try {
       const idToken = await getGoogleIdToken(); // GIS(or 테스트 util)
-      console.log(idToken);
       const res = await loginMut.mutateAsync(idToken);
 
       if (res.status === "pending_activation") {
