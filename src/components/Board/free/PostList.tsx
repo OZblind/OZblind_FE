@@ -8,6 +8,7 @@ import { LastLoadedBar, BoardTopBar } from "../common";
 import { useRef, useState, type ReactNode } from "react";
 import SortRadioPopover from "@components/Board/common/sort/SortRadioPopover";
 import type { SortValue } from "@src/types/sort";
+import { ERROR_MESSAGES, LIST_MESSAGES, LOADING_MESSAGES } from "@constants/ui";
 
 export type PostListProps = {
   items: FreeBoardItem[];
@@ -51,7 +52,7 @@ export default function PostList({
   errorText,
   hasMore,
   sentinelRef,
-  noMoreText = "마지막 페이지입니다.",
+  noMoreText = LIST_MESSAGES.NO_MORE,
   empty,
   className,
   scrollRootRef,
@@ -93,13 +94,13 @@ export default function PostList({
       >
         {isError && (
           <div className="w-full py-10 text-center text-sm text-red-500">
-            {errorText ?? "오류가 발생했습니다."}
+            {errorText ?? ERROR_MESSAGES.GENERAL}
           </div>
         )}
 
         {!isError && isLoading && isEmpty && (
           <div className="w-full py-6 text-center text-sm">
-            게시글 불러오는 중…
+            {LOADING_MESSAGES.POSTS}
           </div>
         )}
 
@@ -163,7 +164,7 @@ export default function PostList({
                 aria-live="polite"
                 role="status"
               >
-                게시글 더 불러오는 중…
+                {LOADING_MESSAGES.POSTS}
               </div>
             )}
 
