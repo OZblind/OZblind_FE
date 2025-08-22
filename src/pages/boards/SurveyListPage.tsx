@@ -79,7 +79,7 @@ export default function SurveyListPage() {
   const isInitialLoading = items.length === 0 && !!isFetching;
   const listIsLoading = isInitialLoading || isFetchingNextPage;
 
-  // 무한 스크롤 (PostListPage와 동일)
+  // 무한 스크롤
   const { sentinelRef } = useInfiniteScroll({
     root: rootEl,
     rootMargin: "400px 0px",
