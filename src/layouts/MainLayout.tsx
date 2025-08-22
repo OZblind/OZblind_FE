@@ -37,14 +37,16 @@ export default function MainLayout() {
     <div className="flex w-full min-h-screen">
       <Sidebar />
       <div className="flex-1 flex justify-center">
-        <div className="flex flex-col gap-2 items-center w-[820px] h-full pt-1">
-          <div className="flex items-center gap-4 w-[800px] my-8">
+        <div className="flex flex-col w-[820px] h-screen pt-1 box-border min-h-0">
+          <div className="flex items-center gap-4 w-full py-8">
             <Link to={PATHS.MAIN}>
               <img src={logo} alt="logo" className="w-24" />
             </Link>
             <NavUnifiedSearch className="w-full" placeholder="통합검색" />
           </div>
-          <Outlet />
+          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-visible scrollbar-hide p-1">
+            <Outlet />
+          </div>
         </div>
       </div>
 
