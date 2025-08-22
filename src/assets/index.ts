@@ -60,12 +60,12 @@ export { default as iconSearch } from "./icons/icon-search.svg";
 
 export { default as iconSurveyDark } from "./icons/icon-survey-dark.svg";
 export { default as iconSurveyLight } from "./icons/icon-survey-light.svg";
-export { default as iconMypageWritingDark } from "./icons/icon-mypage-bookmark-dark.svg";
-export { default as iconMypageWritingLight } from "./icons/icon-mypage-bookmark-light.svg";
+export { default as iconMypageWritingDark } from "./icons/icon-mypage-writing-dark.svg";
+export { default as iconMypageWritingLight } from "./icons/icon-mypage-writing-light.svg";
 export { default as iconMypageChatDark } from "./icons/icon-mypage-chat-dark.svg";
 export { default as iconMypageChatLight } from "./icons/icon-mypage-chat-light.svg";
 export { default as iconMypageBookmarkDark } from "./icons/icon-mypage-bookmark-dark.svg";
-export { default as iconMypageBookmarkLight } from "./icons/icon-mypage-writing-light.svg";
+export { default as iconMypageBookmarkLight } from "./icons/icon-mypage-bookmark-light.svg";
 
 export { default as iconThumbDownColor } from "./icons/icon-thumb-down-color.svg";
 export { default as iconThumbDownDark } from "./icons/icon-thumb-down-dark.svg";
@@ -79,7 +79,7 @@ export { default as iconThumbUpLight } from "./icons/icon-thumb-up-light.svg";
 export { default as person } from "./images/person.png";
 export { default as settings } from "./images/settings.png";
 
-import { Bookmark } from "lucide-react";
+// import { Bookmark } from "lucide-react";
 // Logo, Icons 테마별 객체로 정리
 import {
   logoColor,
@@ -254,7 +254,7 @@ export const icons = {
     dark: iconMypageChatDark,
     light: iconMypageChatLight,
   },
-  Bookmark: {
+  mypageBookmark: {
     dark: iconMypageBookmarkDark,
     light: iconMypageBookmarkLight,
   },

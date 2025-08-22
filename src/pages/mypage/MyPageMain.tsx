@@ -220,7 +220,9 @@ const MyPageMain: React.FC = () => {
     return {
       writingIcon: dark ? icons.writing?.light : icons.writing?.dark,
       chatIcon: dark ? icons.chat?.light : icons.chat?.dark,
-      bookmarkIcon: dark ? icons.bookmark?.light : icons.bookmark?.dark,
+      bookmarkIcon: dark
+        ? icons.mypageBookmark?.light
+        : icons.mypageBookmark?.dark,
     };
   }, [themeIcon]);
 
