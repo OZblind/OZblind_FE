@@ -110,7 +110,7 @@ export const ERROR_MESSAGES = {
   LOAD_COMMENTS: "댓글 데이터를 불러오는데 실패했습니다.",
   LOAD_BOOKMARKS: "북마크 데이터를 불러오는데 실패했습니다.",
   UNKNOWN: "알 수 없는 오류가 발생했습니다.",
-  GENERAL: "문제가 발생했습니다",
+  GENERAL: "오류가 발생했습니다",
 } as const;
 
 // 버튼 텍스트
@@ -125,7 +125,12 @@ export const BUTTON_TEXT = {
 
 // 로딩 메시지
 export const LOADING_MESSAGES = {
-  POSTS: "게시글을 불러오는 중...",
-  COMMENTS: "댓글을 불러오는 중...",
-  BOOKMARKS: "북마크를 불러오는 중...",
+  POSTS: "게시글을 불러오는 중…",
+  COMMENTS: "댓글을 불러오는 중…",
+  BOOKMARKS: "북마크를 불러오는 중…",
+} as const;
+
+// 더 불러올 게 없음
+export const LIST_MESSAGES = {
+  NO_MORE: "목록의 마지막입니다.",
 } as const;
