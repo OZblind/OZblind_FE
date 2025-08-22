@@ -70,7 +70,7 @@ const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
           type="checkbox"
           checked={isSelected}
           onChange={handleCheckboxChange}
-          className="checkbox checkbox-primary checkbox-sm border border-base-content bg-transparent"
+          className="checkbox checkbox-primary checkbox-sm border border-base-content bg-transparent [&:checked]:bg-primary [&:checked]:border-primary [&:checked:after]:text-white"
           onClick={(e) => e.stopPropagation()}
         />
       </div>
@@ -135,7 +135,7 @@ const MyBookmarks: React.FC = () => {
   // 테마에 따른 북마크 아이콘을 useMemo로 메모이제이션
   const bookmarkIcon = useMemo(() => {
     const dark = themeIcon === "oz_dark";
-    return dark ? icons.bookmark?.light : icons.bookmark?.dark;
+    return dark ? icons.mypageBookmark?.light : icons.mypageBookmark?.dark;
   }, [themeIcon]);
 
   const getBookmarkIconPath = () => bookmarkIcon;
@@ -374,7 +374,7 @@ const MyBookmarks: React.FC = () => {
                           if (input) input.indeterminate = isPartiallySelected;
                         }}
                         onChange={(e) => handleSelectAll(e.target.checked)}
-                        className="checkbox checkbox-primary checkbox-sm border border-base-content bg-transparent"
+                        className="checkbox checkbox-primary checkbox-sm border border-base-content bg-transparent [&:checked]:bg-primary [&:checked]:border-primary [&:checked:after]:text-white"
                       />
                       <span className="text-sm">전체 선택</span>
                     </label>
