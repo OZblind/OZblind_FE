@@ -77,9 +77,9 @@ function deriveDescFromItem(item: PostListItem): string {
     pick("summary", "excerpt", "desc", "description", "content", "body") ?? "";
   if (!src0) return "";
 
-  // TODO[API-DESC-HTML]: 서버가 항상 plaintext라면 아래 2줄 제거
-  const src1 = src0.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "");
-  const firstLine = src1.split(/\r?\n/).find((line) => line.trim().length > 0);
+  // TODO[API-DESC-HTML]: 서버가 항상 plaintext가 아니라면 아래 1줄 추가
+  // const src1 = src0.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "");
+  const firstLine = src0.split(/\r?\n/).find((line) => line.trim().length > 0);
   return (firstLine ?? "").trim();
 }
 
