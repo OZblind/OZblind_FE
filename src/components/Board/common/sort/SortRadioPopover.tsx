@@ -5,7 +5,7 @@ import type { SortValue } from "@src/types/sort";
 
 type Props = {
   open: boolean;
-  anchorRef: React.MutableRefObject<HTMLButtonElement | null>;
+  anchorRef: React.RefObject<HTMLButtonElement | null>;
   value: SortValue;
   onChange: (v: SortValue) => void;
   onRequestClose: () => void;
@@ -34,7 +34,7 @@ export default function SortRadioPopover({
       const vw = window.innerWidth;
 
       const width = pr?.width ?? 200;
-      // ⬇️ 버튼 왼쪽 라인 기준
+      // 버튼 왼쪽 라인 기준
       let left = ar.left;
       // 화면 밖으로 안 나가게 보정
       left = Math.max(MARGIN, Math.min(left, vw - MARGIN - width));
@@ -121,7 +121,7 @@ export default function SortRadioPopover({
         left: pos?.left ?? -9999,
         zIndex: 50,
       }}
-      className="rounded-2xl shadow-xl border border-base-300 bg-base-100 p-3 w-[120px]"
+      className="rounded-2xl shadow-xl border border-base-300 bg-base-100 p-3 pr-6 w-[140px]"
     >
       <SortRadio
         layout="list"
