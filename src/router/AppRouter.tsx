@@ -53,6 +53,7 @@ import SurveyListPage from "@src/pages/boards/SurveyListPage";
 import TestGithubList from "@src/pages/test/BoardList/TestGithubList";
 import MainLayout from "@src/layouts/MainLayout";
 import WritePostPage from "@src/components/Board/WritePostPage";
+import GithubListPage from "@src/pages/boards/GithubListPage";
 
 /** 공개(보호 불필요) 경로 목록 */
 const PUBLIC_PATHS: ReadonlySet<string> = new Set([
@@ -255,10 +256,7 @@ export default function AppRouter() {
         <Route path="/boards/jobs" element={<PostListPage board="jobs" />} />
         <Route path="/boards/info" element={<PostListPage board="info" />} />
         <Route path="/boards/survey" element={<SurveyListPage />} />
-        <Route
-          path="/boards/github"
-          element={<PostListPage board="github" />}
-        />
+        <Route path="/boards/github" element={<GithubListPage />} />
 
         {/* 인증 로비(공개) */}
         <Route path={PATHS.AUTH} element={<LandingPage />} />
@@ -294,7 +292,7 @@ export default function AppRouter() {
           />
           <Route path={PATHS.SURVEY_BOARD} element={<SurveyListPage />} />
 
-          <Route path={PATHS.GITHUB_BOARD} element={<TestGithubList />} />
+          <Route path={PATHS.GITHUB_BOARD} element={<GithubListPage />} />
           <Route path={PATHS.POST_CREATE} element={<WritePostPage />} />
           <Route path={PATHS.POST_DETAIL} element={<PostDetailPage />} />
 
