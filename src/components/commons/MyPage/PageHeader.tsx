@@ -53,7 +53,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           aria-label="뒤로가기"
         >
           <span
-            className={`text-primary-content text-sm sm:text-lg font-bold group-hover:rotate-180 transition-transform ${getDurationClass(
+            className={`text-primary-content text-white text-sm sm:text-lg font-bold group-hover:rotate-180 transition-transform ${getDurationClass(
               ANIMATION_TIMINGS.SCALE_TRANSITION
             )}`}
           >
