@@ -31,7 +31,7 @@ import { urlForPost } from "@src/utils/urlForPost";
 
 const BOARD_LABEL: Record<string, string> = {
   free: "자유게시판",
-  job: "취업게시판",
+  jobs: "취업게시판",
   info: "정보게시판",
   survey: "설문게시판",
   github: "깃헙게시판",

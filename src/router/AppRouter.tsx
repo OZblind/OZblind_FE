@@ -292,10 +292,7 @@ export default function AppRouter() {
             path={PATHS.INFO_BOARD}
             element={<PostListPage board="info" />}
           />
-          <Route
-            path={PATHS.SURVEY_BOARD}
-            element={<PostListPage board="survey" />}
-          />
+          <Route path={PATHS.SURVEY_BOARD} element={<SurveyListPage />} />
 
           <Route path={PATHS.GITHUB_BOARD} element={<TestGithubList />} />
           <Route path={PATHS.POST_CREATE} element={<WritePostPage />} />

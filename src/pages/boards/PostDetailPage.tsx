@@ -10,8 +10,8 @@ const BOARD_ALIAS: Record<
   "free" | "jobs" | "info" | "survey" | "github"
 > = {
   1: "free", // 자유게시판
-  2: "jobs", // 취업게시판
-  3: "info", // 정보게시판
+  2: "info", // 정보게시판
+  3: "jobs", //취업게시판
   4: "survey", // 설문게시판
   5: "github", // 깃헙게시판
 };
