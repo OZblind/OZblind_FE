@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { useToastStore } from "@src/store/toastStore";
 import { PageHeader } from "@src/components/commons/MyPage/PageHeader";
@@ -11,10 +17,8 @@ import {
 } from "@constants/animations";
 import { mockBookmarks } from "@src/mocks/mypage.mock";
 import type { BookmarkItem } from "@src/types/mypage";
-
-// 북마크 아이콘 import
-import bookmarkDarkIcon from "@assets/icons/icon-mypage-bookmark-dark.svg";
-import bookmarkLightIcon from "@assets/icons/icon-mypage-bookmark-light.svg";
+import { icons } from "@src/assets";
+import { useThemeIcon } from "@hooks/useThemeIcon";
 
 // 페이지네이션 설정
 const ITEMS_PER_PAGE = 5;
@@ -125,52 +129,16 @@ const MyBookmarks: React.FC = () => {
 
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 다크모드 감지
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  // 팀 훅 사용
+  const themeIcon = useThemeIcon();
 
-  useEffect(() => {
-    const checkTheme = () => {
-      const theme = document.documentElement.getAttribute("data-theme");
-      const htmlClass = document.documentElement.className;
+  // 테마에 따른 북마크 아이콘을 useMemo로 메모이제이션
+  const bookmarkIcon = useMemo(() => {
+    const dark = themeIcon === "oz_dark";
+    return dark ? icons.bookmark?.light : icons.bookmark?.dark;
+  }, [themeIcon]);
 
-      const isDark =
-        theme === "dark" ||
-        theme === "oz_dark" ||
-        theme === "night" ||
-        htmlClass.includes("dark") ||
-        (!theme && window.matchMedia("(prefers-color-scheme: dark)").matches);
-
-      setIsDarkMode(isDark);
-    };
-
-    checkTheme();
-
-    const observer = new MutationObserver(() => {
-      checkTheme();
-    });
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-theme", "class"],
-    });
-
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleSystemThemeChange = () => {
-      checkTheme();
-    };
-
-    mediaQuery.addEventListener("change", handleSystemThemeChange);
-
-    return () => {
-      observer.disconnect();
-      mediaQuery.removeEventListener("change", handleSystemThemeChange);
-    };
-  }, []);
-
-  // 테마에 따른 북마크 아이콘 경로
-  const getBookmarkIconPath = () => {
-    return isDarkMode ? bookmarkLightIcon : bookmarkDarkIcon;
-  };
+  const getBookmarkIconPath = () => bookmarkIcon;
 
   // 페이지네이션 계산 함수
   const updatePageData = useCallback(() => {

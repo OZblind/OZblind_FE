@@ -1,18 +1,12 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { PATHS } from "@constants/paths";
 import { ANIMATION_TIMINGS, ANIMATION_KEYFRAMES } from "@constants/animations";
 import { LIST_SETTINGS, EMPTY_MESSAGES } from "@constants/ui";
 import { mockMyPageCards } from "@src/mocks/mypage.mock";
 import type { MyPageCardData } from "@src/types/mypage";
-
-// 아이콘 import
-import bookmarkDarkIcon from "@assets/icons/icon-mypage-bookmark-dark.svg";
-import bookmarkLightIcon from "@assets/icons/icon-mypage-bookmark-light.svg";
-import writingDarkIcon from "@assets/icons/icon-mypage-writing-dark.svg";
-import writingLightIcon from "@assets/icons/icon-mypage-writing-light.svg";
-import chatDarkIcon from "@assets/icons/icon-mypage-chat-dark.svg";
-import chatLightIcon from "@assets/icons/icon-mypage-chat-light.svg";
+import { icons } from "@src/assets";
+import { useThemeIcon } from "@hooks/useThemeIcon";
 
 // 개별 카드 컴포넌트
 interface CardProps {
@@ -217,57 +211,28 @@ const MyPageMain: React.FC = () => {
   // setTimeout 대신 pendingPath로 안전한 네비게이션 관리
   const pendingPathRef = useRef<string | null>(null);
 
-  // 다크모드 감지
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  // 팀 훅 사용
+  const themeIcon = useThemeIcon();
 
-  useEffect(() => {
-    const checkTheme = () => {
-      const theme = document.documentElement.getAttribute("data-theme");
-      const htmlClass = document.documentElement.className;
-
-      const isDark =
-        theme === "dark" ||
-        theme === "oz_dark" ||
-        theme === "night" ||
-        htmlClass.includes("dark") ||
-        (!theme && window.matchMedia("(prefers-color-scheme: dark)").matches);
-
-      setIsDarkMode(isDark);
+  // 테마에 따른 아이콘들을 useMemo로 메모이제이션
+  const { writingIcon, chatIcon, bookmarkIcon } = useMemo(() => {
+    const dark = themeIcon === "oz_dark";
+    return {
+      writingIcon: dark ? icons.writing?.light : icons.writing?.dark,
+      chatIcon: dark ? icons.chat?.light : icons.chat?.dark,
+      bookmarkIcon: dark ? icons.bookmark?.light : icons.bookmark?.dark,
     };
+  }, [themeIcon]);
 
-    checkTheme();
-
-    const observer = new MutationObserver(() => {
-      checkTheme();
-    });
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-theme", "class"],
-    });
-
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleSystemThemeChange = () => {
-      checkTheme();
-    };
-
-    mediaQuery.addEventListener("change", handleSystemThemeChange);
-
-    return () => {
-      observer.disconnect();
-      mediaQuery.removeEventListener("change", handleSystemThemeChange);
-    };
-  }, []);
-
-  // 테마에 따른 아이콘 경로 반환 (import된 아이콘 사용)
+  // 테마에 따른 아이콘 경로 반환
   const getIconPath = (iconType: string) => {
     switch (iconType) {
       case "writing":
-        return isDarkMode ? writingLightIcon : writingDarkIcon;
+        return writingIcon;
       case "chat":
-        return isDarkMode ? chatLightIcon : chatDarkIcon;
+        return chatIcon;
       case "bookmark":
-        return isDarkMode ? bookmarkLightIcon : bookmarkDarkIcon;
+        return bookmarkIcon;
       default:
         return "";
     }
