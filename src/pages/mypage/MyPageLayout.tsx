@@ -3,6 +3,8 @@ import { Outlet } from "react-router-dom";
 import AssignedTagList from "@src/components/tags/AssignedTagList";
 import { profileToTagsMock } from "@src/mocks/tags.mock";
 import profileImage from "@assets/images/profile.jpg";
+import { SettingsPage } from "@components/SettingModal/SettingsPage";
+import { ThemeInitializer } from "@components/SettingModal/ThemeInitializer";
 
 // 사용자 프로필 타입 정의
 interface UserProfile {
@@ -30,6 +32,7 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
   className,
 }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [theme, setTheme] = useState<"oz_dark" | "oz_light">("oz_dark");
   const [isHovered, setIsHovered] = useState(false);
 
   const handleProfileClick = () => {
@@ -133,24 +136,14 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
         </div>
       </div>
 
-      {/* 임시 설정 모달 */}
-      {isSettingsOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-base-100 p-6 rounded-lg max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">설정</h3>
-            <p className="text-neutral-content mb-4">
-              설정 기능은 준비 중입니다. UserSetting 컴포넌트가 완성되면
-              교체됩니다.
-            </p>
-            <button
-              onClick={() => setIsSettingsOpen(false)}
-              className="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-300"
-            >
-              닫기
-            </button>
-          </div>
-        </div>
-      )}
+      {/* 설정 모달 */}
+      <SettingsPage
+        isOpen={isSettingsOpen}
+        setIsOpen={setIsSettingsOpen}
+        theme={theme}
+        setTheme={setTheme}
+      />
+      <ThemeInitializer setTheme={setTheme} />
 
       {/* 커스텀 애니메이션 CSS */}
       <style>{`
