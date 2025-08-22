@@ -1,6 +1,9 @@
 import ScrollSentinel from "@components/commons/InfiniteScroll/ScrollSentinel";
 import { LastLoadedBar, BoardTopBar } from "@components/Board/common";
 import GithubCard, { type GithubCardProps } from "./GithubCard";
+import { useRef, useState } from "react";
+import SortRadioPopover from "@components/Board/common/sort/SortRadioPopover";
+import type { SortValue } from "@src/types/sort";
 
 export type GithubListItem = GithubCardProps;
 
@@ -29,6 +32,8 @@ export type GithubListProps = {
   noMoreText?: string;
   emptyText?: string;
   className?: string;
+
+  scrollRootRef?: (el: HTMLDivElement | null) => void;
 };
 
 export default function GithubList({
@@ -46,18 +51,24 @@ export default function GithubList({
   noMoreText = "마지막 페이지입니다.",
   emptyText = "등록된 게시글이 없습니다.",
   className,
+  scrollRootRef,
 }: GithubListProps) {
   const isEmpty = items.length === 0;
+  const sortBtnRef = useRef<HTMLButtonElement>(null);
+  const [openSort, setOpenSort] = useState(false);
+  const [sort, setSort] = useState<SortValue>("latest");
 
   return (
-    <section className={className ?? ""}>
+    <section className={`flex h-full flex-col ${className ?? ""}`}>
       {topBar && (
         <BoardTopBar
           boardName={topBar.boardName}
-          onOpenSort={topBar.onOpenSort}
+          onOpenSort={() => setOpenSort((v) => !v)}
           onOpenTag={topBar.onOpenTag}
           onWrite={topBar.onWrite}
-          className="mb-2 px-3"
+          sortButtonRef={sortBtnRef}
+          sortActive={sort !== "latest"}
+          className="mb-2 px-3 flex-none"
           meta={
             <LastLoadedBar
               lastLoadedAt={lastLoadedAt}
@@ -69,7 +80,10 @@ export default function GithubList({
         />
       )}
 
-      <div className="px-3">
+      <div
+        ref={scrollRootRef}
+        className="px-3 flex-1 min-h-0 overflow-y-auto overscroll-contain"
+      >
         {isError && (
           <div className="py-10 text-center text-sm text-red-500">
             {errorText ?? "오류가 발생했습니다."}
@@ -121,6 +135,15 @@ export default function GithubList({
           </>
         )}
       </div>
+
+      {/* 정렬 팝오버(UI) */}
+      <SortRadioPopover
+        open={openSort}
+        anchorRef={sortBtnRef}
+        value={sort}
+        onChange={(v) => setSort(v)}
+        onRequestClose={() => setOpenSort(false)}
+      />
     </section>
   );
 }

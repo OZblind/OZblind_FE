@@ -1,14 +1,12 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import SharedPostForm from "./SharedPostForm";
 import SurveyPostForm from "./SurveyPostForm";
 import GitRepoPostForm from "./GithubPostForm";
-// import { createPost } from "@/api/post"; // 게시글 생성 API 추후 등록
-// import { Button } from "@/components/ui/button"; // 버튼 컴포넌트 (Tailwind 기반)
 
 const boardOptions = [
   { value: "free", label: "자유 게시판" },
-  { value: "job", label: "취업 게시판" },
+  { value: "jobs", label: "취업 게시판" },
   { value: "info", label: "정보 게시판" },
   { value: "survey", label: "설문 게시판" },
   { value: "github", label: "GitHub 게시판" },
@@ -18,21 +16,46 @@ const WritePostPage = () => {
   const navigate = useNavigate();
   const [selectedBoard, setSelectedBoard] = useState("free");
 
+  // 쿼리 헬퍼
+  const [sp, setSp] = useSearchParams();
+
+  // URL이 바뀔 때마다 쿼리 파라미터와 state 동기화
+  useEffect(() => {
+    const boardFromQuery = sp.get("board");
+
+    if (
+      boardFromQuery &&
+      boardOptions.some((option) => option.value === boardFromQuery)
+    ) {
+      setSelectedBoard(boardFromQuery);
+    } else {
+      setSelectedBoard("free");
+      const next = new URLSearchParams(sp);
+      next.set("board", "free");
+      setSp(next, { replace: true });
+    }
+  }, [sp, setSp]);
+
+  const setBoardQuery = (value: string | undefined) => {
+    const next = new URLSearchParams(sp);
+    if (value) next.set("board", value);
+    else next.delete("board");
+    setSp(next, { replace: true });
+  };
+
   return (
-    <div className="flex flex-col h-full max-w-4xl mx-auto px-4 py-8 gap-2 text-black">
+    <div className="flex flex-col h-full gap-2 text-black">
       {/* 1. 게시판 선택 */}
       <div>
-        <label
-          htmlFor="board-select"
-          className="block font-semibold mb-2 text-white"
-        >
-          게시판 작성
-        </label>
         <select
           id="board-select"
           className="w-full border border-gray-300 rounded p-2"
           value={selectedBoard}
-          onChange={(e) => setSelectedBoard(e.target.value)}
+          onChange={(e) => {
+            const v = e.target.value;
+            setSelectedBoard(v); // 기존 state 그대로 유지
+            setBoardQuery(v); // URL ?board= 동기화
+          }}
         >
           {boardOptions.map((option) => (
             <option key={option.value} value={option.value}>
@@ -42,7 +65,7 @@ const WritePostPage = () => {
         </select>
       </div>
 
-      {/* 2. 폼 스위칭 */}
+      {/* 2. 폼 스위칭 (그대로) */}
       {selectedBoard === "survey" ? (
         <SurveyPostForm onCancel={() => navigate(-1)} />
       ) : selectedBoard === "github" ? (

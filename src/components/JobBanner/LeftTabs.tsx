@@ -8,26 +8,26 @@ export default function LeftTabs({
   onChange: (s: Source) => void;
 }) {
   const tabs: { key: Source; label: string }[] = [
-    { key: "remoteok", label: "RemoteOK" },
-    { key: "arbeitnow", label: "Arbeitnow" },
-    { key: "ashby", label: "Ashby" },
+    { key: "remoteok", label: "원격" },
+    { key: "arbeitnow", label: "해외" },
+    { key: "ashby", label: "통합" },
   ];
+
   return (
-    <aside className="w-40 border-r border-base-300 p-2">
-      <ul className="flex flex-col gap-2">
-        {tabs.map((t) => (
-          <li key={t.key}>
-            <button
-              onClick={() => onChange(t.key)}
-              className={`w-full rounded px-3 py-2 ${
-                value === t.key ? "bg-primary text-white" : "hover:bg-base-200"
-              }`}
-            >
-              {t.label}
-            </button>
-          </li>
-        ))}
-      </ul>
-    </aside>
+    <div className="flex gap-2 border-b border-base-300">
+      {tabs.map((t) => (
+        <button
+          key={t.key}
+          onClick={() => onChange(t.key)}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            value === t.key
+              ? "text-primary border-primary"
+              : "text-neutral-content border-transparent hover:text-base-content"
+          }`}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
   );
 }

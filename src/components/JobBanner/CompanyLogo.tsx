@@ -3,7 +3,7 @@ import { useState, useMemo } from "react";
 type Props = {
   src?: string;
   company?: string;
-  size?: number; // px
+  size?: number;
   className?: string;
 };
 
@@ -35,21 +35,21 @@ export default function CompanyLogo({
         decoding="async"
         referrerPolicy="no-referrer"
         className={[
-          "rounded object-cover",
+          "rounded object-cover bg-gray-100",
           className ?? "",
           `h-[${size}px] w-[${size}px]`,
         ].join(" ")}
-        onError={() => setShowImg(false)} // 실패 시 폴백으로 전환
+        onError={() => setShowImg(false)}
       />
     );
   }
 
-  // 로컬 폴백(네트워크 사용 안 함)
+  // 기존과 동일한 폴백 디자인
   return (
     <div
       aria-hidden="true"
       className={[
-        "grid place-items-center rounded bg-base-200 text-xs font-semibold",
+        "grid place-items-center rounded-lg bg-primary text-primary-content text-xs font-bold border border-base-300",
         className ?? "",
         `h-[${size}px] w-[${size}px]`,
       ].join(" ")}

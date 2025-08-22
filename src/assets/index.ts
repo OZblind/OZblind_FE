@@ -30,8 +30,8 @@ export { default as iconFreeLight } from "./icons/icon-free-light.svg";
 export { default as iconGithubDark } from "./icons/icon-github-dark.svg";
 export { default as iconGithubLight } from "./icons/icon-github-light.svg";
 
-export { default as iconInformationDark } from "./icons/icon-information-dark.svg";
-export { default as iconInformationLight } from "./icons/icon-information-light.svg";
+export { default as iconInfoDark } from "./icons/icon-info-dark.svg";
+export { default as iconInfoLight } from "./icons/icon-info-light.svg";
 
 export { default as iconJobsDark } from "./icons/icon-jobs-dark.svg";
 export { default as iconJobsLight } from "./icons/icon-jobs-light.svg";
@@ -105,8 +105,8 @@ import {
   iconFreeLight,
   iconGithubDark,
   iconGithubLight,
-  iconInformationDark,
-  iconInformationLight,
+  iconInfoDark,
+  iconInfoLight,
   iconJobsDark,
   iconJobsLight,
   iconKeyboardArrowDownDark,
@@ -190,9 +190,9 @@ export const icons = {
     dark: iconGithubDark,
     light: iconGithubLight,
   },
-  information: {
-    dark: iconInformationDark,
-    light: iconInformationLight,
+  info: {
+    dark: iconInfoDark,
+    light: iconInfoLight,
   },
   jobs: {
     dark: iconJobsDark,
