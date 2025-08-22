@@ -17,11 +17,11 @@ export const PATHS = {
   POST_CREATE: "/write", // 쿼리로 board 구분
   POST_EDIT: "/post/:id/edit",
 
-  // 마이페이지 관련 경로 추가
+  // 마이페이지 (중첩 라우팅으로 상대 경로 설정)
   MYPAGE: "/mypage",
-  MYPAGE_POSTS: "/mypage/posts",
-  MYPAGE_COMMENTS: "/mypage/comments",
-  MYPAGE_BOOKMARKS: "/mypage/bookmarks",
+  MYPAGE_POSTS: "posts",
+  MYPAGE_COMMENTS: "comments",
+  MYPAGE_BOOKMARKS: "bookmarks",
 
   ERROR_403: "/403",
   ERROR_404: "/404",

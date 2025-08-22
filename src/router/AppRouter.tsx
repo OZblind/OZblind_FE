@@ -263,26 +263,6 @@ export default function AppRouter() {
         {/* 인증 로비(공개) */}
         <Route path={PATHS.AUTH} element={<LandingPage />} />
 
-        {/* 보호: 마이페이지 (JWT + 인증 완료) */}
-        <Route
-          path={PATHS.MYPAGE}
-          element={
-            isAuthed && isOzAuthenticated === true ? (
-              <MyPageLayout />
-            ) : isAuthed && isOzAuthenticated === false ? (
-              <Navigate to={PATHS.KEY_VERIFY} replace />
-            ) : (
-              redirectWithIntent(PATHS.AUTH, location)
-            )
-          }
-        >
-          {/* 마이페이지 중첩 라우팅 */}
-          <Route index element={<MyPageMain />} />
-          <Route path="posts" element={<MyPosts />} />
-          <Route path="comments" element={<MyComments />} />
-          <Route path="bookmarks" element={<MyBookmarks />} />
-        </Route>
-
         {/* 보호: /key-verify (JWT + 미인증) */}
         <Route
           path={PATHS.KEY_VERIFY}
@@ -297,7 +277,7 @@ export default function AppRouter() {
           }
         />
 
-        {/* 메인 페이지 + 게시글 포함 */}
+        {/* 메인 페이지 + 게시글 + 마이페이지 */}
         <Route element={<MainLayout />}>
           <Route path={PATHS.MAIN} element={<MainPage />} />
           <Route
@@ -319,7 +299,27 @@ export default function AppRouter() {
 
           <Route path={PATHS.GITHUB_BOARD} element={<TestGithubList />} />
           <Route path={PATHS.POST_CREATE} element={<WritePostPage />} />
-          <Route path={PATHS.POST_DETAIL} element={<PostDetailPage />}></Route>
+          <Route path={PATHS.POST_DETAIL} element={<PostDetailPage />} />
+
+          {/* 보호: 마이페이지 (JWT + 인증 완료) */}
+          <Route
+            path={PATHS.MYPAGE}
+            element={
+              isAuthed && isOzAuthenticated === true ? (
+                <MyPageLayout />
+              ) : isAuthed && isOzAuthenticated === false ? (
+                <Navigate to={PATHS.KEY_VERIFY} replace />
+              ) : (
+                redirectWithIntent(PATHS.AUTH, location)
+              )
+            }
+          >
+            {/* 마이페이지 중첩 라우팅 */}
+            <Route index element={<MyPageMain />} />
+            <Route path={PATHS.MYPAGE_POSTS} element={<MyPosts />} />
+            <Route path={PATHS.MYPAGE_COMMENTS} element={<MyComments />} />
+            <Route path={PATHS.MYPAGE_BOOKMARKS} element={<MyBookmarks />} />
+          </Route>
         </Route>
 
         {/* 에러 */}
