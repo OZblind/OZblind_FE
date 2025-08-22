@@ -392,7 +392,7 @@ const MyBookmarks: React.FC = () => {
                       ANIMATION_TIMINGS.HOVER_TRANSITION
                     )} ${
                       selectedIds.size > 0
-                        ? "bg-error text-error-content hover:bg-error/80 transform hover:scale-105"
+                        ? "bg-error/50 text-white hover:bg-error/80"
                         : "bg-base-300 text-neutral-content cursor-not-allowed"
                     }`}
                   >

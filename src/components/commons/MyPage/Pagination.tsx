@@ -102,8 +102,8 @@ const Pagination: React.FC<PaginationProps> = ({
               ANIMATION_TIMINGS.HOVER_TRANSITION
             )} ${
               pageNum === currentPage
-                ? "bg-primary text-primary-content"
-                : "bg-base-300 text-base-content hover:bg-primary hover:text-primary-content"
+                ? "bg-primary text-white"
+                : "bg-base-300 text-base-content hover:bg-info hover:text-info-content"
             }`}
             aria-label={`${pageNum}페이지로 이동`}
             aria-current={pageNum === currentPage ? "page" : undefined}
