@@ -14,14 +14,31 @@ export default function TestHub() {
 
   const items = [
     { to: "/test/write", label: "게시글 작성 테스트" },
+    { to: "/test/tag", label: "태그 표기 테스트" },
+    { to: "/test/post", label: "게시글 확인 테스트" },
     { to: "/403", label: "403 테스트" },
     { to: "/500", label: "500 테스트" },
     { to: "/test/setting", label: "사용자 모달 테스트" },
+    { to: "/test/main", label: "메인 페이지 테스트" },
+    { to: "/test/board/free-list", label: "자유·취업·정보 게시글 목록 테스트" },
+    { to: "/test/board/survey-list", label: "설문 게시글 목록 테스트" },
+
+    { to: "/boards/free", label: "자유 게시판" },
+    { to: "/boards/job", label: "취업 게시판" },
+    { to: "/boards/info", label: "정보 게시판" },
+    { to: "/boards/survey", label: "설문 게시판" },
+    { to: "/boards/github", label: "GitHub 게시판" },
+
+    { to: "/test/board/github-list", label: "깃허브 게시글 목록 테스트" },
+    { to: "/test/jobbanner", label: "취업 배너 테스트" },
+
+
     // 404는 없는 주소
     // --- 인증 관련 테스트 링크 ---
     { to: PATHS.AUTH, label: "로그인/회원가입(로비) 테스트" },
     { to: PATHS.MAIN, label: "보호 라우트: /main (JWT + 인증 완료)" },
     { to: PATHS.KEY_VERIFY, label: "보호 라우트: /key-verify (JWT + 미인증)" },
+    { to: PATHS.MYPAGE, label: "🔥 마이페이지 (작성글/댓글/북마크)" },
   ];
 
   const { user, tokens, isOzAuthenticated } = useAuthStore();

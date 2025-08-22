@@ -2,7 +2,7 @@ import { useAuthStore, type User, type Tokens } from "@store/authStore";
 
 export function forceAuth() {
   const devUser: User = {
-    userId: import.meta.env.VITE_FORCE_AUTH_USER_ID ?? "dev-user-id",
+    id: import.meta.env.VITE_FORCE_AUTH_USER_ID ?? "dev-user-id",
     email: import.meta.env.VITE_FORCE_AUTH_EMAIL ?? "dev@oz.com",
     name: import.meta.env.VITE_FORCE_AUTH_NAME ?? "개발자",
     role: import.meta.env.VITE_FORCE_AUTH_ROLE ?? "USER",

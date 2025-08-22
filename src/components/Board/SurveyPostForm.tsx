@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Button } from "@components/ui/Button";
 import ToastEditor from "@components/Board/editor/ToastEditor";
+import LinkPreviewCard from "./LinkPreviewCard";
+import { createSurveyPost } from "@src/api/posts.special";
+import { useNavigate } from "react-router-dom";
 
 interface Props {
   onCancel: () => void;
@@ -19,6 +22,7 @@ export default function SurveyPostForm({ onCancel }: Props) {
   const [endDate, setEndDate] = useState("");
   const [provider, setProvider] = useState<string>(""); // placeholder 상태
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const urlPattern = /^(https?:\/\/)[^\s$.?#].[^\s]*$/i;
 
@@ -40,8 +44,18 @@ export default function SurveyPostForm({ onCancel }: Props) {
     if (!formLink.trim()) return alert("작성한 설문 링크를 입력하세요.");
     if (!endDate) return alert("설문 종료일을 선택하세요.");
 
+    // ✅ Date → ISO (KST 기준 하루 끝으로 보낼 예시)
+    const end_date_iso = new Date(`${endDate}T23:59:59+09:00`).toISOString();
+
     // 실제 API 연동
-    // await createSurveyPost({ title, content, formLink, endDate });
+    const res = await createSurveyPost({
+      title,
+      content,
+      end_date: end_date_iso,
+      link: formLink,
+      //image,
+    });
+    requestAnimationFrame(() => navigate(`/posts/${res.post_id}`));
 
     console.log({ title, content, formLink, endDate });
     alert("설문 게시글이 등록되었습니다. (mock)");
@@ -127,20 +141,14 @@ export default function SurveyPostForm({ onCancel }: Props) {
           />
         </div>
       </div>
+
       {/* 링크 미리보기 카드 */}
-      {formLink && (
-        <div className="p-4 border rounded bg-white shadow-sm mt-1">
-          <p className="font-semibold text-lg mb-1">📄 설문지 미리보기</p>
-          <a
-            href={formLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 underline break-all"
-          >
-            {formLink}
-          </a>
-        </div>
-      )}
+      <LinkPreviewCard
+        url={formLink}
+        title={title || "제목 없음"}
+        endDate={endDate}
+      />
+
       {/* 에디터 */}
       <div className="flex-1">
         <ToastEditor onChange={setContent} />
