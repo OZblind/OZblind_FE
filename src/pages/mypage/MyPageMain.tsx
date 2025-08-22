@@ -295,6 +295,8 @@ const MyPageMain: React.FC = () => {
             />
           ))}
         </div>
+      </div>
+
       {/* setTimeout 제거: onAnimationEnd 이벤트로 안정적 네비게이션 */}
       {isExpanding && (
         <div
