@@ -50,7 +50,7 @@ const Card: React.FC<CardProps> = ({
 
   return (
     <div
-      className={`bg-base-300 rounded-lg p-4 hover:bg-opacity-80 transition-all duration-300 transform-gpu flex-1 min-w-0 max-w-xs min-h-[350px] select-none ${
+      className={`bg-base-300/40 rounded-lg p-4 transition-all duration-300 transform-gpu flex-1 min-w-0 max-w-xs min-h-[350px] select-none ${
         isExpanding
           ? isClicked
             ? "scale-150 z-20 opacity-100"
@@ -98,7 +98,7 @@ const Card: React.FC<CardProps> = ({
         >
           {/* 플러스 아이콘 */}
           <div
-            className="w-5 h-5 text-primary-content flex items-center justify-center transition-transform duration-300"
+            className="w-5 h-5 text-white flex items-center justify-center transition-transform duration-300"
             style={{
               transform: "rotate(0deg) scale(1)",
               transition: "transform 0.3s ease",
