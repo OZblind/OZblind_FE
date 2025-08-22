@@ -3,6 +3,8 @@ import AssignedTagList from "@components/tags/AssignedTagList";
 import type { Tag } from "@src/types/tag";
 import SurveyIcon from "@assets/images/survey.svg";
 
+export type EmptyDescMode = "hide" | "placeholder" | "domain";
+
 export type SurveyStatus = "active" | "expired";
 
 export type SurveyCardProps = {
@@ -10,11 +12,16 @@ export type SurveyCardProps = {
   status: SurveyStatus;
   title: string;
   desc?: string;
-  deadline: string; // ISO or formatted
-  tags?: Tag[]; // 지정 태그 2개
-  link?: string; // 설문 링크
+  deadline: string;
+  tags?: Tag[];
+  link?: string;
   onClick?: (id: string) => void;
   className?: string;
+
+  /** desc가 없을 때 동작 (기본: 숨김) */
+  emptyDescMode?: EmptyDescMode;
+  /** emptyDescMode === "placeholder"일 때 표시할 문구 */
+  emptyDescPlaceholder?: string;
 };
 
 function fmtDeadline(s: string) {
@@ -29,6 +36,16 @@ function fmtDeadline(s: string) {
   );
 }
 
+function getDomain(url?: string): string | undefined {
+  if (!url) return;
+  try {
+    const u = new URL(url);
+    return u.hostname.replace(/^www\./, "");
+  } catch {
+    return;
+  }
+}
+
 export default function SurveyCard({
   id,
   status,
@@ -39,8 +56,15 @@ export default function SurveyCard({
   link,
   onClick,
   className,
+  emptyDescMode = "hide",
+  emptyDescPlaceholder = "본문 미리보기가 없습니다.", // TODO[API-DESC]: 목록 API가 excerpt 제공하면 이 폴백 제거
 }: SurveyCardProps) {
   const expired = status === "expired";
+
+  const descToShow =
+    (desc && desc.trim()) ||
+    (emptyDescMode === "domain" && getDomain(link)) ||
+    (emptyDescMode === "placeholder" ? emptyDescPlaceholder : undefined);
 
   return (
     <article
@@ -69,9 +93,11 @@ export default function SurveyCard({
         <h3 className="text-base md:text-lg font-semibold line-clamp-2">
           {title}
         </h3>
-        {desc && (
+
+        {/* desc 폴백 표시 */}
+        {descToShow && (
           <p className="mt-1 text-sm text-base-content/70 line-clamp-1">
-            {desc}
+            {descToShow}
           </p>
         )}
       </div>
@@ -86,7 +112,7 @@ export default function SurveyCard({
               rel="noopener noreferrer"
               title={link}
               className="block max-w-[320px] truncate text-xs text-base-content/60 hover:underline"
-              onClick={(e) => e.stopPropagation()} // 카드 onClick과 분리
+              onClick={(e) => e.stopPropagation()}
             >
               {link}
             </a>

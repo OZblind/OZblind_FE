@@ -1,129 +1,128 @@
-import { useMemo, useState } from "react";
-import { useQueryClient, type InfiniteData } from "@tanstack/react-query";
+import { useCallback, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { SurveyList } from "@components/Board/survey";
 import { useInfiniteScroll } from "@hooks/useInfiniteScroll";
 import { formatYyyyMmDdHms } from "@utils/date";
+import { useSurveys } from "@src/hooks/useSurveys";
+import { urlForPost } from "@src/utils/urlForPost";
+import { mapToSurveyCard } from "@src/features/posts/list/adapters";
+import type { PostListItem } from "@api/posts";
 import type { SurveyCardProps } from "@components/Board/survey/SurveyCard";
-import { SURVEYS_KEY, useSurveys } from "@src/hooks/useSurveys";
-import { useNavigate } from "react-router-dom";
+import type { SurveyExtra } from "@src/features/posts/list/adapters";
 
-type Page = { items: SurveyCardProps[]; hasMore: boolean };
+/** 타입 가드: 배열이 PostListItem[] 인지 판별 */
+function isPostListItemArray(arr: unknown[]): arr is PostListItem[] {
+  if (!Array.isArray(arr) || arr.length === 0) return false;
+  const x = arr[0] as Record<string, unknown>;
+  // TODO[API-TYPE-GUARD]: 필요 시 key 집합 강화(예: 'id','title','user','board','created_at')
+  return (
+    typeof x === "object" &&
+    x !== null &&
+    "user" in x &&
+    "board" in x &&
+    "created_at" in x
+  );
+}
+
+/** 설문 부가정보 키 탐색 (any 금지) */
+type ExtraCarriers =
+  | { extra?: SurveyExtra }
+  | { survey?: SurveyExtra }
+  | { survey_extra?: SurveyExtra }
+  | object;
+
+function getSurveyExtra(obj: unknown): SurveyExtra | undefined {
+  if (!obj || typeof obj !== "object") return undefined;
+  const o = obj as Partial<ExtraCarriers>;
+  // TODO[API-EXTRA-KEY]: 백엔드 필드명 확정되면 하나만 남기고 나머지 삭제
+  return (
+    (o as { extra?: SurveyExtra }).extra ??
+    (o as { survey?: SurveyExtra }).survey ??
+    (o as { survey_extra?: SurveyExtra }).survey_extra ??
+    undefined
+  );
+}
 
 export default function SurveyListPage() {
   const nav = useNavigate();
-  const qc = useQueryClient();
+
   const [lastLoadedAt, setLastLoadedAt] = useState(
     formatYyyyMmDdHms(new Date())
   );
-  const [forcedError, setForcedError] = useState<string | null>(null);
+  const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
+
   const {
     data,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    isFetching,
     isError,
     error,
     refetch,
-  } = useSurveys(); // 교체
+  } = useSurveys();
 
-  const items = useMemo(
-    () => data?.pages.flatMap((p) => p.items) ?? [],
-    [data]
-  );
+  // pages → flat → (원본이면 어댑터로) UI 매핑
+  const items: SurveyCardProps[] = useMemo(() => {
+    const flat = data?.pages.flatMap((p) => p.items as unknown[]) ?? [];
 
+    if (isPostListItemArray(flat)) {
+      // 원본(API) → 어댑터 적용 (desc/태그/마감 포함)
+      return flat.map((it) => mapToSurveyCard(it, getSurveyExtra(it)));
+    }
+
+    // 이미 SurveyCardProps[]인 경우 → 그대로 전달
+    return flat as SurveyCardProps[];
+  }, [data]);
+
+  // 초기 로딩/스켈레톤 제어
+  const isInitialLoading = items.length === 0 && !!isFetching;
+  const listIsLoading = isInitialLoading || isFetchingNextPage;
+
+  // 무한 스크롤 (PostListPage와 동일)
   const { sentinelRef } = useInfiniteScroll({
-    root: null,
-    rootMargin: "1000px 0px",
+    root: rootEl,
+    rootMargin: "400px 0px",
     threshold: 0,
-    disabled: isFetchingNextPage || !hasNextPage || !!forcedError || isError,
+    disabled: listIsLoading || !hasNextPage || isError,
     onIntersect: async () => {
       await fetchNextPage();
+      setLastLoadedAt(formatYyyyMmDdHms(new Date()));
     },
   });
 
-  const handleRefresh = () => {
-    setForcedError(null);
+  const handleRefresh = useCallback(() => {
     setLastLoadedAt(formatYyyyMmDdHms(new Date()));
     refetch();
-  };
+  }, [refetch]);
 
-  const resetAll = () => {
-    setForcedError(null);
-    qc.removeQueries({ queryKey: SURVEYS_KEY }); // 키 교체
-    setLastLoadedAt(formatYyyyMmDdHms(new Date()));
-  };
-
-  const clearItems = () => {
-    const emptyData: InfiniteData<Page> = {
-      pages: [{ items: [], hasMore: false }],
-      pageParams: [0],
-    };
-    qc.setQueryData<InfiniteData<Page>>(SURVEYS_KEY, emptyData); // 키 교체
-    setForcedError(null);
-  };
-
-  const toggleError = () =>
-    setForcedError((e) => (e ? null : "의도적 테스트 에러"));
+  const errorText =
+    isError && error && typeof error === "object" && "message" in error
+      ? (error as { message?: string }).message
+      : "설문 목록을 불러오는 중 문제가 발생했습니다.";
 
   return (
-    <div className="p-4 max-w-3xl mx-auto space-y-4">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">
-          Survey 리스트 본문 — UI 테스트
-        </h1>
-        <div className="flex flex-wrap gap-2 text-sm">
-          <button
-            type="button"
-            onClick={resetAll}
-            className="rounded-md border px-3 py-1 hover:bg-base-200"
-          >
-            초기화
-          </button>
-          <button
-            type="button"
-            onClick={clearItems}
-            className="rounded-md border px-3 py-1 hover:bg-base-200"
-          >
-            비우기(Empty)
-          </button>
-          <button
-            type="button"
-            onClick={toggleError}
-            className="rounded-md border px-3 py-1 hover:bg-base-200"
-          >
-            에러 상태 토글
-          </button>
-        </div>
-      </header>
-
-      <section className="rounded-xl border p-3">
-        <div className="text-xs opacity-70 mb-2">
-          hasMore: {String(!!hasNextPage)} / busy: {String(isFetchingNextPage)}{" "}
-          / items: {items.length}
-          {(isError || !!forcedError) && (
-            <span className="ml-2 text-red-500">
-              | error: {forcedError ?? (error as Error)?.message ?? "에러"}
-            </span>
-          )}
-        </div>
-
+    <div className="self-stretch w-[800px] max-w-full p-4">
+      <section className="w-full rounded-xl border border-base-content/30 p-3 pb-8 h-[calc(100vh-200px)] overflow-hidden">
         <SurveyList
           items={items}
-          onItemClick={(id) => nav(`/posts/${id}`)}
+          onItemClick={(id) => nav(urlForPost.postDetail("survey", id))}
           topBar={{
             boardName: "설문 게시판",
-            onOpenSort: () => console.log("정렬 필터 열기"),
-            onOpenTag: () => console.log("태그 필터 열기"),
-            onWrite: () => console.log("글쓰기 이동"),
+            onOpenSort: () => {}, // TODO[UI→API-SORT]: 정렬 상태를 useSurveys 파라미터로 연결
+            onOpenTag: () => {}, // TODO[UI→API-TAGS]: 태그 필터를 훅/서버에 연결
+            onWrite: () => nav(urlForPost.postCreate("survey")),
           }}
           lastLoadedAt={lastLoadedAt}
           onRefresh={handleRefresh}
-          isLoading={isFetchingNextPage}
-          isError={!!forcedError || isError}
-          errorText={forcedError ?? (error as Error)?.message}
+          isLoading={listIsLoading}
+          isError={isError}
+          errorText={isError ? errorText : undefined}
           hasMore={!!hasNextPage}
           sentinelRef={sentinelRef}
+          scrollRootRef={setRootEl} // 내부 스크롤 루트(무한스크롤 root)
           empty={{ message: "등록된 설문이 없습니다." }}
+          className="py-2"
         />
       </section>
     </div>
