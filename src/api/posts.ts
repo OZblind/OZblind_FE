@@ -66,8 +66,14 @@ export async function fetchPosts(params?: {
     return Array.isArray(data) ? data : (data?.results ?? []);
   } catch (e: unknown) {
     const err = e as AxiosError;
-    if (err.response?.status === 404) return [];
-    throw e;
+    if (err.response?.status === 404) {
+      if (import.meta.env.DEV) {
+        console.info("[useInfiniteQuery] 더 불러올 데이터 없음 (404 수신)");
+      }
+      return [];
+    }
+    // 404가 아니면 그대로 throw
+    throw err;
   }
 }
 
