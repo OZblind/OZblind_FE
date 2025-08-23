@@ -1,12 +1,12 @@
 import profile from "@assets/images/profile.jpg";
 import person from "@assets/images/person.png";
 import AssignedTagList from "../tags/AssignedTagList";
-import { profileToTagsMock } from "@src/mocks/tags.mock";
+import { useAssignedTags } from "@hooks/useAssignedTags";
 import { Link } from "react-router-dom";
 import { PATHS } from "@src/constants/paths";
 
 export default function ProfileSection() {
-  const tags = profileToTagsMock("11기", "프론트");
+  const { tags, loading } = useAssignedTags("me");
   return (
     <div className="flex flex-col items-center p-8">
       <div className="flex justify-center items-center w-[164px] h-[164px] rounded-full overflow-hidden transform transition-transform duration-300 hover:bg-base-300/50 hover:scale-105">
@@ -24,7 +24,11 @@ export default function ProfileSection() {
           </div>
         </Link>
       </div>
-      <AssignedTagList tags={tags} />
+      {loading ? (
+        <div className="mt-2 h-5 w-14 rounded-full bg-base-300 animate-pulse" />
+      ) : (
+        <AssignedTagList tags={tags} />
+      )}
     </div>
   );
 }
