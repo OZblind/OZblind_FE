@@ -12,13 +12,16 @@ import CohortSlider from "./CohortSlider";
 type Props = {
   open: boolean;
   anchorRef: React.RefObject<HTMLButtonElement | null>;
-  position: PositionValue;
-  cohort: number;
+  position: PositionValue; // 커밋된 값(읽기 전용처럼 취급)
+  cohort: number; // 커밋된 값(읽기 전용처럼 취급)
   onChangePosition: (v: PositionValue) => void;
   onChangeCohort: (v: number) => void;
-  onReset?: () => void; // 전체 초기화(옵션)
-  onApply?: () => void; // 적용 버튼(옵션)
-  onRequestClose: () => void; // 바깥 클릭/ESC/스크롤 등 닫힘
+  onReset?: () => void; // (옵션) 외부 초기화 버튼이 따로 있을 때만 사용
+  onApply?: () => void; // (옵션) 적용 알림만 필요하면 사용
+  onRequestClose: () => void; // 닫힘
+  // (선택) 내부 초기화 기본값 — 없으면 back/11로 처리
+  defaultPosition?: PositionValue;
+  defaultCohort?: number;
 };
 
 const GAP = 8;
@@ -31,12 +34,26 @@ export default function TagFilterPopover({
   cohort,
   onChangePosition,
   onChangeCohort,
-  onReset,
+  // onReset,           // 외부 상태를 즉시 바꾸지 않도록 이 컴포넌트에서는 호출하지 않음
   onApply,
   onRequestClose,
+  defaultPosition = "back",
+  defaultCohort = 11,
 }: Props) {
   const popRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  // 내부 draft 상태
+  const [draftPosition, setDraftPosition] = useState<PositionValue>(position);
+  const [draftCohort, setDraftCohort] = useState<number>(cohort);
+
+  // 팝오버가 열릴 때마다 현재 커밋 값으로 draft 초기화
+  useEffect(() => {
+    if (open) {
+      setDraftPosition(position);
+      setDraftCohort(cohort);
+    }
+  }, [open, position, cohort]);
 
   // 위치 계산
   useLayoutEffect(() => {
@@ -55,9 +72,9 @@ export default function TagFilterPopover({
       setPos({ top, left });
     });
     return () => cancelAnimationFrame(id);
-  }, [open, anchorRef, position, cohort]);
+  }, [open, anchorRef, draftPosition, draftCohort]);
 
-  // 바깥 클릭 / ESC 닫기
+  // 바깥 클릭 / ESC 닫기 (적용 없음 = draft 폐기)
   useEffect(() => {
     if (!open) return;
 
@@ -80,7 +97,7 @@ export default function TagFilterPopover({
     };
   }, [open, onRequestClose, anchorRef]);
 
-  // 창/스크롤/휠/터치/탭전환/앵커소실 → 닫기
+  // 창/스크롤 등 닫기
   useEffect(() => {
     if (!open) return;
     const close = () => onRequestClose();
@@ -113,10 +130,26 @@ export default function TagFilterPopover({
     };
   }, [open, onRequestClose, anchorRef]);
 
+  // 적용 시에만 상위 콜백 호출
   const handleApply = useCallback(() => {
+    onChangePosition(draftPosition);
+    onChangeCohort(draftCohort);
     onApply?.();
     onRequestClose();
-  }, [onApply, onRequestClose]);
+  }, [
+    draftPosition,
+    draftCohort,
+    onChangePosition,
+    onChangeCohort,
+    onApply,
+    onRequestClose,
+  ]);
+
+  // 초기화는 draft만 리셋 (외부 상태는 건들지 않음)
+  const handleReset = useCallback(() => {
+    setDraftPosition(defaultPosition);
+    setDraftCohort(defaultCohort);
+  }, [defaultPosition, defaultCohort]);
 
   if (!open || !anchorRef.current) return null;
 
@@ -141,39 +174,33 @@ export default function TagFilterPopover({
         <div className="px-1 text-xs text-base-content/60 mb-2">
           포지션 필터
         </div>
-        <PositionRadio value={position} onChange={onChangePosition} />
+        <PositionRadio value={draftPosition} onChange={setDraftPosition} />
 
         <div className="mt-8">
           <CohortSlider
-            value={cohort}
+            value={draftCohort}
             min={1}
             max={20}
-            onChange={onChangeCohort}
+            onChange={setDraftCohort}
           />
         </div>
 
-        {(onApply || onReset) && (
-          <div className="mt-4 flex items-center justify-end gap-2">
-            {onReset && (
-              <button
-                type="button"
-                onClick={onReset}
-                className="btn btn-ghost btn-sm"
-              >
-                초기화
-              </button>
-            )}
-            {onApply && (
-              <button
-                type="button"
-                onClick={handleApply}
-                className="btn btn-primary btn-sm text-white"
-              >
-                적용
-              </button>
-            )}
-          </div>
-        )}
+        <div className="mt-4 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={handleReset}
+            className="btn btn-ghost btn-sm"
+          >
+            초기화
+          </button>
+          <button
+            type="button"
+            onClick={handleApply}
+            className="btn btn-primary btn-sm text-white"
+          >
+            적용
+          </button>
+        </div>
       </div>
     </>
   );
