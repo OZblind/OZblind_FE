@@ -5,6 +5,8 @@ import NavUnifiedSearch from "@src/components/navigation/NavUnifiedSearch";
 import { useThemeIcon } from "@src/hooks/useThemeIcon";
 import { logos } from "@src/assets";
 import { PATHS } from "@src/constants/paths";
+import AdBanner from "@src/components/AdBanner/AdBanner";
+import AdYoutube from "@src/components/AdBanner/AdYoutube";
 
 export default function MainLayout() {
   const [showAd, setShowAd] = useState(false);
@@ -19,7 +21,7 @@ export default function MainLayout() {
 
   // 브라우저 창 너비를 감지해 광고 배너를 노출할지 결정
   useEffect(() => {
-    const checkWidth = () => setShowAd(window.innerWidth >= 1600);
+    const checkWidth = () => setShowAd(window.innerWidth >= 1540);
     checkWidth();
     window.addEventListener("resize", checkWidth);
     return () => window.removeEventListener("resize", checkWidth);
@@ -36,7 +38,7 @@ export default function MainLayout() {
   return (
     <div className="flex w-full min-h-screen">
       <Sidebar />
-      <div className="flex-1 flex justify-center">
+      <div className="flex-1 flex justify-center ml-4">
         <div className="flex flex-col w-[820px] h-screen pt-1 box-border min-h-0">
           <div className="flex items-center gap-4 w-full py-8">
             <Link to={PATHS.MAIN}>
@@ -44,7 +46,7 @@ export default function MainLayout() {
             </Link>
             <NavUnifiedSearch className="w-full" placeholder="통합검색" />
           </div>
-          <div className="flex justify-center overflow-y-auto overflow-x-visible scrollbar-hide p-1">
+          <div className="flex justify-center overflow-y-auto overflow-x-visible scrollbar-hide p-2">
             <Outlet />
           </div>
         </div>
@@ -53,10 +55,11 @@ export default function MainLayout() {
       {/** 광고 배너 */}
       {showAd && (
         <div>
-          <div className="absolute right-10 top-20 w-[300px] h-[900px] bg-base-300 p-4">
-            광고 배너
+          <div className="absolute right-10 top-32 w-[260px] h-[700px] ">
+            <AdBanner />
+            <AdYoutube />
           </div>
-          <div className="w-[240px]"></div>
+          <div className="w-[200px]"></div>
         </div>
       )}
     </div>
