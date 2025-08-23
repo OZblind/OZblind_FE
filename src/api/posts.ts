@@ -2,6 +2,7 @@
 import api from "@api/client";
 import { BOARD_ID, type BoardSlug } from "@constants/boards";
 import { getBoardIdBySlug } from "./boardMap";
+import type { AxiosError } from "axios";
 
 /** ----- 타입 ----- */
 export type PostListItem = {
@@ -47,7 +48,7 @@ export async function fetchPosts(params?: {
   board?: BoardSlug; // 슬러그로 받되 내부에서 id로 변환
   search?: string;
   ordering?: "-created_at" | "created_at" | "-view_count" | "view_count";
-  page?: number;
+  page?: number; // DRF는 1-base, 0은 절대 보내지 않기
   page_size?: number;
 }) {
   const query = new URLSearchParams();
@@ -58,12 +59,16 @@ export async function fetchPosts(params?: {
   if (params?.page) query.set("page", String(params.page));
   if (params?.page_size) query.set("page_size", String(params.page_size));
 
-  // 프록시 제거: /api 접두어 필수
-  const { data } = await api.get<{ results?: PostListItem[] } | PostListItem[]>(
-    `/api/posts/?${query.toString()}`
-  );
-
-  return Array.isArray(data) ? data : (data?.results ?? []);
+  try {
+    const { data } = await api.get<
+      { results?: PostListItem[]; next?: string } | PostListItem[]
+    >(`/api/posts/?${query.toString()}`);
+    return Array.isArray(data) ? data : (data?.results ?? []);
+  } catch (e: unknown) {
+    const err = e as AxiosError;
+    if (err.response?.status === 404) return [];
+    throw e;
+  }
 }
 
 export async function fetchPostDetail(id: number) {
