@@ -5,6 +5,7 @@ import { LastLoadedBar, BoardTopBar } from "../common";
 import { useRef, useState } from "react";
 import SortRadioPopover from "@components/Board/common/sort/SortRadioPopover";
 import type { SortValue } from "@src/types/sort";
+import { LIST_MESSAGES } from "@src/constants/ui";
 
 export type SurveyListProps = {
   items: SurveyCardProps[];
@@ -46,7 +47,7 @@ export default function SurveyList({
   errorText,
   hasMore,
   sentinelRef,
-  noMoreText = "마지막 페이지입니다.",
+  noMoreText = LIST_MESSAGES.NO_MORE,
   empty,
   className,
   scrollRootRef,
