@@ -9,6 +9,9 @@ import { mapToSurveyCard } from "@src/features/posts/list/adapters";
 import type { PostListItem } from "@api/posts";
 import type { SurveyCardProps } from "@components/Board/survey/SurveyCard";
 import type { SurveyExtra } from "@src/features/posts/list/adapters";
+import AssignedTagList from "@components/tags/AssignedTagList";
+import { adaptUserTag } from "@src/features/tags/adapters";
+import type { RawUserTag } from "@api/tags";
 
 /** 타입 가드: 배열이 PostListItem[] 인지 판별 */
 function isPostListItemArray(arr: unknown[]): arr is PostListItem[] {
@@ -21,6 +24,17 @@ function isPostListItemArray(arr: unknown[]): arr is PostListItem[] {
     "user" in x &&
     "board" in x &&
     "created_at" in x
+  );
+}
+
+/** 작성자 태그 원본 타입 가드 */
+function isRawUserTag(u: unknown): u is RawUserTag {
+  return (
+    typeof u === "object" &&
+    u !== null &&
+    typeof (u as { id?: unknown }).id === "number" &&
+    (u as { tag_class?: unknown }).tag_class !== undefined &&
+    typeof (u as { tag_number?: unknown }).tag_number === "number"
   );
 }
 
@@ -67,8 +81,16 @@ export default function SurveyListPage() {
     const flat = data?.pages.flatMap((p) => p.items as unknown[]) ?? [];
 
     if (isPostListItemArray(flat)) {
-      // 원본(API) → 어댑터 적용 (desc/태그/마감 포함)
-      return flat.map((it) => mapToSurveyCard(it, getSurveyExtra(it)));
+      // 원본(API) → 어댑터 적용 + 작성자 태그 배지(tagSlot) 주입
+      return flat.map((it) => {
+        const card = mapToSurveyCard(it, getSurveyExtra(it));
+        const maybeUser = (it as { user?: unknown }).user;
+        const rawUser = isRawUserTag(maybeUser) ? maybeUser : null;
+        const authorTags = adaptUserTag(rawUser);
+        return authorTags.length > 0
+          ? { ...card, tagSlot: <AssignedTagList tags={authorTags} /> }
+          : card;
+      });
     }
 
     // 이미 SurveyCardProps[]인 경우 → 그대로 전달
