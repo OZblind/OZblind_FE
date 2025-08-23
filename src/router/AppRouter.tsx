@@ -118,7 +118,7 @@ function KeyVerifyPlaceholder() {
     } catch (err: unknown) {
       const msg =
         typeof err === "object" && err && "message" in err
-          ? ((err as { message?: string }).message ?? "인증 실패")
+          ? (err as { message?: string }).message ?? "인증 실패"
           : "인증 실패";
       push({ message: msg, type: "error" });
     }
@@ -291,10 +291,9 @@ export default function AppRouter() {
             element={<PostListPage board="info" />}
           />
           <Route path={PATHS.SURVEY_BOARD} element={<SurveyListPage />} />
-
           <Route path={PATHS.GITHUB_BOARD} element={<GithubListPage />} />
-          <Route path={PATHS.POST_CREATE} element={<WritePostPage />} />
           <Route path={PATHS.POST_DETAIL} element={<PostDetailPage />} />
+          <Route path={PATHS.POST_CREATE} element={<WritePostPage />} />
 
           {/* 보호: 마이페이지 (JWT + 인증 완료) */}
           <Route
