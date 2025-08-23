@@ -4,6 +4,8 @@ import GithubCard, { type GithubCardProps } from "./GithubCard";
 import { useRef, useState } from "react";
 import SortRadioPopover from "@components/Board/common/sort/SortRadioPopover";
 import type { SortValue } from "@src/types/sort";
+import TagFilterPopover from "@components/Board/common/tagfilter/TagFilterPopover";
+import type { PositionValue } from "@components/Board/common/tagfilter/PositionRadio";
 import { LIST_MESSAGES } from "@src/constants/ui";
 
 export type GithubListItem = GithubCardProps;
@@ -55,9 +57,18 @@ export default function GithubList({
   scrollRootRef,
 }: GithubListProps) {
   const isEmpty = items.length === 0;
+
+  // ------ 정렬(UI) ------
   const sortBtnRef = useRef<HTMLButtonElement>(null);
   const [openSort, setOpenSort] = useState(false);
   const [sort, setSort] = useState<SortValue>("latest");
+
+  // ------ 태그(UI) ------
+  const tagBtnRef = useRef<HTMLButtonElement>(null);
+  const [openTag, setOpenTag] = useState(false);
+  const [position, setPosition] = useState<PositionValue>("back");
+  const [cohort, setCohort] = useState<number>(11);
+  const tagActive = position !== "back" || cohort !== 11;
 
   return (
     <section className={`flex h-full flex-col ${className ?? ""}`}>
@@ -65,10 +76,12 @@ export default function GithubList({
         <BoardTopBar
           boardName={topBar.boardName}
           onOpenSort={() => setOpenSort((v) => !v)}
-          onOpenTag={topBar.onOpenTag}
+          onOpenTag={() => setOpenTag((v) => !v)}
           onWrite={topBar.onWrite}
           sortButtonRef={sortBtnRef}
           sortActive={sort !== "latest"}
+          tagButtonRef={tagBtnRef}
+          tagActive={tagActive}
           className="mb-2 px-3 flex-none"
           meta={
             <LastLoadedBar
@@ -144,6 +157,24 @@ export default function GithubList({
         value={sort}
         onChange={(v) => setSort(v)}
         onRequestClose={() => setOpenSort(false)}
+      />
+
+      {/* 태그 팝오버(UI) */}
+      <TagFilterPopover
+        open={openTag}
+        anchorRef={tagBtnRef}
+        position={position}
+        cohort={cohort}
+        onChangePosition={setPosition}
+        onChangeCohort={setCohort}
+        onReset={() => {
+          setPosition("front");
+          setCohort(11);
+        }}
+        onApply={() => {
+          // UI 전용: 실제 refetch/lastLoadedAt 갱신은 상위로 승격할 때 연결
+        }}
+        onRequestClose={() => setOpenTag(false)}
       />
     </section>
   );
