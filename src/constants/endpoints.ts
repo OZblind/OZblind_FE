@@ -5,4 +5,6 @@ export const ENDPOINTS = {
   TOKEN_REVOKE: "/api/auth/token/revoke",
   KEY_VERIFY: "/api/auth/key-verify",
   USER_PROFILE: "/api/user/profile",
+  USER_TAG: "/api/user/tag",
+  POST_DETAIL: "/api/posts", // (뒤에 /:id/ 붙여서 사용)
 } as const;

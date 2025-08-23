@@ -1,9 +1,13 @@
+import React from "react";
 import { useInfiniteQuery, type InfiniteData } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GithubListItem } from "@components/Board/github/GithubList";
 import type { PostListItem } from "@api/posts";
 import { fetchGithubLinkById, fetchGithubListPage } from "@api/github";
 import { mapToGithubListItem } from "@src/features/posts/list/githubAdapter";
+import AssignedTagList from "@components/tags/AssignedTagList";
+import { adaptUserTag } from "@src/features/tags/adapters";
+import type { RawUserTag } from "@src/types/tag";
 
 // NOTE: 키 표시에만 사용 (API 파라미터는 github.ts에서 board id 사용)
 const GITHUB_BOARD_SLUG = "github" as const;
@@ -47,7 +51,6 @@ async function fetchGithubPage(
   page: number,
   opt?: UseGithubPostsOptions
 ): Promise<GithubPostsPage> {
-  // API 레이어가 hasNext를 판단 (next 존재 유무)
   return fetchGithubListPage({
     page,
     page_size: opt?.pageSize ?? DEFAULT_PAGE_SIZE,
@@ -63,7 +66,7 @@ export function useGithubPosts(opt?: UseGithubPostsOptions) {
   const ordering = toOrdering(opt?.sort) ?? "-created_at";
 
   return useInfiniteQuery({
-    // ⚠️ 키에 옵션 포함 (정렬/필터 변경 시 캐시 분리)
+    // 키에 옵션 포함 (정렬/필터 변경 시 캐시 분리)
     queryKey: [
       "github-posts",
       {
@@ -79,7 +82,6 @@ export function useGithubPosts(opt?: UseGithubPostsOptions) {
     getNextPageParam: (lastPage, pages, lastParam) => {
       if (!lastPage.hasNext) return undefined;
 
-      // 안전 가드: 같은 페이지 반복 방지
       const prev = pages[pages.length - 2] as GithubPostsPage | undefined;
       if (prev) {
         const a = prev.items.map((p) => p.id);
@@ -95,13 +97,43 @@ export function useGithubPosts(opt?: UseGithubPostsOptions) {
   });
 }
 
+/**
+ * 리스트 아이템 변환 단계에서 tagSlot을 주입
+ * - PostListItem에 user(오즈키 태그 원본)가 포함되어 있다면 AssignedTagList를 생성해 tagSlot에 넣음
+ * - 포함되지 않았다면 tagSlot은 생략(상세에서만 태그 노출)
+ */
 export function useGithubListItems(data?: InfiniteData<GithubPostsPage>) {
   const flat: PostListItem[] = useMemo(
     () => data?.pages.flatMap((p) => p.items) ?? [],
     [data]
   );
+
+  type WithUser =
+    | {
+        user?: {
+          id: number;
+          tag_class: "FE" | "BE";
+          tag_number: number;
+        } | null;
+      }
+    | Record<string, unknown>;
+
   return useMemo<GithubListItem[]>(
-    () => flat.map((it) => mapToGithubListItem(it)),
+    () =>
+      flat.map((it) => {
+        const base = mapToGithubListItem(it);
+        const rawUser = (it as WithUser).user as RawUserTag | null | undefined;
+        const tags = adaptUserTag(rawUser);
+        const tagSlot =
+          tags.length > 0
+            ? React.createElement(AssignedTagList, { tags })
+            : undefined;
+
+        return {
+          ...base,
+          tagSlot,
+        };
+      }),
     [flat]
   );
 }
