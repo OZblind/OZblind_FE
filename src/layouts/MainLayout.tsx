@@ -44,7 +44,7 @@ export default function MainLayout() {
             </Link>
             <NavUnifiedSearch className="w-full" placeholder="통합검색" />
           </div>
-          <div className="flex-1 min-h-0 overflow-y-auto overflow-x-visible scrollbar-hide p-1">
+          <div className="flex justify-center overflow-y-auto overflow-x-visible scrollbar-hide p-1">
             <Outlet />
           </div>
         </div>
