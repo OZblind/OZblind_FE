@@ -8,6 +8,7 @@ export const EASTER_EGG_NICKNAMES = [
   "우명이",
   "초캠이",
   "권후르",
+  "프리티채은",
   "개미쉑",
   "오즈의왕자",
   "오즈의토사물",
