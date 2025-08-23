@@ -13,6 +13,7 @@ import AssignedTagList from "@components/tags/AssignedTagList";
 import { adaptUserTag } from "@src/features/tags/adapters";
 import type { RawUserTag } from "@api/tags";
 
+
 export const SURVEYS_KEY = ["surveys"] as const;
 const PAGE_SIZE = LIST_SETTINGS.ITEMS_PER_PAGE;
 
