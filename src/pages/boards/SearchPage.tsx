@@ -1,3 +1,4 @@
+// src/pages/boards/SearchPage.tsx
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import PostList from "@components/Board/free/PostList";
@@ -5,6 +6,8 @@ import type { FreeBoardItem } from "@components/Board/free/PostRow";
 import { useInfiniteScroll } from "@hooks/useInfiniteScroll";
 import { formatYyMmDd, formatYyyyMmDdHms } from "@utils/date";
 import { urlForPost } from "@utils/urlForPost";
+import { searchFullResultsApi } from "@src/api/searchApi";
+import type { Post, Category } from "@src/types/search";
 
 import {
   profileToTagsMock,
@@ -17,6 +20,40 @@ import { tagsToAuthorLabel } from "@utils/tagsToAuthorLabel";
 
 const PAGE_SIZE = 15;
 
+// 게시판 타입 정의
+const BOARD_TYPES = ["free", "jobs", "info", "survey", "github"] as const;
+type BoardType = (typeof BOARD_TYPES)[number];
+
+// 카테고리명을 게시판 슬러그로 변환
+const getCategoryBoardType = (category: string): BoardType => {
+  const categoryMap: Record<string, BoardType> = {
+    자유: "free",
+    취업: "jobs",
+    정보: "info",
+    설문: "survey",
+    GitHub: "github",
+  };
+  return categoryMap[category] || "free";
+};
+
+// Post를 FreeBoardItem으로 변환하는 함수
+const transformPostToFreeBoardItem = (
+  post: Post,
+  index: number
+): FreeBoardItem & { category: string } => {
+  return {
+    id: String(post.id),
+    no: index + 1,
+    title: post.title,
+    author: post.author,
+    authorId: `author${post.id}`,
+    dateText: formatYyMmDd(new Date(post.createdAt)),
+    views: post.viewCount,
+    likes: 0,
+    category: post.category, // 카테고리 정보 보존
+  };
+};
+
 export default function SearchPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -24,10 +61,13 @@ export default function SearchPage() {
   const searchQuery = searchParams.get("q") || "";
   const categoryParam = searchParams.get("category") || "전체";
 
-  const [items, setItems] = useState<FreeBoardItem[]>([]);
+  const [items, setItems] = useState<(FreeBoardItem & { category: string })[]>(
+    []
+  );
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
+  const [hasNext, setHasNext] = useState(false);
   const [lastLoadedAt, setLastLoadedAt] = useState<string>(
     formatYyyyMmDdHms(new Date())
   );
@@ -35,23 +75,22 @@ export default function SearchPage() {
   const mountedRef = useRef(true);
   const busyRef = useRef(false);
   const pageRef = useRef(1);
-  const hasMoreRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
 
   useEffect(() => {
     return () => {
       mountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
   }, []);
 
   const hasMore = useMemo(() => {
-    return items.length < totalCount && items.length > 0;
-  }, [items.length, totalCount]);
-
-  useEffect(() => {
-    hasMoreRef.current = hasMore;
-  }, [hasMore]);
+    return hasNext;
+  }, [hasNext]);
 
   // 글쓴이 label 만들기 (FreeBoard와 동일한 로직)
   const authorLabelMap = useMemo(() => {
@@ -82,34 +121,61 @@ export default function SearchPage() {
       isNewSearch: boolean = false
     ) => {
       if (busyRef.current) return;
+
+      // 이전 요청 취소
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      abortControllerRef.current = new AbortController();
       busyRef.current = true;
       if (mountedRef.current) setBusy(true);
       setErr(null);
 
       try {
-        await new Promise((r) => setTimeout(r, 800));
-
-        const mockResults = generateMockSearchResults(query, category, pageNum);
+        const result = await searchFullResultsApi(
+          query,
+          category as Category,
+          pageNum,
+          PAGE_SIZE,
+          abortControllerRef.current.signal
+        );
 
         if (!mountedRef.current) return;
 
+        // Post[] → FreeBoardItem[] 변환
+        const transformedItems = result.posts.map((post, idx) =>
+          transformPostToFreeBoardItem(post, (pageNum - 1) * PAGE_SIZE + idx)
+        );
+
         if (isNewSearch) {
-          setItems(mockResults.items);
-          setTotalCount(mockResults.totalCount);
+          setItems(transformedItems);
+          setTotalCount(result.totalCount);
         } else {
-          setItems((prev) => [...prev, ...mockResults.items]);
+          setItems((prev) => [...prev, ...transformedItems]);
         }
 
+        setHasNext(result.hasNext);
         pageRef.current = pageNum;
         setLastLoadedAt(formatYyyyMmDdHms(new Date()));
       } catch (error) {
+        // AbortError는 무시
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
+
         if (mountedRef.current) {
-          setErr("검색 중 오류가 발생했습니다.");
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : "검색 중 오류가 발생했습니다.";
+          setErr(errorMessage);
           console.error("Search error:", error);
         }
       } finally {
         if (mountedRef.current) setBusy(false);
         busyRef.current = false;
+        abortControllerRef.current = null;
       }
     },
     []
@@ -119,8 +185,8 @@ export default function SearchPage() {
   useEffect(() => {
     setItems([]);
     setErr(null);
+    setHasNext(false);
     pageRef.current = 1;
-    hasMoreRef.current = true;
 
     if (searchQuery.trim()) {
       performSearch(searchQuery, categoryParam, 1, true);
@@ -128,10 +194,10 @@ export default function SearchPage() {
   }, [searchQuery, categoryParam, performSearch]);
 
   const loadMore = useCallback(async () => {
-    if (!searchQuery.trim() || busyRef.current || !hasMoreRef.current) return;
+    if (!searchQuery.trim() || busyRef.current || !hasNext) return;
     const nextPage = pageRef.current + 1;
     await performSearch(searchQuery, categoryParam, nextPage, false);
-  }, [searchQuery, categoryParam, performSearch]);
+  }, [searchQuery, categoryParam, performSearch, hasNext]);
 
   const { sentinelRef } = useInfiniteScroll({
     root: rootEl,
@@ -153,21 +219,11 @@ export default function SearchPage() {
 
   const goDetail = useCallback(
     (id: FreeBoardItem["id"]) => {
-      // 검색 결과에서 게시판 타입 추출
+      // 아이템에서 카테고리 정보 추출
       const item = items.find((item) => item.id === id);
-      const itemBoardType = (item as FreeBoardItem & { boardType?: string })
-        ?.boardType;
-
-      // 유효한 게시판 타입인지 확인하고 기본값 설정
-      const isValidBoardType = (type: string): type is BoardType => {
-        return BOARD_TYPES.includes(type as BoardType);
-      };
-
-      const boardType: BoardType =
-        itemBoardType && isValidBoardType(itemBoardType)
-          ? itemBoardType
-          : "free";
-
+      const boardType = item?.category
+        ? getCategoryBoardType(item.category)
+        : "free";
       navigate(urlForPost.postDetail(boardType, id));
     },
     [navigate, items]
@@ -240,88 +296,4 @@ export default function SearchPage() {
       </section>
     </div>
   );
-}
-
-// 게시판 타입 정의
-const BOARD_TYPES = ["free", "jobs", "info", "survey", "github"] as const;
-type BoardType = (typeof BOARD_TYPES)[number];
-
-const BOARD_NAMES = {
-  free: "자유",
-  jobs: "취업",
-  info: "정보",
-  survey: "설문",
-  github: "GitHub",
-} as const;
-
-// 목업 검색 결과 생성 함수
-function generateMockSearchResults(
-  query: string,
-  category: string,
-  page: number
-) {
-  // 검색어가 너무 특수하거나 결과가 없을 만한 경우 처리
-  const shouldHaveNoResults =
-    query.length < 2 ||
-    query.includes("없는검색어") ||
-    query.includes("asdfqwer");
-
-  if (shouldHaveNoResults) {
-    return { items: [], totalCount: 0 };
-  }
-
-  // 카테고리에 따른 필터링
-  let filteredBoardTypes: readonly BoardType[];
-  if (category === "전체") {
-    filteredBoardTypes = BOARD_TYPES;
-  } else {
-    // 카테고리명을 BoardType으로 매핑
-    const categoryToBoard: Record<string, BoardType> = {
-      자유: "free",
-      취업: "jobs",
-      정보: "info",
-      설문: "survey",
-      GitHub: "github",
-    };
-    const boardType = categoryToBoard[category];
-    filteredBoardTypes = boardType ? [boardType] : BOARD_TYPES;
-  }
-
-  const totalCount = Math.floor(Math.random() * 150) + 20;
-  const startIndex = (page - 1) * PAGE_SIZE;
-
-  if (startIndex >= totalCount) {
-    return { items: [], totalCount };
-  }
-
-  const itemCount = Math.min(PAGE_SIZE, totalCount - startIndex);
-  const items: (FreeBoardItem & { boardType: BoardType })[] = Array.from(
-    { length: itemCount },
-    (_, i) => {
-      const idx = startIndex + i;
-      const dayOffset = Math.floor(idx / 3);
-      const date = new Date();
-      date.setDate(date.getDate() - dayOffset);
-
-      // 필터링된 게시판 타입에서만 결과 생성
-      const boardType = filteredBoardTypes[idx % filteredBoardTypes.length];
-      const boardName = BOARD_NAMES[boardType];
-
-      return {
-        id: `search-${query}-${boardType}-${idx}`,
-        no: totalCount - idx,
-        title: `[${boardName}] "${query}" 관련 게시글 ${
-          idx + 1
-        } - 검색 키워드가 포함된 제목`,
-        author: `작성자${(idx % 10) + 1}`,
-        authorId: `author${(idx % 10) + 1}`,
-        dateText: formatYyMmDd(date),
-        views: Math.floor(Math.random() * 1000),
-        likes: Math.floor(Math.random() * 50),
-        boardType, // 게시판 정보 추가
-      };
-    }
-  );
-
-  return { items, totalCount };
 }

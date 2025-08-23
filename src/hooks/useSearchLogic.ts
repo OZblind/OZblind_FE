@@ -4,7 +4,6 @@ import axios from "axios";
 import { useAuthStore } from "@store/authStore";
 import { searchPreviewApi } from "@src/api/searchApi";
 import type { Post, Category } from "@src/types/search";
-import { categoryMapping } from "@src/types/search";
 
 interface UseSearchLogicProps {
   maxPreviewResults: number;
@@ -113,9 +112,9 @@ export const useSearchLogic = ({ maxPreviewResults }: UseSearchLogicProps) => {
   const handleViewAllResults = useCallback((): void => {
     const params = new URLSearchParams({
       q: searchQuery,
-      category: categoryMapping[selectedCategory],
+      category: selectedCategory,
     });
-    navigate(`/search?${params.toString()}`);
+    navigate(`/boards/search?${params.toString()}`);
     handleClose();
   }, [navigate, searchQuery, selectedCategory, handleClose]);
 
