@@ -1,73 +1,145 @@
 import { useInfiniteQuery, type InfiniteData } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GithubListItem } from "@components/Board/github/GithubList";
 import type { PostListItem } from "@api/posts";
+import { fetchGithubLinkById, fetchGithubListPage } from "@api/github";
 import { mapToGithubListItem } from "@src/features/posts/list/githubAdapter";
+import { LIST_SETTINGS } from "@src/constants/ui";
 
-const GITHUB_BOARD_ID = 5;
+const GITHUB_BOARD_SLUG = "github" as const; // 키에만 사용 (표시용)
+const PAGE_SIZE = LIST_SETTINGS.ITEMS_PER_PAGE;
 
-/** 응답/가드 타입 */
-type PostsListResponse = {
-  results: PostListItem[];
-  next?: string;
-  totalCount?: number;
-};
-type GithubPostsPage = { items: PostListItem[]; hasMore: boolean };
+type GithubPostsPage = { items: PostListItem[]; hasNext: boolean };
 
-type AnyObj = Record<string, unknown>;
-function isObj(v: unknown): v is AnyObj {
-  return typeof v === "object" && v !== null;
-}
-function isPostsListResponse(v: unknown): v is PostsListResponse {
-  return isObj(v) && Array.isArray(v.results);
-}
-
-/** 목록 호출 (page는 1-based) */
-async function fetchGithubPosts(page: number): Promise<GithubPostsPage> {
-  const url = new URL("/api/posts", window.location.origin);
-  url.searchParams.set("page", String(page));
-  url.searchParams.set("board_id", String(GITHUB_BOARD_ID));
-
-  const res = await fetch(url.toString(), {
-    credentials: "include", // TODO[AUTH]: 전역 규약으로 조정
-    headers: { "Content-Type": "application/json" },
+async function fetchGithubPage(page: number): Promise<GithubPostsPage> {
+  // 다음 페이지 존재 여부는 API 레이어가 판단
+  return fetchGithubListPage({
+    page,
+    page_size: PAGE_SIZE,
+    ordering: "-created_at",
   });
-
-  if (!res.ok) {
-    const msg = await res.text().catch(() => "");
-    throw new Error(msg || "GitHub 게시판 목록을 불러오지 못했습니다.");
-  }
-
-  const json: unknown = await res.json();
-  if (!isPostsListResponse(json)) {
-    // 스키마가 다르면 빈 페이지로 처리
-    return { items: [], hasMore: false };
-  }
-
-  const items = json.results;
-
-  const hasMore = items.length > 0;
-  return { items, hasMore };
 }
 
-export const GITHUB_POSTS_KEY = ["github-posts", GITHUB_BOARD_ID] as const;
+export const GITHUB_POSTS_KEY = [
+  "github-posts",
+  { board: GITHUB_BOARD_SLUG, pageSize: PAGE_SIZE, ordering: "-created_at" },
+] as const;
 
 export function useGithubPosts() {
   return useInfiniteQuery({
     queryKey: GITHUB_POSTS_KEY,
     initialPageParam: 1,
-    queryFn: ({ pageParam }) => fetchGithubPosts(pageParam as number),
-    getNextPageParam: (lastPage, _pages, lastParam) =>
-      lastPage.hasMore ? (lastParam as number) + 1 : undefined,
+    queryFn: ({ pageParam }) => fetchGithubPage(pageParam as number),
+    getNextPageParam: (lastPage, pages, lastParam) => {
+      // ✅ API 레이어가 알려준 hasNext만 신뢰
+      if (!lastPage.hasNext) return undefined;
+
+      // 안전 가드: 서버가 같은 페이지를 반복으로 주는 경우 차단
+      const prev = pages[pages.length - 2] as GithubPostsPage | undefined;
+      if (prev) {
+        const a = prev.items.map((p) => p.id);
+        const b = lastPage.items.map((p) => p.id);
+        if (a.length === b.length && a.every((v, i) => v === b[i])) {
+          return undefined;
+        }
+      }
+      return (lastParam as number) + 1;
+    },
+    // 개발 중이면 주석 해제
+    // retry: false,
+    // refetchOnWindowFocus: false,
   });
 }
 
-/** 페이지 → GithubList에 바로 넣을 items (어댑터 적용) */
-export function useGithubListItems(
-  data?: InfiniteData<GithubPostsPage>
-): GithubListItem[] {
-  return useMemo(() => {
-    const flat: PostListItem[] = data?.pages.flatMap((p) => p.items) ?? [];
-    return flat.map((it) => mapToGithubListItem(it));
-  }, [data]);
+export function useGithubListItems(data?: InfiniteData<GithubPostsPage>) {
+  const flat: PostListItem[] = useMemo(
+    () => data?.pages.flatMap((p) => p.items) ?? [],
+    [data]
+  );
+  return useMemo<GithubListItem[]>(
+    () => flat.map((it) => mapToGithubListItem(it)),
+    [flat]
+  );
+}
+
+/** 🔗 repoLink 프리패치(변경 없음) */
+export function useGithubListWithLinks(data?: InfiniteData<GithubPostsPage>): {
+  items: GithubListItem[];
+  onRepoClick: (id: string) => Promise<void>;
+} {
+  const raw = useGithubListItems(data);
+
+  const [linkMap, setLinkMap] = useState<Record<string, string>>({});
+  const mountedRef = useRef(true);
+  const busySetRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => void (mountedRef.current = false);
+  }, []);
+
+  useEffect(() => {
+    const targets = raw
+      .filter(
+        (it) =>
+          !it.repoLink && !linkMap[it.id] && !busySetRef.current.has(it.id)
+      )
+      .map((it) => it.id);
+
+    if (targets.length === 0) return;
+    targets.forEach((id) => busySetRef.current.add(id));
+
+    (async () => {
+      try {
+        const results = await Promise.all(
+          targets.map(async (id) => {
+            try {
+              const link = await fetchGithubLinkById(id);
+              return { id, link };
+            } catch {
+              return { id, link: "" as string };
+            }
+          })
+        );
+        if (!mountedRef.current) return;
+        setLinkMap((prev) => {
+          const next = { ...prev };
+          for (const { id, link } of results) if (link) next[id] = link;
+          return next;
+        });
+      } finally {
+        targets.forEach((id) => busySetRef.current.delete(id));
+      }
+    })();
+  }, [raw, linkMap]);
+
+  const items = useMemo(
+    () =>
+      raw.map((it) => ({
+        ...it,
+        repoLink: it.repoLink || linkMap[it.id] || "",
+      })),
+    [raw, linkMap]
+  );
+
+  const onRepoClick = useCallback(
+    async (id: string) => {
+      const cached = linkMap[id];
+      if (cached) {
+        window.open(cached, "_blank", "noopener,noreferrer");
+        return;
+      }
+      try {
+        const link = await fetchGithubLinkById(id);
+        if (!link) return;
+        if (mountedRef.current) setLinkMap((prev) => ({ ...prev, [id]: link }));
+        window.open(link, "_blank", "noopener,noreferrer");
+      } catch {
+        // TODO[UX]: 토스트
+      }
+    },
+    [linkMap]
+  );
+
+  return { items, onRepoClick };
 }
