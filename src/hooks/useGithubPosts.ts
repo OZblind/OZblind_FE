@@ -7,7 +7,7 @@ import { fetchGithubLinkById, fetchGithubListPage } from "@api/github";
 import { mapToGithubListItem } from "@src/features/posts/list/githubAdapter";
 import AssignedTagList from "@components/tags/AssignedTagList";
 import { adaptUserTag } from "@src/features/tags/adapters";
-import type { RawUserTag } from "@src/types/tag";
+import type { RawUserTag } from "@api/tags";
 import { LIST_SETTINGS } from "@src/constants/ui";
 import type { AxiosError } from "axios";
 
@@ -119,22 +119,19 @@ export function useGithubListItems(data?: InfiniteData<GithubPostsPage>) {
     [data]
   );
 
-  type WithUser =
-    | {
-        user?: {
-          id: number;
-          tag_class: "FE" | "BE";
-          tag_number: number;
-        } | null;
-      }
-    | Record<string, unknown>;
+  const isRawUserTag = (u: unknown): u is RawUserTag =>
+    typeof u === "object" &&
+    u !== null &&
+    typeof (u as { id?: unknown }).id === "number" &&
+    (u as { tag_class?: unknown }).tag_class !== undefined &&
+    typeof (u as { tag_number?: unknown }).tag_number === "number";
 
   return useMemo<GithubListItem[]>(
     () =>
       flat.map((it) => {
         const base = mapToGithubListItem(it);
-        const rawUser = (it as WithUser).user as RawUserTag | null | undefined;
-        const tags = adaptUserTag(rawUser);
+        const maybeUser = (it as unknown as { user?: unknown }).user;
+        const tags = adaptUserTag(isRawUserTag(maybeUser) ? maybeUser : null);
         const tagSlot =
           tags.length > 0
             ? React.createElement(AssignedTagList, { tags })
