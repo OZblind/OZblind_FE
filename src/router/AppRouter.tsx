@@ -251,7 +251,6 @@ export default function AppRouter() {
         <Route path="/test/jobbanner" element={<TestJobBannerPage />} />
 
         {/* API 테스트 라우트 */}
-        <Route path="/posts/:id" element={<PostDetailPage />} />
         <Route path="/boards/free" element={<PostListPage board="free" />} />
         <Route path="/boards/jobs" element={<PostListPage board="jobs" />} />
         <Route path="/boards/info" element={<PostListPage board="info" />} />
