@@ -8,6 +8,7 @@ import { mapToGithubListItem } from "@src/features/posts/list/githubAdapter";
 import AssignedTagList from "@components/tags/AssignedTagList";
 import { adaptUserTag } from "@src/features/tags/adapters";
 import type { RawUserTag } from "@src/types/tag";
+import { LIST_SETTINGS } from "@src/constants/ui";
 
 // NOTE: 키 표시에만 사용 (API 파라미터는 github.ts에서 board id 사용)
 const GITHUB_BOARD_SLUG = "github" as const;
@@ -62,7 +63,7 @@ async function fetchGithubPage(
 }
 
 export function useGithubPosts(opt?: UseGithubPostsOptions) {
-  const pageSize = opt?.pageSize ?? DEFAULT_PAGE_SIZE;
+  const pageSize = opt?.pageSize ?? LIST_SETTINGS.ITEMS_PER_PAGE;
   const ordering = toOrdering(opt?.sort) ?? "-created_at";
 
   return useInfiniteQuery({
