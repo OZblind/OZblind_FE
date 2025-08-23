@@ -3,7 +3,7 @@ import EmptyState, {
   type EmptyStateProps,
 } from "@components/Board/common/EmptyState";
 import PostRow, { type FreeBoardItem, FREE_LIST_GRID } from "./PostRow";
-import PostCard from "./PostCard";
+// import PostCard from "./PostCard";
 import { LastLoadedBar, BoardTopBar } from "../common";
 import { useRef, useState, type ReactNode } from "react";
 import SortRadioPopover from "@components/Board/common/sort/SortRadioPopover";
@@ -113,7 +113,8 @@ export default function PostList({
         {!isError && !(isLoading && isEmpty) && !isEmpty && (
           <>
             {/* 데스크톱(테이블) — 작성자 라인을 텍스트로 대체 */}
-            <div className="hidden md:block">
+            {/* 반응형 추가시 아래 div className="hidden md:block" 로 교체 */}
+            <div className="block">
               <div
                 className={`${FREE_LIST_GRID} gap-2 py-2 text-xs font-medium text-base-content/60 sticky top-0 z-10 bg-base-100 border-b border-base-300`}
               >
@@ -138,8 +139,8 @@ export default function PostList({
               </ul>
             </div>
 
-            {/* 모바일(카드) — 작성자 라인을 텍스트로 대체 */}
-            <div className="md:hidden">
+            {/* (통일감 위해 반응형 제거) 모바일(카드) — 작성자 라인을 텍스트로 대체 */}
+            {/* <div className="md:hidden">
               <ul className="space-y-2 max-[360px]:space-y-1.5">
                 {items.map((it) => (
                   <li key={String(it.id)}>
@@ -151,7 +152,7 @@ export default function PostList({
                   </li>
                 ))}
               </ul>
-            </div>
+            </div> */}
 
             {/* 센티넬 */}
             <div className="mt-2">

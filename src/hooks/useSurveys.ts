@@ -6,9 +6,10 @@ import {
   type SurveyExtra,
 } from "@src/features/posts/list/adapters";
 import { fetchSurveyExtra } from "@src/api/posts.special";
+import { LIST_SETTINGS } from "@src/constants/ui";
 
 export const SURVEYS_KEY = ["surveys"] as const;
-const PAGE_SIZE = 20;
+const PAGE_SIZE = LIST_SETTINGS.ITEMS_PER_PAGE;
 
 type Page = { items: SurveyCardProps[]; hasMore: boolean; page: number };
 
