@@ -8,13 +8,14 @@ import { mapToGithubListItem } from "@src/features/posts/list/githubAdapter";
 import AssignedTagList from "@components/tags/AssignedTagList";
 import { adaptUserTag } from "@src/features/tags/adapters";
 import type { RawUserTag } from "@src/types/tag";
+import { LIST_SETTINGS } from "@src/constants/ui";
+import type { AxiosError } from "axios";
 
 // NOTE: 키 표시에만 사용 (API 파라미터는 github.ts에서 board id 사용)
 const GITHUB_BOARD_SLUG = "github" as const;
 
 // ---------------------------
 // TODO(sort): UI의 SortValue ↔ API ordering 매핑 표
-// useBoardPosts와 동일한 규약 유지
 export type SortValue = "latest" | "oldest" | "mostViewed" | "leastViewed";
 function toOrdering(
   v: SortValue | undefined
@@ -34,16 +35,12 @@ function toOrdering(
 }
 // ---------------------------
 
-// 훅 옵션(현재는 전부 optional, 미지정 시 현행 동작 유지)
-// TODO(filter): 태그/검색/정렬 연결 시 PostListPage, useBoardPosts와 동일 시그니처로 확장
 export type UseGithubPostsOptions = {
-  pageSize?: number; // default 10
+  pageSize?: number; // default LIST_SETTINGS.ITEMS_PER_PAGE
   sort?: SortValue; // default 'latest'
-  search?: string; // 검색어
-  tagIds?: number[]; // TODO(tags): 서버 태그 필터 파라미터 키 확인 후 적용
+  search?: string;
+  tagIds?: number[];
 };
-
-const DEFAULT_PAGE_SIZE = 10;
 
 type GithubPostsPage = { items: PostListItem[]; hasNext: boolean };
 
@@ -53,54 +50,68 @@ async function fetchGithubPage(
 ): Promise<GithubPostsPage> {
   return fetchGithubListPage({
     page,
-    page_size: opt?.pageSize ?? DEFAULT_PAGE_SIZE,
+    page_size: opt?.pageSize ?? LIST_SETTINGS.ITEMS_PER_PAGE,
     ordering: toOrdering(opt?.sort) ?? "-created_at",
-    // TODO(filter): search/tagIds 전달 (백엔드 파라미터 키 확정되면 아래 주석 해제)
     // search: opt?.search,
     // tags: opt?.tagIds,
   });
 }
 
 export function useGithubPosts(opt?: UseGithubPostsOptions) {
-  const pageSize = opt?.pageSize ?? DEFAULT_PAGE_SIZE;
+  const pageSize = opt?.pageSize ?? LIST_SETTINGS.ITEMS_PER_PAGE;
   const ordering = toOrdering(opt?.sort) ?? "-created_at";
 
-  return useInfiniteQuery({
-    // 키에 옵션 포함 (정렬/필터 변경 시 캐시 분리)
+  return useInfiniteQuery<GithubPostsPage, unknown>({
+    // 옵션 포함해서 캐시 분리
     queryKey: [
       "github-posts",
       {
         board: GITHUB_BOARD_SLUG,
         pageSize,
         ordering,
-        search: opt?.search,
-        tags: opt?.tagIds,
+        search: opt?.search ?? "",
+        tags: opt?.tagIds ?? [],
       },
     ] as const,
+
     initialPageParam: 1,
     queryFn: ({ pageParam }) => fetchGithubPage(pageParam as number, opt),
-    getNextPageParam: (lastPage, pages, lastParam) => {
-      if (!lastPage.hasNext) return undefined;
 
+    // 서버 hasNext 신뢰 + 방어적으로 길이 체크(배수 케이스 안전)
+    getNextPageParam: (lastPage, pages, lastParam) => {
+      if (!lastPage?.hasNext) return undefined;
+      if (!Array.isArray(lastPage.items) || lastPage.items.length < pageSize) {
+        return undefined;
+      }
+
+      // 중복 페이지 방지(같은 id 시퀀스가 연달아 오면 종료)
       const prev = pages[pages.length - 2] as GithubPostsPage | undefined;
       if (prev) {
         const a = prev.items.map((p) => p.id);
         const b = lastPage.items.map((p) => p.id);
-        if (a.length === b.length && a.every((v, i) => v === b[i]))
+        if (a.length === b.length && a.every((v, i) => v === b[i])) {
           return undefined;
+        }
       }
       return (lastParam as number) + 1;
     },
-    // 개발 중엔 필요 시 주석 해제
-    // retry: false,
+
+    // 404는 "끝" 신호로 간주 → 재시도/에러 전환 방지
+    retry: (failureCount, err) => {
+      const ae = err as AxiosError | undefined;
+      if (ae?.response?.status === 404) return false;
+      return failureCount < 2;
+    },
+
+    staleTime: 0,
+    gcTime: 5 * 60 * 1000,
+    // 필요 시:
     // refetchOnWindowFocus: false,
   });
 }
 
 /**
  * 리스트 아이템 변환 단계에서 tagSlot을 주입
- * - PostListItem에 user(오즈키 태그 원본)가 포함되어 있다면 AssignedTagList를 생성해 tagSlot에 넣음
- * - 포함되지 않았다면 tagSlot은 생략(상세에서만 태그 노출)
  */
 export function useGithubListItems(data?: InfiniteData<GithubPostsPage>) {
   const flat: PostListItem[] = useMemo(
@@ -155,7 +166,6 @@ export function useGithubListWithLinks(data?: InfiniteData<GithubPostsPage>): {
   }, []);
 
   useEffect(() => {
-    // TODO(perf): IntersectionObserver로 "화면에 들어온 카드"만 프리패치(성능 이슈 시)
     const targets = raw
       .filter(
         (it) =>
