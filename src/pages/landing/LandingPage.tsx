@@ -29,6 +29,31 @@ export default function LandingPage() {
   const onClickGoogle = useCallback(async () => {
     try {
       const idToken = await getGoogleIdToken(); // GIS(or 테스트 util)
+      // 로그인 직후 받은 idToken 문자열로 확인
+      console.log(idToken);
+
+      function decodeJwt(t: string) {
+        const [h, p] = t.split(".").slice(0, 2);
+        const b = (s: string) =>
+          JSON.parse(atob(s.replace(/-/g, "+").replace(/_/g, "/")));
+        return { header: b(h), payload: b(p) };
+      }
+      const { payload } = decodeJwt(idToken);
+      console.log(
+        "aud:",
+        payload.aud,
+        "azp:",
+        payload.azp,
+        "iss:",
+        payload.iss,
+        "exp:",
+        payload.exp
+      );
+      console.log(
+        "VITE_GOOGLE_CLIENT_ID:",
+        import.meta.env.VITE_GOOGLE_CLIENT_ID
+      );
+
       const res = await loginMut.mutateAsync(idToken);
 
       if (res.status === "pending_activation") {

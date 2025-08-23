@@ -160,10 +160,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       // tokenStore 동기화 (clear 금지)
       const at =
         merged.accessToken ?? state.tokens.accessToken ?? tokenStore.access;
-      const rt =
-        merged.refreshToken ?? state.tokens.refreshToken ?? tokenStore.refresh;
-      if (at || rt) {
-        tokenStore.set(at ?? "", rt ?? "");
+
+      if (at) {
+        tokenStore.setAccess(at);
       }
 
       return { tokens: merged };

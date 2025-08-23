@@ -1,31 +1,23 @@
 import api, { tokenStore } from "./client";
 
-// 서버 응답 타입들
+// 서버 응답 타입(기존과 최대한 호환)
 export type GoogleStartStatus = "active" | "pending_activation" | "activated";
 
 type ActiveResponse = {
   status: "active" | "activated";
-  access: string;
-  refresh: string;
-  next?: string; // e.g. "/main"
+  access?: string; // access만 의미 있음 (있으면 저장)
+  next?: string;
 };
 
 type PendingResponse = {
   status: "pending_activation";
-  next?: string; // e.g. "activate"
+  next?: string;
 };
 
 export type GoogleStartResponse = ActiveResponse | PendingResponse;
 
-export interface ActivateResponse {
-  status: "activated" | "active";
-  access: string;
-  refresh: string;
-  next?: string;
-}
-
-/** 1) 구글 로그인 시작
- *  POST /api/auth/google/start/  (body: { id_token })
+/** 1) 구글 로그인 시작: id_token 검증 → access 발급(+ refresh는 쿠키)
+ *  POST /api/auth/google/start
  */
 export async function loginWithGoogle(
   idToken: string
@@ -35,34 +27,25 @@ export async function loginWithGoogle(
     { id_token: idToken }
   );
 
-  // 활성화되었거나 이미 active면 토큰 저장
-  if (data.status !== "pending_activation") {
-    tokenStore.set(data.access, data.refresh);
+  // 서버가 access를 내려주면 저장 (refresh는 쿠키이므로 프론트 저장 X)
+  if ("access" in data && typeof data.access === "string" && data.access) {
+    tokenStore.setAccess(data.access);
   }
   return data;
 }
 
-/** 2) 키 활성화
- *  POST /api/auth/activate/ (body: { id_token, cohort_number, plain_key })
+/** 2) (선택) 활성화 키 검증: access 부여 가능
+ *  POST /api/auth/activate
  */
-export async function activateWithKey(params: {
-  idToken: string;
-  cohortNumber: number;
-  plainKey: string;
-}): Promise<ActivateResponse> {
-  const { idToken, cohortNumber, plainKey } = params;
-
-  const { data } = await api.post<ActivateResponse>("/api/auth/activate", {
-    id_token_str: idToken,
-    cohort_number: cohortNumber,
-    plain_key: plainKey,
+export async function activateWithKey(key: string) {
+  const { data } = await api.post<ActiveResponse>("/api/auth/activate", {
+    key,
   });
-
-  // 성공 시 토큰 저장
-  tokenStore.set(data.access, data.refresh);
+  if (data?.access) tokenStore.setAccess(data.access);
   return data;
 }
 
+/** 3) 프로필 조회 (기존 사용 코드 유지) */
 /** 3) 프로필 조회 (보호 자원)
  *  GET /api/profile/
  */
@@ -75,28 +58,30 @@ export async function getProfile() {
   return data;
 }
 
-/** 4) 리프레시 (수동 호출 필요 시만. 자동 갱신은 client.ts에서 처리)
- *  POST /api/auth/token/refresh/
+/** 4) 토큰 갱신(수동 호출이 필요할 때만; 기본은 인터셉터 자동)
+ *  POST /api/auth/refresh  (쿠키 기반)
  */
-export async function refreshAccess() {
-  const refresh = tokenStore.refresh;
-  const { data } = await api.post<{ access: string }>(
-    "/api/auth/token/refresh",
-    { refresh }
-  );
-  // 새 access만 갱신
-  tokenStore.set(data.access, refresh);
+export async function refreshAccessManual() {
+  const { data } = await api.post<{ access: string }>("/api/auth/refresh");
+  if (data?.access) tokenStore.setAccess(data.access);
   return data;
 }
 
-/** 5) 로그아웃 (리프레시 무효화)
- *  POST /api/auth/revoke/
+/** 5) 로그아웃: 서버가 refresh 쿠키 제거
+ *  POST /api/auth/logout
+ *  (서버에 /revoke 만 있는 경우를 대비해 fallback)
  */
 export async function revokeSession() {
-  const refresh = tokenStore.refresh;
-  if (!refresh) return;
   try {
-    await api.post("/api/auth/revoke", { refresh });
+    // 신규(권장)
+    await api.post("/api/auth/logout");
+  } catch {
+    // 구형(Fallback)
+    try {
+      await api.post("/api/auth/revoke", {}); // refresh는 쿠키에서 처리 or 서버 무시
+    } catch {
+      /* empty */
+    }
   } finally {
     tokenStore.clear();
   }
