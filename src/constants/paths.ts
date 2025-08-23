@@ -13,7 +13,7 @@ export const PATHS = {
   GITHUB_BOARD: "/board/github",
 
   // 게시글
-  POST_DETAIL: "/board/:board/post/:id",
+  POST_DETAIL: "/posts/:id",
   POST_CREATE: "/write", // 쿼리로 board 구분
   POST_EDIT: "/post/:id/edit",
 
