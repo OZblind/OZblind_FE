@@ -85,7 +85,8 @@ export default function PostList({
           onWrite={topBar.onWrite}
           sortButtonRef={sortBtnRef}
           tagButtonRef={tagBtnRef}
-          sortActive={sortActive || tagActive} // TODO: 필요시 분리
+          sortActive={sortActive}
+          tagActive={tagActive}
           className="mb-2 px-3 flex-none"
           meta={
             <LastLoadedBar

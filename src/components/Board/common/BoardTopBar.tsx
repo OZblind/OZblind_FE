@@ -12,6 +12,7 @@ type Props = {
   sortButtonRef?: React.Ref<HTMLButtonElement>;
   tagButtonRef?: React.Ref<HTMLButtonElement>;
   sortActive?: boolean;
+  tagActive?: boolean;
 };
 
 export default function BoardTopBar({
@@ -24,6 +25,7 @@ export default function BoardTopBar({
   sortButtonRef,
   tagButtonRef,
   sortActive,
+  tagActive,
 }: Props) {
   return (
     <div className={`space-y-0.5 ${className ?? ""}`}>
@@ -46,6 +48,7 @@ export default function BoardTopBar({
           <FilterIconButton
             ref={tagButtonRef}
             kind="tag"
+            active={tagActive}
             onClick={onOpenTag}
             className="h-9 w-9 p-2 max-[380px]:size-7 max-[380px]:p-1"
           />
