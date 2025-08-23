@@ -7,7 +7,9 @@ import PostRow, { type FreeBoardItem, FREE_LIST_GRID } from "./PostRow";
 import { LastLoadedBar, BoardTopBar } from "../common";
 import { useRef, useState, type ReactNode } from "react";
 import SortRadioPopover from "@components/Board/common/sort/SortRadioPopover";
+import TagFilterPopover from "@components/Board/common/tagfilter/TagFilterPopover";
 import type { SortValue } from "@src/types/sort";
+import type { PositionValue } from "@components/Board/common/tagfilter/PositionRadio";
 import { ERROR_MESSAGES, LIST_MESSAGES, LOADING_MESSAGES } from "@constants/ui";
 
 export type PostListProps = {
@@ -58,10 +60,18 @@ export default function PostList({
   scrollRootRef,
   renderAuthorLabel,
 }: PostListProps) {
+  // ------ 정렬(UI) ------
   const sortBtnRef = useRef<HTMLButtonElement>(null);
   const [openSort, setOpenSort] = useState(false);
   const [sort, setSort] = useState<SortValue>("latest"); // UI 전용
   const sortActive = sort !== "latest";
+
+  // ------ 태그(UI) ------
+  const tagBtnRef = useRef<HTMLButtonElement>(null);
+  const [openTag, setOpenTag] = useState(false);
+  const [position, setPosition] = useState<PositionValue>("back");
+  const [cohort, setCohort] = useState<number>(11);
+  const tagActive = position !== "back" || cohort !== 11;
 
   const isEmpty = items.length === 0;
 
@@ -71,10 +81,12 @@ export default function PostList({
         <BoardTopBar
           boardName={topBar.boardName}
           onOpenSort={() => setOpenSort((v) => !v)}
-          onOpenTag={topBar.onOpenTag}
+          onOpenTag={() => setOpenTag((v) => !v)}
           onWrite={topBar.onWrite}
           sortButtonRef={sortBtnRef}
+          tagButtonRef={tagBtnRef}
           sortActive={sortActive}
+          tagActive={tagActive}
           className="mb-2 px-3 flex-none"
           meta={
             <LastLoadedBar
@@ -185,6 +197,25 @@ export default function PostList({
         value={sort}
         onChange={(v) => setSort(v)}
         onRequestClose={() => setOpenSort(false)}
+      />
+
+      {/* 태그 팝오버 (UI) */}
+      <TagFilterPopover
+        open={openTag}
+        anchorRef={tagBtnRef}
+        position={position}
+        cohort={cohort}
+        onChangePosition={setPosition}
+        onChangeCohort={setCohort}
+        onReset={() => {
+          setPosition("back");
+          setCohort(11);
+        }}
+        onApply={() => {
+          // UI 전용: 여기서는 fetch 안 함
+          // TODO: 실제 연동 시 상위(PostListPage)에서 상태를 들고 있다가 refetch + lastLoadedAt 갱신하면 됨
+        }}
+        onRequestClose={() => setOpenTag(false)}
       />
     </section>
   );
