@@ -4,6 +4,7 @@ import GithubCard, { type GithubCardProps } from "./GithubCard";
 import { useRef, useState } from "react";
 import SortRadioPopover from "@components/Board/common/sort/SortRadioPopover";
 import type { SortValue } from "@src/types/sort";
+import { LIST_MESSAGES } from "@src/constants/ui";
 
 export type GithubListItem = GithubCardProps;
 
@@ -48,7 +49,7 @@ export default function GithubList({
   errorText,
   hasMore,
   sentinelRef,
-  noMoreText = "마지막 페이지입니다.",
+  noMoreText = LIST_MESSAGES.NO_MORE,
   emptyText = "등록된 게시글이 없습니다.",
   className,
   scrollRootRef,

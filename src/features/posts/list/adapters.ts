@@ -5,7 +5,6 @@ import type {
   SurveyStatus,
 } from "@src/components/Board/survey";
 import type { Tag, TagCategory } from "@src/types/tag";
-import { profileToTagsMock } from "@src/mocks/tags.mock"; // TODO[API-TAGS]: 서버 태그 확정되면 제거
 
 export function toYYMMDD(dateStr: string) {
   const d = new Date(dateStr);
@@ -95,13 +94,12 @@ export function mapToSurveyCard(
   extra?: SurveyExtra
 ): SurveyCardProps {
   const desc = deriveDescFromItem(item);
-  // 서버 태그 변환(+ 임시 fallback)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const convertedTags = mapTagsFromApi((item as any).tags);
-  const tags =
-    convertedTags.length > 0
-      ? convertedTags
-      : profileToTagsMock("11기", "프론트"); // TODO[API-TAGS]: 서버 태그 안정화되면 fallback 제거
+
+  // 서버 태그 변환 (없으면 빈 배열 유지)
+  const convertedTags = mapTagsFromApi(
+    (item as unknown as { tags?: unknown }).tags
+  );
+  const tags = convertedTags;
 
   return {
     id: String(item.id),
