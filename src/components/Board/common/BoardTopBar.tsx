@@ -10,6 +10,7 @@ type Props = {
   meta?: React.ReactNode;
   className?: string;
   sortButtonRef?: React.Ref<HTMLButtonElement>;
+  tagButtonRef?: React.Ref<HTMLButtonElement>;
   sortActive?: boolean;
 };
 
@@ -21,6 +22,7 @@ export default function BoardTopBar({
   meta,
   className,
   sortButtonRef,
+  tagButtonRef,
   sortActive,
 }: Props) {
   return (
@@ -42,6 +44,7 @@ export default function BoardTopBar({
             className="h-9 w-9 p-2 max-[380px]:size-7 max-[380px]:p-1"
           />
           <FilterIconButton
+            ref={tagButtonRef}
             kind="tag"
             onClick={onOpenTag}
             className="h-9 w-9 p-2 max-[380px]:size-7 max-[380px]:p-1"
