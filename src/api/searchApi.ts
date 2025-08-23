@@ -1,5 +1,6 @@
 import api from "@api/client";
 import axios from "axios";
+import sanitizeHtml from "sanitize-html";
 import { BOARD_ID, type BoardSlug } from "@constants/boards";
 import type { Post, Category, SearchPreview } from "@src/types/search";
 
@@ -40,7 +41,10 @@ const transformPostResponse = (response: PostResponse): Post => {
   return {
     id: response.id,
     title: response.title,
-    content: response.content?.replace(/<[^>]*>/g, "") || "", // HTML 태그 제거
+    content: sanitizeHtml(response.content ?? "", {
+      allowedTags: [], // 모든 HTML 태그 제거
+      allowedAttributes: {}, // 모든 속성 제거
+    }),
     author:
       typeof response.user === "string"
         ? response.user
@@ -99,13 +103,13 @@ export const searchPreviewApi = async (
       queryString.set("page_size", String(params.page_size));
 
     const { data } = await api.get<
-      { results?: PostResponse[] } | PostResponse[]
+      { results?: PostResponse[]; count?: number } | PostResponse[]
     >(`/api/posts/?${queryString.toString()}`, {
       signal,
       timeout: 10000,
     });
 
-    // 응답 데이터 처리 - API 문서에 따르면 배열 또는 단일 객체 반환 가능
+    // 응답 데이터 처리 - API 문서에 따르면 페이지네이션 형태로 반환
     let rawPosts: PostResponse[] = [];
     if (Array.isArray(data)) {
       rawPosts = data;
@@ -149,11 +153,13 @@ export const searchFullResultsApi = async (
   query: string,
   category: Category,
   page: number = 1,
-  pageSize: number = 20
+  pageSize: number = 20,
+  signal?: AbortSignal
 ): Promise<{
   posts: Post[];
   totalCount: number;
   currentPage: number;
+  hasNext: boolean;
 }> => {
   try {
     const params: {
@@ -187,29 +193,41 @@ export const searchFullResultsApi = async (
       | {
           results?: PostResponse[];
           count?: number;
+          next?: string | null;
         }
       | PostResponse[]
-    >(`/api/posts/?${queryString.toString()}`);
+    >(`/api/posts/?${queryString.toString()}`, {
+      signal,
+      timeout: 10000,
+    });
 
     let posts: Post[] = [];
     let totalCount = 0;
+    let hasNext = false;
 
     if (Array.isArray(data)) {
       posts = data.map(transformPostResponse);
       totalCount = posts.length;
+      hasNext = posts.length === pageSize;
     } else if (data?.results) {
       posts = data.results.map(transformPostResponse);
       totalCount = data.count || posts.length;
+      hasNext = !!data.next;
     }
 
     return {
       posts,
       totalCount,
       currentPage: page,
+      hasNext,
     };
   } catch (error: unknown) {
+    if (axios.isCancel(error) || (error as Error).name === "AbortError") {
+      throw error;
+    }
+
     if (axios.isAxiosError(error) && error.response?.status === 404) {
-      return { posts: [], totalCount: 0, currentPage: page };
+      return { posts: [], totalCount: 0, currentPage: page, hasNext: false };
     }
 
     console.error("Full Search API Error:", error);
