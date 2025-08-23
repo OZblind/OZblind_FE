@@ -25,7 +25,6 @@ export default function SearchPage() {
   const searchQuery = searchParams.get("q") || "";
   const categoryParam = searchParams.get("category") || "전체";
 
-  const [page, setPage] = useState(1);
   const [items, setItems] = useState<FreeBoardItem[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -102,7 +101,6 @@ export default function SearchPage() {
           setItems((prev) => [...prev, ...mockResults.items]);
         }
 
-        setPage(pageNum);
         pageRef.current = pageNum;
         setLastLoadedAt(formatYyyyMmDdHms(new Date()));
       } catch (error) {
@@ -120,7 +118,6 @@ export default function SearchPage() {
 
   // 검색어나 카테고리 변경 시 초기화
   useEffect(() => {
-    setPage(1);
     setItems([]);
     setErr(null);
     pageRef.current = 1;
@@ -159,7 +156,19 @@ export default function SearchPage() {
     (id: FreeBoardItem["id"]) => {
       // 검색 결과에서 게시판 타입 추출
       const item = items.find((item) => item.id === id);
-      const boardType = (item as any)?.boardType || "free";
+      const itemBoardType = (item as FreeBoardItem & { boardType?: string })
+        ?.boardType;
+
+      // 유효한 게시판 타입인지 확인하고 기본값 설정
+      const isValidBoardType = (type: string): type is BoardType => {
+        return BOARD_TYPES.includes(type as BoardType);
+      };
+
+      const boardType: BoardType =
+        itemBoardType && isValidBoardType(itemBoardType)
+          ? itemBoardType
+          : "free";
+
       navigate(urlForPost.postDetail(boardType, id));
     },
     [navigate, items]
@@ -236,6 +245,8 @@ export default function SearchPage() {
 
 // 게시판 타입 정의
 const BOARD_TYPES = ["free", "jobs", "info", "survey", "github"] as const;
+type BoardType = (typeof BOARD_TYPES)[number];
+
 const BOARD_NAMES = {
   free: "자유",
   jobs: "취업",
@@ -260,6 +271,23 @@ function generateMockSearchResults(
     return { items: [], totalCount: 0 };
   }
 
+  // 카테고리에 따른 필터링
+  let filteredBoardTypes: readonly BoardType[];
+  if (category === "전체") {
+    filteredBoardTypes = BOARD_TYPES;
+  } else {
+    // 카테고리명을 BoardType으로 매핑
+    const categoryToBoard: Record<string, BoardType> = {
+      자유: "free",
+      취업: "jobs",
+      정보: "info",
+      설문: "survey",
+      GitHub: "github",
+    };
+    const boardType = categoryToBoard[category];
+    filteredBoardTypes = boardType ? [boardType] : BOARD_TYPES;
+  }
+
   const totalCount = Math.floor(Math.random() * 150) + 20;
   const startIndex = (page - 1) * PAGE_SIZE;
 
@@ -268,30 +296,33 @@ function generateMockSearchResults(
   }
 
   const itemCount = Math.min(PAGE_SIZE, totalCount - startIndex);
-  const items: FreeBoardItem[] = Array.from({ length: itemCount }, (_, i) => {
-    const idx = startIndex + i;
-    const dayOffset = Math.floor(idx / 3);
-    const date = new Date();
-    date.setDate(date.getDate() - dayOffset);
+  const items: (FreeBoardItem & { boardType: BoardType })[] = Array.from(
+    { length: itemCount },
+    (_, i) => {
+      const idx = startIndex + i;
+      const dayOffset = Math.floor(idx / 3);
+      const date = new Date();
+      date.setDate(date.getDate() - dayOffset);
 
-    // 다양한 게시판에서 검색 결과가 나오도록 설정
-    const boardType = BOARD_TYPES[idx % BOARD_TYPES.length];
-    const boardName = BOARD_NAMES[boardType];
+      // 필터링된 게시판 타입에서만 결과 생성
+      const boardType = filteredBoardTypes[idx % filteredBoardTypes.length];
+      const boardName = BOARD_NAMES[boardType];
 
-    return {
-      id: `search-${query}-${boardType}-${idx}`,
-      no: totalCount - idx,
-      title: `[${boardName}] "${query}" 관련 게시글 ${
-        idx + 1
-      } - 검색 키워드가 포함된 제목`,
-      author: `작성자${(idx % 10) + 1}`,
-      authorId: `author${(idx % 10) + 1}`,
-      dateText: formatYyMmDd(date),
-      views: Math.floor(Math.random() * 1000),
-      likes: Math.floor(Math.random() * 50),
-      boardType, // 게시판 정보 추가
-    };
-  });
+      return {
+        id: `search-${query}-${boardType}-${idx}`,
+        no: totalCount - idx,
+        title: `[${boardName}] "${query}" 관련 게시글 ${
+          idx + 1
+        } - 검색 키워드가 포함된 제목`,
+        author: `작성자${(idx % 10) + 1}`,
+        authorId: `author${(idx % 10) + 1}`,
+        dateText: formatYyMmDd(date),
+        views: Math.floor(Math.random() * 1000),
+        likes: Math.floor(Math.random() * 50),
+        boardType, // 게시판 정보 추가
+      };
+    }
+  );
 
   return { items, totalCount };
 }
