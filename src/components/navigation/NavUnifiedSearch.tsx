@@ -36,31 +36,23 @@ const NavUnifiedSearch: React.FC<ThemedNavUnifiedSearchProps> = ({
     isOpen,
     searchQuery,
     selectedCategory,
-    selectedIndex,
-    previewResults,
-    isLoading,
-    totalCount,
-    error,
     setIsOpen,
     setSearchQuery,
-    setSelectedIndex,
     handleClose,
-    handlePostSelect,
     handleViewAllResults,
     handleFocus,
     handleCategorySelect,
-    handleRetry,
   } = useSearchLogic({ maxPreviewResults });
 
-  // 키보드 네비게이션 훅
+  // 키보드 네비게이션 훅 (Enter 키 처리용)
   useKeyboardNavigation({
     isOpen,
-    selectedIndex,
-    previewResults,
-    totalCount,
+    selectedIndex: -1,
+    previewResults: [],
+    totalCount: 0,
     searchQuery,
-    setSelectedIndex,
-    handlePostSelect,
+    setSelectedIndex: () => {},
+    handlePostSelect: () => {},
     handleViewAllResults,
     handleClose,
     searchInputRef: searchRef,
@@ -198,16 +190,7 @@ const NavUnifiedSearch: React.FC<ThemedNavUnifiedSearchProps> = ({
         isOpen={isOpen}
         searchQuery={searchQuery}
         selectedCategory={selectedCategory}
-        selectedIndex={selectedIndex}
-        previewResults={previewResults}
-        totalCount={totalCount}
-        isLoading={isLoading}
-        error={error}
-        mode={mode}
-        onPostSelect={handlePostSelect}
         onViewAllResults={handleViewAllResults}
-        onRetry={handleRetry}
-        isDark={currentTheme}
       />
     </div>
   );
