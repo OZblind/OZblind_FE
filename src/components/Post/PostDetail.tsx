@@ -22,7 +22,8 @@ import { useToastStore } from "@src/store/toastStore";
 import type { CommentMeta, PostMeta } from "@src/types/post";
 import { onlyWhen, useCanManage } from "@src/hooks/useCanManage";
 import { fetchRandomNickname } from "@src/api/nickname";
-import { profileToTagsMock } from "@src/mocks/tags.mock";
+import { useAssignedTags } from "@hooks/useAssignedTags";
+import type { RawUserTag } from "@api/tags";
 import AssignedTagList from "../tags/AssignedTagList";
 import { RepoPreviewCard } from "../Board/RepoPreviewCard";
 import LinkPreviewCard from "../Board/LinkPreviewCard";
@@ -150,7 +151,12 @@ export default function PostDetail({ post }: { post: PostMeta }) {
       },
     ]),
   ];
-  const tags = profileToTagsMock("11기", "프론트");
+
+  // 작성자 태그
+  const { tags, loading: authorLoading } = useAssignedTags("author", {
+    inlineUser: (post as unknown as { user?: RawUserTag | null }).user,
+    postId: post.id,
+  });
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6 lg:py-8">
@@ -183,7 +189,7 @@ export default function PostDetail({ post }: { post: PostMeta }) {
       <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
         {/* 태그 리스트 */}
         <div className="flex items-center leading-none">
-          <AssignedTagList tags={tags} />
+          {!authorLoading && <AssignedTagList tags={tags} />}
         </div>
 
         {/* 오른쪽 (조회수, 댓글수) */}
