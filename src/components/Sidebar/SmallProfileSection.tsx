@@ -1,12 +1,12 @@
 import profile from "@assets/images/profile.jpg";
 import person from "@assets/images/person.png";
-import { profileToTagsMock } from "@src/mocks/tags.mock";
+import { useAssignedTags } from "@hooks/useAssignedTags";
 import AssignedTagList from "../tags/AssignedTagList";
 import { Link } from "react-router-dom";
 import { PATHS } from "@constants/paths";
 
 export default function SmallProfileSection() {
-  const tags = profileToTagsMock("11기", "프론트");
+  const { tags, loading } = useAssignedTags("me");
 
   return (
     <div className="flex items-center pt-4 pb-2 pr-16">
@@ -28,8 +28,12 @@ export default function SmallProfileSection() {
       </div>
 
       {/* 태그 영역 */}
-      <div className="ml-2 flex items-center">
-        <AssignedTagList tags={tags} />
+      <div className="ml-2 flex items-center min-h-5">
+        {loading ? (
+          <span className="h-5 w-12 rounded-full bg-base-300 animate-pulse" />
+        ) : (
+          <AssignedTagList tags={tags} />
+        )}
       </div>
     </div>
   );
