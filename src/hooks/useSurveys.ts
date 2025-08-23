@@ -1,3 +1,4 @@
+import React from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { fetchPosts } from "@api/posts";
 import type { SurveyCardProps } from "@components/Board/survey/SurveyCard";
@@ -8,11 +9,22 @@ import {
 import { fetchSurveyExtra } from "@src/api/posts.special";
 import { LIST_SETTINGS } from "@src/constants/ui";
 import type { AxiosError } from "axios";
+import AssignedTagList from "@components/tags/AssignedTagList";
+import { adaptUserTag } from "@src/features/tags/adapters";
+import type { RawUserTag } from "@api/tags";
 
 export const SURVEYS_KEY = ["surveys"] as const;
 const PAGE_SIZE = LIST_SETTINGS.ITEMS_PER_PAGE;
 
 type Page = { items: SurveyCardProps[]; hasMore: boolean; page: number };
+
+/** 작성자 태그 원본 타입 가드 */
+const isRawUserTag = (u: unknown): u is RawUserTag =>
+  typeof u === "object" &&
+  u !== null &&
+  typeof (u as { id?: unknown }).id === "number" &&
+  (u as { tag_class?: unknown }).tag_class !== undefined &&
+  typeof (u as { tag_number?: unknown }).tag_number === "number";
 
 export function useSurveys() {
   return useInfiniteQuery<Page, unknown>({
@@ -47,12 +59,25 @@ export function useSurveys() {
             );
 
       // 3) UI 매핑
-      const items = list.map((p) => mapToSurveyCard(p, extrasMap.get(p.id)));
+      const items: SurveyCardProps[] = list.map((p) => {
+        const card = mapToSurveyCard(p, extrasMap.get(p.id));
+        const maybeUser = (p as unknown as { user?: unknown }).user;
+        const rawUser = isRawUserTag(maybeUser) ? maybeUser : null;
+        const authorTags = adaptUserTag(rawUser);
+        return authorTags.length > 0
+          ? {
+              ...card,
+              tagSlot: React.createElement(AssignedTagList, {
+                tags: authorTags,
+              }),
+            }
+          : card;
+      });
 
       return {
         items,
         // 마지막 페이지 길이가 PAGE_SIZE 미만이면 불러올 것 더 없음
-        hasMore: items.length >= PAGE_SIZE,
+        hasMore: list.length >= PAGE_SIZE,
         page: pageParam as number,
       };
     },
