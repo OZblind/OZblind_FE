@@ -25,6 +25,7 @@ import MyPageMain from "@pages/mypage/MyPageMain";
 import MyPosts from "@pages/mypage/MyPosts";
 import MyComments from "@pages/mypage/MyComments";
 import MyBookmarks from "@pages/mypage/MyBookmarks";
+import SearchPage from "@src/pages/boards/SearchPage";
 
 import { useAuthBootstrap } from "@hooks/useAuthBootstrap";
 import { useAuthStore } from "@store/authStore";
@@ -117,7 +118,7 @@ function KeyVerifyPlaceholder() {
     } catch (err: unknown) {
       const msg =
         typeof err === "object" && err && "message" in err
-          ? ((err as { message?: string }).message ?? "인증 실패")
+          ? (err as { message?: string }).message ?? "인증 실패"
           : "인증 실패";
       push({ message: msg, type: "error" });
     }
@@ -322,6 +323,7 @@ export default function AppRouter() {
         {/* 에러 */}
         <Route path={PATHS.ERROR_403} element={<Error403 />} />
         <Route path={PATHS.ERROR_500} element={<Error500 />} />
+        <Route path="/boards/search" element={<SearchPage />} />
 
         {/* 404 */}
         <Route path="*" element={<Error404 />} />
