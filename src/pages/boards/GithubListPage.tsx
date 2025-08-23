@@ -18,15 +18,19 @@ export default function GithubListPage() {
   const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
 
   // ---------------------------
+  /*
   // TODO(sort): 정렬 상태를 UI와 연결 (SortRadioPopover → setSort)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [sort, setSort] = useState<SortValue>("latest");
   // TODO(filter): 태그 필터 상태 — TagPopover/TagPicker와 연결
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [tagIds, setTagIds] = useState<number[] | undefined>(undefined);
   // TODO(search): 검색어 상태 — SearchInput과 연결
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [search, setSearch] = useState<string | undefined>(undefined);
+  */
+
+  // TODO: 현재 세터 미사용으로 인해 배포 오류 나는 것으로 예상, 임시로 아래와 같이 코드 사용
+  const [sort] = useState<SortValue>("latest");
+  const [tagIds] = useState<number[] | undefined>(undefined);
+  const [search] = useState<string | undefined>(undefined);
   // ---------------------------
 
   const {
