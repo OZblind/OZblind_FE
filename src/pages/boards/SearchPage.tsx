@@ -1,4 +1,3 @@
-// src/pages/boards/SearchPage.tsx
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import PostList from "@components/Board/free/PostList";
