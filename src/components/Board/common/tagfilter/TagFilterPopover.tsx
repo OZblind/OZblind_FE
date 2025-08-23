@@ -122,7 +122,7 @@ export default function TagFilterPopover({
 
   const node = (
     <>
-      {/* ✨ 오버레이 (cursor: default) */}
+      {/* 오버레이 */}
       <div
         aria-hidden
         className="fixed inset-0 z-40 bg-black/0 cursor-default"
@@ -143,7 +143,7 @@ export default function TagFilterPopover({
         </div>
         <PositionRadio value={position} onChange={onChangePosition} />
 
-        <div className="mt-4">
+        <div className="mt-8">
           <CohortSlider
             value={cohort}
             min={1}
@@ -167,7 +167,7 @@ export default function TagFilterPopover({
               <button
                 type="button"
                 onClick={handleApply}
-                className="btn btn-primary btn-sm"
+                className="btn btn-primary btn-sm text-white"
               >
                 적용
               </button>

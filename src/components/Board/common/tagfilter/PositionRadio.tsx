@@ -1,7 +1,6 @@
 import { useId, useMemo } from "react";
 
 export type PositionValue = "front" | "back" | "startup" | "design";
-
 type Option = { value: PositionValue; label: string; disabled?: boolean };
 
 export default function PositionRadio({
@@ -23,8 +22,8 @@ export default function PositionRadio({
     () =>
       options ?? [
         { value: "front", label: "프론트엔드" },
-        { value: "back", label: "백엔드" },
         { value: "startup", label: "창업" },
+        { value: "back", label: "백엔드" },
         { value: "design", label: "디자인" },
       ],
     [options]
@@ -39,7 +38,7 @@ export default function PositionRadio({
       <div
         role="radiogroup"
         aria-labelledby={groupId}
-        className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3"
+        className="grid grid-cols-2 gap-3"
       >
         {OPS.map((o) => {
           const selected = o.value === value;
@@ -53,7 +52,6 @@ export default function PositionRadio({
               onClick={() => !o.disabled && onChange(o.value)}
               className={[
                 "w-full h-9 px-3 rounded-xl transition flex items-center gap-2 justify-start",
-                "border border-base-300 hover:border-base-200",
                 o.disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
                 "text-base-content",
