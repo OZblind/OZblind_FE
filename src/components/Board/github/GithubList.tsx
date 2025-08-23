@@ -168,7 +168,7 @@ export default function GithubList({
         onChangePosition={setPosition}
         onChangeCohort={setCohort}
         onReset={() => {
-          setPosition("front");
+          setPosition("back");
           setCohort(11);
         }}
         onApply={() => {
