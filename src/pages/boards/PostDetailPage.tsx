@@ -78,6 +78,7 @@ export default function PostDetailPage() {
       content: data.content, // HTML 그대로
       authorId: String(data.user ?? ""), // PostDetail.tsx가 string 기대
       boardName: boardTitle,
+      boardSlug: alias,
       views: data.view_count ?? 0,
       commentsCount: Array.isArray(data.root_comments)
         ? data.root_comments.length
