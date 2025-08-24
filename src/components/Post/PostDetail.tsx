@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Bookmark,
   Loader2,
@@ -41,12 +41,6 @@ const BOARD_LABEL: Record<string, string> = {
 
 // ================== Main ==================
 export default function PostDetail({ post }: { post: PostMeta }) {
-  const [like, setLike] = useState(
-    (() => (post as any).viewerReaction === "like") as unknown as boolean
-  );
-  const [dislike, setDislike] = useState(
-    (() => (post as any).viewerReaction === "dislike") as unknown as boolean
-  );
   const [reacting, setReacting] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const [commentDraft, setCommentDraft] = useState("");
@@ -56,37 +50,60 @@ export default function PostDetail({ post }: { post: PostMeta }) {
   const navigate = useNavigate();
   const toast = useToastStore();
 
-  const reaction = useMemo(
-    () => ({
-      like: post.reactions.like + (like ? 1 : 0),
-      dislike: post.reactions.dislike + (dislike ? 1 : 0),
-      bookmark: post.reactions.bookmark + (bookmarked ? 1 : 0),
-    }),
-    [like, dislike, bookmarked, post.reactions]
+  // 1) 내 리액션 상태 (like | dislike | null)
+  const [mine, setMine] = useState<"like" | "dislike" | null>(
+    ((post as any).viewerReaction as any) ?? null
   );
+
+  // 2) 집계 상태(서버 값을 초기값으로 사용)
+  const [reaction, setReaction] = useState(() => ({
+    like: post.reactions.like,
+    dislike: post.reactions.dislike,
+    bookmark: post.reactions.bookmark,
+  }));
+  // 버튼 표시용 파생값
+  const like = mine === "like";
+  const dislike = mine === "dislike";
+
+  // 3) 뒤로가기/재진입 시에도 일관되게 보이도록 세션 스토리지로 보정
+  useEffect(() => {
+    if ((post as any).viewerReaction == null) {
+      const stored = sessionStorage.getItem(`myReaction:${post.id}`);
+      if (stored === "like" || stored === "dislike") {
+        setMine(stored as "like" | "dislike");
+      }
+    }
+  }, [post, post.id]);
+  useEffect(() => {
+    if (mine) sessionStorage.setItem(`myReaction:${post.id}`, mine);
+    else sessionStorage.removeItem(`myReaction:${post.id}`);
+  }, [mine, post.id]);
 
   // 공통 토글 로직 (낙관적 업데이트 → 실패 시 롤백)
   const doToggle = async (next: "like" | "dislike") => {
     if (reacting) return;
     setReacting(true);
-    const prev = { like, dislike };
+    const prev = { mine, reaction: { ...reaction } };
 
-    // 낙관적 업데이트
-    if (next === "like") {
-      if (like) {
-        setLike(false); // 취소
-      } else {
-        setLike(true);
-        if (dislike) setDislike(false); // 반대값 해제
-      }
+    // 낙관적 업데이트(집계 + 내 상태 동시 반영)
+    let nextMine: typeof mine = mine;
+    const nextCounts = { ...reaction };
+    if (mine === next) {
+      // 취소
+      nextMine = null;
+      nextCounts[next] = Math.max(0, nextCounts[next] - 1);
+    } else if (mine === null) {
+      // 새로 선택
+      nextMine = next;
+      nextCounts[next] += 1;
     } else {
-      if (dislike) {
-        setDislike(false); // 취소
-      } else {
-        setDislike(true);
-        if (like) setLike(false); // 반대값 해제
-      }
+      // 변경 (like ↔ dislike)
+      nextCounts[mine] = Math.max(0, nextCounts[mine] - 1);
+      nextCounts[next] += 1;
+      nextMine = next;
     }
+    setMine(nextMine);
+    setReaction(nextCounts);
 
     try {
       await toggleReaction({
@@ -97,8 +114,8 @@ export default function PostDetail({ post }: { post: PostMeta }) {
       // 성공 시: 그대로 두면 됨 (서버 카운트는 상위 쿼리에서 재검증/동기화되면 더 좋음)
     } catch (e: any) {
       // 실패 → 롤백
-      setLike(prev.like);
-      setDislike(prev.dislike);
+      setMine(prev.mine);
+      setReaction(prev.reaction);
       const code = e?.response?.status;
       if (code === 401) {
         toast.push({ message: "로그인이 필요합니다.", type: "warning" });
@@ -289,7 +306,8 @@ export default function PostDetail({ post }: { post: PostMeta }) {
           aria-pressed={!!bookmarked}
           type="button"
         >
-          <Bookmark className="mr-2 h-4 w-4" /> {fmtNum(reaction.bookmark)}
+          <Bookmark className="mr-2 h-4 w-4" />{" "}
+          {fmtNum(reaction.bookmark + (bookmarked ? 1 : 0))}
         </button>
       </div>
 
