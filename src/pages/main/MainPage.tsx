@@ -4,6 +4,7 @@ import JobBannerTabs from "@src/components/JobBanner/JobBannerTabs";
 import { useInfiniteScroll } from "@src/hooks/useInfiniteScroll";
 import { formatYyMmDd, formatYyyyMmDdHms } from "@src/utils/date";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { tokenStore } from "@api/client";
 
 const PAGE_SIZE = 15;
 const MAX_PAGES = 4;
@@ -107,7 +108,7 @@ export default function MainPage() {
   return (
     <main className="flex flex-col gap-2">
       <JobBannerTabs />
-      <HotBoard />
+      <HotBoard csrfToken={tokenStore.csrfToken} />
       <div className="w-[800px] pb-8">
         <p className="py-2 text-base-content/50">최신글</p>
         <div className="border border-base-300 py-2 rounded-md h-[320px] overflow-hidden">
