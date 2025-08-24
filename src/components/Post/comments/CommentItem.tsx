@@ -20,6 +20,8 @@ export default function CommentItem({
   onEdit,
   onDelete,
   onAddReply,
+  submittingRootId,
+  loading,
 }: {
   data: CommentMeta;
   depth?: number;
@@ -28,6 +30,8 @@ export default function CommentItem({
   onEdit: (id: CommentMeta["id"], content: string) => void;
   onDelete: (id: CommentMeta["id"]) => void;
   onAddReply: (rootId: CommentMeta["id"], content: string) => void;
+  submittingRootId?: string | null;
+  loading?: boolean;
 }) {
   const [expanded, setExpanded] = useState(depth === 0 && data.hasReplies);
   const [like, setLike] = useState(Boolean(data.liked));
@@ -216,8 +220,10 @@ export default function CommentItem({
         {/* 최상위 댓글에서만 “답글 작성” 표시 */}
         {depth === 0 && (
           <ReplyControl
+            key={`reply-${rootId}`}
             depth={0}
             onSubmit={(content) => onAddReply(rootId, content)}
+            // disabled={submittingRootId === String(rootId) || loading}  // 있으면 연결
           />
         )}
 
@@ -254,6 +260,8 @@ export default function CommentItem({
               onEdit={onEdit}
               onDelete={onDelete}
               onAddReply={onAddReply}
+              submittingRootId={submittingRootId}
+              loading={loading}
             />
           ))}
         </div>
