@@ -18,6 +18,56 @@ import {
 
 type SortKey = "newest" | "oldest" | "likes";
 
+// 댓글 + 리액션 필드가 포함된 명시 타입
+type CommentNode = CommentMeta & {
+  viewerReaction: "like" | "dislike" | null;
+  reactions: { like: number; dislike: number };
+  replies: CommentNode[]; // 재귀
+  // (호환) 백엔드/기존 코드가 참고할 수도 있으니 동기화해 둠
+  liked?: boolean;
+  disliked?: boolean;
+  likes?: number;
+  dislikes?: number;
+};
+
+// 서버 필드 → UI 표준 필드로 정규화
+function normalizeComment(
+  c: CommentMeta &
+    Partial<{
+      viewerReaction: "like" | "dislike" | null;
+      reactions: { like: number; dislike: number };
+      liked: boolean;
+      disliked: boolean;
+      likes: number;
+      dislikes: number;
+      replies: any[];
+    }>
+): CommentNode {
+  const viewerReaction =
+    c.viewerReaction ?? (c.liked ? "like" : c.disliked ? "dislike" : null);
+  const reactions = {
+    like:
+      (c.reactions?.like as number | undefined) ??
+      (typeof c.likes === "number" ? c.likes : 0),
+    dislike:
+      (c.reactions?.dislike as number | undefined) ??
+      (typeof c.dislikes === "number" ? c.dislikes : 0),
+  };
+  return {
+    ...(c as CommentMeta),
+    viewerReaction,
+    reactions,
+    liked: viewerReaction === "like",
+    disliked: viewerReaction === "dislike",
+    likes: reactions.like,
+    dislikes: reactions.dislike,
+    replies: Array.isArray(c.replies)
+      ? (c.replies.map(normalizeComment) as CommentNode[])
+      : [],
+  };
+}
+const normalizeTree = (arr: any[]): CommentNode[] => arr.map(normalizeComment);
+
 /* ------------------------------
  * utils
  * ------------------------------ */
@@ -52,7 +102,7 @@ const MemoCommentItem = memo(
  * ThreadRow: 루트 스레드 1개 렌더 (메모화)
  * ------------------------------ */
 type ThreadRowProps = {
-  c: CommentMeta;
+  c: CommentNode;
   submittingRootId: string | null;
   loading: boolean;
   onEdit: (id: CommentMeta["id"], content: string) => void;
@@ -95,7 +145,7 @@ const ThreadRow = memo(function ThreadRow({
 });
 
 export default function PostComment({ postId }: { postId: string | number }) {
-  const [items, setItems] = useState<CommentMeta[]>([]);
+  const [items, setItems] = useState<CommentNode[]>([]);
   const itemsRef = useRef(items);
   const [loading, setLoading] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("newest");
@@ -112,7 +162,7 @@ export default function PostComment({ postId }: { postId: string | number }) {
     try {
       setLoading(true);
       const data = await listCommentsByPost(postId);
-      setItems(data);
+      setItems(normalizeTree(data));
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       toast.push({ message: "댓글을 불러오지 못했어요.", type: "error" });
@@ -135,7 +185,7 @@ export default function PostComment({ postId }: { postId: string | number }) {
         arr.sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
         break;
       case "likes":
-        arr.sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0));
+        arr.sort((a, b) => (b.reactions.like ?? 0) - (a.reactions.like ?? 0));
         break;
     }
     return arr;
@@ -146,8 +196,12 @@ export default function PostComment({ postId }: { postId: string | number }) {
     async (id: CommentMeta["id"], content: string) => {
       const prev = itemsRef.current;
       // 구조적 공유: 변경 경로만 새 객체
-      setItems((curr) =>
-        commentTree.update(curr, id, (c) => ({ ...c, content }))
+      setItems(
+        (curr) =>
+          commentTree.update(curr, id, (c) => ({
+            ...c,
+            content,
+          })) as CommentNode[]
       );
       try {
         await updateComment(id, content);
@@ -163,7 +217,7 @@ export default function PostComment({ postId }: { postId: string | number }) {
   const handleDelete = useCallback(
     async (id: CommentMeta["id"]) => {
       const prev = itemsRef.current;
-      setItems((curr) => commentTree.remove(curr, id));
+      setItems((curr) => commentTree.remove(curr, id) as CommentNode[]);
       try {
         await deleteComment(id);
         await refresh.current();
@@ -180,13 +234,15 @@ export default function PostComment({ postId }: { postId: string | number }) {
   const handleAddReply = useCallback(
     async (rootId: CommentMeta["id"], content: string) => {
       const tempId = `temp_${Date.now()}`;
-      const optimistic: CommentMeta = {
+      const optimistic: CommentNode = {
         id: tempId,
         author: "나",
         authorId: "me",
         authorName: "나",
         content,
         createdAt: new Date().toISOString(),
+        viewerReaction: null,
+        reactions: { like: 0, dislike: 0 },
         likes: 0,
         dislikes: 0,
         liked: false,
@@ -197,8 +253,13 @@ export default function PostComment({ postId }: { postId: string | number }) {
 
       const prev = itemsRef.current;
       setSubmittingId(String(rootId));
-      setItems((curr) =>
-        commentTree.addToRoot(curr, String(rootId), optimistic)
+      setItems(
+        (curr) =>
+          commentTree.addToRoot(
+            curr,
+            String(rootId),
+            optimistic
+          ) as CommentNode[]
       );
 
       try {

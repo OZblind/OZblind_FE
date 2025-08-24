@@ -1,9 +1,14 @@
-import { useEffect, useState, useMemo } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { fetchPostDetail, type PostDetail as ApiPostDetail } from "@api/posts";
+import {
+  fetchPostDetailCached,
+  type PostDetail as ApiPostDetail,
+} from "@api/posts";
 import PostDetail from "@components/Post/PostDetail"; // 네가 준 컴포넌트
 import type { PostMeta } from "@src/types/post";
 import { fetchGithubExtra, fetchSurveyExtra } from "@src/api/posts.special";
+import { BOARD_DISPLAY_NAME } from "@constants/boardDisplay";
 
 const BOARD_ALIAS: Record<
   number,
@@ -25,15 +30,38 @@ export default function PostDetailPage() {
   const [err, setErr] = useState<string | null>(null);
   const [extra, setExtra] = useState<Extra>({});
 
+  // StrictMode/재렌더 가드: 같은 글에 대해 1회만 상세 호출
+  const didFetchFor = useRef<string | null>(null);
+
   useEffect(() => {
     if (!id) return;
+    const key = String(id); // 캐시 키 정규화(문자열 고정)
+
+    // 같은 postId로는 1회만
+    if (didFetchFor.current === key) return;
+    didFetchFor.current = key;
+
+    let alive = true;
     setLoading(true);
     setErr(null);
-    fetchPostDetail(Number(id))
-      .then((res) => setData(res))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .catch((e: any) => setErr(e?.message ?? "게시글을 불러오지 못했습니다."))
-      .finally(() => setLoading(false));
+
+    fetchPostDetailCached(key)
+      .then((res) => {
+        if (!alive) return;
+        setData(res as ApiPostDetail);
+      })
+      .catch((e: any) => {
+        if (!alive) return;
+        setErr(e?.message ?? "게시글을 불러오지 못했습니다.");
+      })
+      .finally(() => {
+        if (!alive) return;
+        setLoading(false);
+      });
+
+    return () => {
+      alive = false;
+    };
   }, [id]);
 
   // 설문/깃헙 추가정보 GET
@@ -64,27 +92,58 @@ export default function PostDetailPage() {
   const postMeta: PostMeta | null = useMemo(() => {
     if (!data) return null;
 
+    // 1) board id -> slug(alias)
+    const alias =
+      (BOARD_ALIAS as Record<number, keyof typeof BOARD_DISPLAY_NAME>)[
+        data.board
+      ] ?? "free";
+
+    // 2) slug -> 화면 표기용 이름
+    const boardTitle = BOARD_DISPLAY_NAME[alias] ?? "게시판";
+    const commentsCount = Array.isArray(data.root_comments)
+      ? data.root_comments.length
+      : 0;
+
+    const x = extra ?? {};
+
+    const toInt = (v: unknown) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    };
+
     // PostDetail(API) -> PostMeta(UI) 매핑
     return {
       id: data.id,
       title: data.title,
-      content: data.content, // HTML 그대로
+      content: data.content ?? "", // HTML 그대로
       authorId: String(data.user ?? ""), // PostDetail.tsx가 string 기대
-      boardName: BOARD_ALIAS[data.board] ?? "free",
-      views: data.view_count ?? 0,
-      commentsCount: Array.isArray(data.root_comments)
-        ? data.root_comments.length
-        : 0,
+      boardName: boardTitle,
+      boardSlug: alias,
+
+      // 숫자 필드는 전부 Number()로 고정
+      views: toInt(data.view_count),
+      commentsCount,
+
       reactions: {
-        like: data.like_count ?? 0,
-        dislike: data.dislike_count ?? 0,
-        bookmark: data.bookmark_count ?? 0,
+        like: toInt(data.like_count),
+        // 백엔드 필드명이 다양할 수 있으니 모두 대비
+        dislike: toInt(
+          (data as any).dislike_count ??
+            (data as any).downvote_count ??
+            (data as any).hate_count ??
+            0
+        ),
+        bookmark: toInt(data.bookmark_count),
       },
       createdAt: data.created_at,
-      // 선택 필드들 (설문/깃헙 전용 카드가 있어도 빈 값이면 카드가 안 뜸)
-      formLink: extra.formLink,
-      endDate: extra.endDate,
-      repoUrl: extra.repoUrl,
+
+      // 선택 필드들 (설문/깃헙 전용)
+      formLink: x?.formLink ?? null,
+      endDate: x?.endDate ?? null,
+      repoUrl: x?.repoUrl ?? null,
+
+      // useAssignedTags가 inlineUser로 재호출을 생략하게 하기 위해
+      user: (data as any).user ?? null,
     } as unknown as PostMeta;
   }, [data, extra]);
 

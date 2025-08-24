@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { api } from "@api/client";
 import { ENDPOINTS } from "@constants/endpoints";
 import type { Tag } from "@src/types/tag";
 import { pickFirst } from "@src/utils/pickFirst";
 import { adaptUserTag } from "@src/features/tags/adapters";
+import { fetchPostDetailCached } from "@api/posts";
 
 /** 서버의 오즈키 기반 태그 구조 (ex. /api/user/tag, /api/posts/:id user) */
 export interface RawUserTag {
@@ -101,9 +103,7 @@ export async function getMyAssignedTags(): Promise<Tag[]> {
   try {
     const { data, status } = await api.get<RawUserTag | null>(
       ENDPOINTS.USER_TAG,
-      {
-        withCredentials: true,
-      }
+      { withCredentials: true }
     );
     if (status !== 401 && data) {
       const v2 = adaptUserTag(data);
@@ -128,25 +128,27 @@ export async function getMyAssignedTags(): Promise<Tag[]> {
 
 /**
  * [AUTHOR] 게시글 작성자 태그
- * - 우선: post.user(오즈키 구조)가 있다면 즉시 변환
- * - 없으면: /api/posts/:id/ 호출하여 data.user에서 변환
- * - 목에서도: /api/posts/:id/가 없다면 post 인라인 값으로만 처리
+ * - 우선: post.user(오즈키 구조)가 있다면 즉시 변환 (네트워크 X)
+ * - 없으면: "캐시된 상세"에서 user 추출 (중복 호출 없음)
+ * - 마지막 폴백: 정말 필요할 때만 상세 GET (가능하면 지양)
  */
 export async function getAuthorAssignedTags(opts: {
   postId?: string | number;
   inlineUser?: RawUserTag | null;
 }): Promise<Tag[]> {
-  // 1) 인라인 user(오즈키 구조) 우선
-  if (opts.inlineUser) {
-    const inline = adaptUserTag(opts.inlineUser);
-    if (inline.length > 0) return inline;
+  // 1) inlineUser가 null/undefined가 아니면 즉시 반환 (네트워크 호출 금지)
+  if (opts.inlineUser !== null && opts.inlineUser !== undefined) {
+    return adaptUserTag(opts.inlineUser);
   }
 
-  // 2) 필요 시 상세 호출
+  // 2) inlineUser 없음 → 캐시된 상세에서 user 추출
   if (opts.postId == null) return [];
-  const url = `${ENDPOINTS.POST_DETAIL}/${opts.postId}/`;
-  const { data } = await api.get<{ user?: RawUserTag | null }>(url, {
-    withCredentials: true,
-  });
-  return adaptUserTag(data?.user ?? null);
+  const post: any = await fetchPostDetailCached(opts.postId);
+  return adaptUserTag(post?.user ?? null);
+
+  // (절대 호출 금지 권장)
+  // 아래처럼 직접 상세 GET을 다시 치면 조회수가 늘 수 있으므로 지양:
+  // const url = `${ENDPOINTS.POST_DETAIL}/${opts.postId}/`;
+  // const { data } = await api.get<{ user?: RawUserTag | null }>(url, { withCredentials: true });
+  // return adaptUserTag(data?.user ?? null);
 }

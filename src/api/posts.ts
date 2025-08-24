@@ -63,7 +63,7 @@ export async function fetchPosts(params?: {
     const { data } = await api.get<
       { results?: PostListItem[]; next?: string } | PostListItem[]
     >(`/api/posts/?${query.toString()}`);
-    return Array.isArray(data) ? data : (data?.results ?? []);
+    return Array.isArray(data) ? data : data?.results ?? [];
   } catch (e: unknown) {
     const err = e as AxiosError;
     if (err.response?.status === 404) {
@@ -150,4 +150,66 @@ export async function updatePost(payload: UpdatePostPayload) {
 
 export async function deletePost(id: number) {
   await api.delete(`/api/posts/${id}`);
+}
+
+type AnyPostDetail = unknown;
+type Key = string;
+const keyOf = (id: string | number): Key => String(id);
+
+// inflight / cache map도 Key를 사용
+const _detailInflight = new Map<Key, Promise<AnyPostDetail>>();
+const _detailCache = new Map<Key, { data: AnyPostDetail; exp: number }>();
+
+export function primePostDetailCache(
+  id: string | number,
+  data: AnyPostDetail,
+  ttlMs = 30_000
+) {
+  _detailCache.set(keyOf(id), { data, exp: Date.now() + ttlMs });
+}
+
+export function readPostDetailCache(
+  id: string | number
+): AnyPostDetail | undefined {
+  return _detailCache.get(keyOf(id))?.data;
+}
+
+export function mutatePostDetailCache(
+  id: string | number,
+  updater: (prev: AnyPostDetail) => AnyPostDetail
+): void {
+  const k = keyOf(id);
+  const entry = _detailCache.get(k);
+  if (!entry) return;
+  const next = updater(entry.data);
+  _detailCache.set(k, { data: next, exp: entry.exp });
+}
+
+// fetchPostDetailCached 안에서도 keyOf 사용
+export async function fetchPostDetailCached(
+  id: string | number,
+  opts?: { ttlMs?: number; force?: boolean }
+): Promise<AnyPostDetail> {
+  const k = keyOf(id);
+  const ttlMs = opts?.ttlMs ?? 30_000;
+  const force = opts?.force ?? false;
+
+  const now = Date.now();
+  const cached = _detailCache.get(k);
+  if (!force && cached && cached.exp > now) return cached.data;
+
+  const inflight = _detailInflight.get(k);
+  if (inflight) return inflight;
+
+  const p = (fetchPostDetail as (x: string | number) => Promise<AnyPostDetail>)(
+    id
+  )
+    .then((data) => {
+      _detailCache.set(k, { data, exp: now + ttlMs });
+      return data;
+    })
+    .finally(() => _detailInflight.delete(k));
+
+  _detailInflight.set(k, p);
+  return p;
 }

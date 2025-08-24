@@ -44,7 +44,7 @@ const WritePostPage = () => {
   };
 
   return (
-    <div className="flex flex-col h-full gap-2 text-black">
+    <div className="flex flex-col w-full h-full gap-2 text-black">
       {/* 1. 게시판 선택 */}
       <div>
         <select
