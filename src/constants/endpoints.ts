@@ -5,4 +5,5 @@ export const ENDPOINTS = {
   TOKEN_REVOKE: "/api/auth/token/revoke",
   KEY_VERIFY: "/api/auth/key-verify",
   USER_PROFILE: "/api/user/profile",
+  POSTS: "/api/posts",
 } as const;
