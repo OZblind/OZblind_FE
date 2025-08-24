@@ -264,7 +264,7 @@ export default function PostDetail({
 
       {/* 본문 위 카드 */}
       {(() => {
-        switch (post.boardName) {
+        switch (post.boardSlug) {
           case "survey":
             return (
               <div className="mb-6">
