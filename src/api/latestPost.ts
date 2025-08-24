@@ -17,7 +17,5 @@ export const getLatestPosts = async (page = 1): Promise<Post[]> => {
     },
     withCredentials: true,
   });
-
-  console.log("[API] page:", page, "items:", response.data.length);
   return response.data;
 };
