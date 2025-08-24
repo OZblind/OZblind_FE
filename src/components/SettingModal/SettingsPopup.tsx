@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { KeySection } from "./KeySection";
 import ThemeToggleSection from "./ThemeToggleSection";
 import { AccountDeletionSection } from "./AccountDeletionSection";
+import { tokenStore } from "@api/client";
 
 type Theme = "oz_dark" | "oz_light";
 
@@ -16,7 +17,9 @@ export function SettingPopup({
   theme,
   setTheme,
 }: SettingPopupProps) {
-  const isAuthenticated = true; // 오즈키 인증 상태(임시)
+  const idToken = tokenStore.access;
+  const isAuthenticated = Boolean(idToken);
+
   return (
     <div className="relative bg-base-200 rounded-md p-6 max-w-md w-full">
       <button
@@ -31,7 +34,7 @@ export function SettingPopup({
       <div className="font-thin">설정</div>
       <ThemeToggleSection theme={theme} setTheme={setTheme} />
       <KeySection />
-      <AccountDeletionSection />
+      {isAuthenticated && <AccountDeletionSection />}
     </div>
   );
 }
