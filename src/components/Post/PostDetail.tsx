@@ -51,6 +51,9 @@ export default function PostDetail({
   const [commentDraft, setCommentDraft] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [firstCommentSeed, setFirstCommentSeed] = useState<any[] | null>(null);
+  const [firstCommentMineIds, setFirstCommentMineIds] = useState<
+    string[] | null
+  >(null);
 
   // 헤더에 표시되는 댓글 수를 낙관적으로 올려주기 위한 로컬 상태
   const [commentsCount, setCommentsCount] = useState(post.commentsCount);
@@ -150,6 +153,7 @@ export default function PostDetail({
       setCommentsCount((c) => c + 1);
 
       setFirstCommentSeed([created]);
+      setFirstCommentMineIds([String(created.id)]);
 
       toast.push({ message: "댓글이 등록되었습니다.", type: "success" });
     } catch (e: any) {
@@ -360,6 +364,7 @@ export default function PostDetail({
               ? initialComments
               : firstCommentSeed || undefined
           }
+          mineIdsSeed={firstCommentMineIds || undefined}
         />
       )}
       <div className="h-16 md:h-24" aria-hidden />

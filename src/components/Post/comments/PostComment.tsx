@@ -162,9 +162,17 @@ const ThreadRow = memo(function ThreadRow({
     </div>
   );
 });
-type Props = { postId: string | number; initialItems?: any[] };
+type Props = {
+  postId: string | number;
+  initialItems?: any[];
+  mineIdsSeed?: Array<string | number>;
+};
 
-export default function PostComment({ postId, initialItems }: Props) {
+export default function PostComment({
+  postId,
+  initialItems,
+  mineIdsSeed,
+}: Props) {
   const [items, setItems] = useState<CommentNode[]>([]);
   const itemsRef = useRef(items);
   const [loading, setLoading] = useState(false);
@@ -191,6 +199,7 @@ export default function PostComment({ postId, initialItems }: Props) {
 
     if (initialItems && initialItems.length > 0) {
       setItems(normalizeTree(initialItems)); // 서버 응답 그대로 반영
+      setMineIds(new Set((mineIdsSeed ?? []).map(String)));
       bootstrapped.current = true;
       return;
     }
@@ -208,7 +217,7 @@ export default function PostComment({ postId, initialItems }: Props) {
         bootstrapped.current = true;
       }
     })();
-  }, [postId, initialItems, toast]);
+  }, [postId, initialItems, toast, mineIdsSeed]);
 
   // 루트 댓글 즉시 반영 + 소유권 부여
   useEffect(() => {
