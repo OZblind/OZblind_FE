@@ -36,14 +36,59 @@ const CATEGORY_TO_BOARD_SLUG: Record<Category, BoardSlug | null> = {
   GitHub: "github",
 };
 
+// 검색어 전처리 함수
+const preprocessQuery = (query: string): string => {
+  return query
+    .trim()
+    .replace(/\s+/g, " ") // 연속된 공백을 하나로
+    .toLowerCase(); // 대소문자 통일
+};
+
+// 클라이언트 사이드 필터링 (영어 검색 정확도 개선)
+const filterPostsByRelevance = (
+  posts: Post[],
+  originalQuery: string
+): Post[] => {
+  const query = preprocessQuery(originalQuery);
+
+  // 검색어가 2글자 이하이거나 한글이면 필터링하지 않음
+  if (query.length <= 2 || /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(query)) {
+    return posts;
+  }
+
+  // 영어 검색어인 경우에만 필터링 적용
+  if (/^[a-zA-Z\s]+$/.test(query)) {
+    return posts.filter((post) => {
+      const titleLower = post.title.toLowerCase();
+      const contentLower = post.content.toLowerCase();
+
+      // 정확한 단어 매칭 우선
+      const words = query.split(" ").filter((word) => word.length > 0);
+
+      return words.some((word) => {
+        // 단어 경계를 고려한 매칭
+        const wordRegex = new RegExp(`\\b${word}\\b`, "i");
+        return (
+          wordRegex.test(titleLower) ||
+          wordRegex.test(contentLower) ||
+          titleLower.includes(word) ||
+          contentLower.includes(word)
+        );
+      });
+    });
+  }
+
+  return posts;
+};
+
 // API 응답을 Post 타입으로 변환
 const transformPostResponse = (response: PostResponse): Post => {
   return {
     id: response.id,
     title: response.title,
     content: sanitizeHtml(response.content ?? "", {
-      allowedTags: [], // 모든 HTML 태그 제거
-      allowedAttributes: {}, // 모든 속성 제거
+      allowedTags: [],
+      allowedAttributes: {},
     }),
     author:
       typeof response.user === "string"
@@ -55,89 +100,90 @@ const transformPostResponse = (response: PostResponse): Post => {
   };
 };
 
+// 공통 API 호출 로직
+const callSearchApi = async (
+  queryParams: URLSearchParams,
+  signal?: AbortSignal,
+  timeout: number = 10000
+) => {
+  return await api.get<
+    | {
+        results?: PostResponse[];
+        count?: number;
+        next?: string | null;
+      }
+    | PostResponse[]
+  >(`/api/posts/?${queryParams.toString()}`, {
+    signal,
+    timeout,
+  });
+};
+
 // 검색 미리보기 API 함수
 export const searchPreviewApi = async (
   query: string,
   category: Category,
   maxResults: number,
-  _accessToken?: string, // 팀 API 클라이언트에서 자동 처리
+  _accessToken?: string,
   signal?: AbortSignal
 ): Promise<SearchPreview> => {
   try {
-    // 빈 검색어이고 전체 카테고리인 경우 빈 결과 반환
-    if (!query.trim() && category === "전체") {
+    // 빈 검색어 처리
+    if (!query.trim()) {
+      return { posts: [], totalCount: 0 };
+    }
+
+    // 검색어 전처리
+    const processedQuery = preprocessQuery(query);
+
+    // 너무 짧은 검색어는 검색하지 않음
+    if (processedQuery.length < 1) {
       return { posts: [], totalCount: 0 };
     }
 
     // 검색 파라미터 구성
-    const params: {
-      board?: BoardSlug;
-      search?: string;
-      page_size?: number;
-    } = {};
+    const queryString = new URLSearchParams();
 
     // 카테고리별 처리
     const boardSlug = CATEGORY_TO_BOARD_SLUG[category];
     if (boardSlug) {
-      params.board = boardSlug;
+      queryString.set("board", String(BOARD_ID[boardSlug]));
     }
 
-    // 검색어가 있으면 추가
-    if (query.trim()) {
-      params.search = query;
-    }
+    // 검색어 추가
+    queryString.set("search", processedQuery);
+    queryString.set("page_size", String(maxResults));
 
-    // 최대 결과 개수 제한
-    params.page_size = maxResults;
+    const { data } = await callSearchApi(queryString, signal);
 
-    // 파라미터가 없으면 빈 결과 반환
-    if (!params.search && !params.board) {
-      return { posts: [], totalCount: 0 };
-    }
-
-    // API 호출 (기존 fetchPosts 함수와 동일한 패턴)
-    const queryString = new URLSearchParams();
-    if (params.board) queryString.set("board", String(BOARD_ID[params.board]));
-    if (params.search) queryString.set("search", params.search);
-    if (params.page_size)
-      queryString.set("page_size", String(params.page_size));
-
-    const { data } = await api.get<
-      { results?: PostResponse[]; count?: number } | PostResponse[]
-    >(`/api/posts/?${queryString.toString()}`, {
-      signal,
-      timeout: 10000,
-    });
-
-    // 응답 데이터 처리 - API 문서에 따르면 페이지네이션 형태로 반환
+    // 응답 데이터 처리
     let rawPosts: PostResponse[] = [];
     if (Array.isArray(data)) {
       rawPosts = data;
     } else if (data?.results && Array.isArray(data.results)) {
       rawPosts = data.results;
     } else if (data) {
-      // 단일 객체인 경우 (검색 결과 1개)
       rawPosts = [data as PostResponse];
     }
 
-    const posts = rawPosts.map(transformPostResponse);
+    let posts = rawPosts.map(transformPostResponse);
+
+    // 클라이언트 사이드 필터링 적용
+    posts = filterPostsByRelevance(posts, query);
 
     return {
-      posts,
+      posts: posts.slice(0, maxResults), // 필터링 후 결과 제한
       totalCount: posts.length,
     };
   } catch (error: unknown) {
-    // 요청이 취소된 경우
     if (axios.isCancel(error) || (error as Error).name === "AbortError") {
       throw error;
     }
 
-    // 404 에러는 검색 결과 없음으로 처리
     if (axios.isAxiosError(error) && error.response?.status === 404) {
       return { posts: [], totalCount: 0 };
     }
 
-    // 네트워크 에러 등 기타 에러
     console.error("Search API Error:", {
       message: error instanceof Error ? error.message : "Unknown error",
       query,
@@ -162,44 +208,31 @@ export const searchFullResultsApi = async (
   hasNext: boolean;
 }> => {
   try {
-    const params: {
-      board?: BoardSlug;
-      search?: string;
-      page?: number;
-      page_size?: number;
-    } = {};
+    // 빈 검색어 처리
+    if (!query.trim()) {
+      return { posts: [], totalCount: 0, currentPage: page, hasNext: false };
+    }
+
+    // 검색어 전처리
+    const processedQuery = preprocessQuery(query);
+
+    if (processedQuery.length < 1) {
+      return { posts: [], totalCount: 0, currentPage: page, hasNext: false };
+    }
+
+    // 검색 파라미터 구성
+    const queryString = new URLSearchParams();
 
     const boardSlug = CATEGORY_TO_BOARD_SLUG[category];
     if (boardSlug) {
-      params.board = boardSlug;
+      queryString.set("board", String(BOARD_ID[boardSlug]));
     }
 
-    if (query.trim()) {
-      params.search = query;
-    }
+    queryString.set("search", processedQuery);
+    queryString.set("page", String(page));
+    queryString.set("page_size", String(pageSize * 2)); // 필터링을 고려해 더 많이 요청
 
-    params.page = page;
-    params.page_size = pageSize;
-
-    // 기존 fetchPosts 패턴 재사용
-    const queryString = new URLSearchParams();
-    if (params.board) queryString.set("board", String(BOARD_ID[params.board]));
-    if (params.search) queryString.set("search", params.search);
-    if (params.page) queryString.set("page", String(params.page));
-    if (params.page_size)
-      queryString.set("page_size", String(params.page_size));
-
-    const { data } = await api.get<
-      | {
-          results?: PostResponse[];
-          count?: number;
-          next?: string | null;
-        }
-      | PostResponse[]
-    >(`/api/posts/?${queryString.toString()}`, {
-      signal,
-      timeout: 10000,
-    });
+    const { data } = await callSearchApi(queryString, signal, 15000); // 타임아웃 증가
 
     let posts: Post[] = [];
     let totalCount = 0;
@@ -208,18 +241,32 @@ export const searchFullResultsApi = async (
     if (Array.isArray(data)) {
       posts = data.map(transformPostResponse);
       totalCount = posts.length;
-      hasNext = posts.length === pageSize;
+      hasNext = posts.length === pageSize * 2;
     } else if (data?.results) {
       posts = data.results.map(transformPostResponse);
       totalCount = data.count || posts.length;
       hasNext = !!data.next;
     }
 
+    // 클라이언트 사이드 필터링 적용
+    const filteredPosts = filterPostsByRelevance(posts, query);
+
+    // 실제 서버 총 개수 (필터링 전)
+    const serverTotalCount = totalCount;
+
+    // 현재 페이지에서 보여줄 게시글들
+    const startIndex = (page - 1) * pageSize;
+    const paginatedPosts = filteredPosts.slice(0, pageSize);
+
+    // 다음 페이지 존재 여부는 서버 기준으로 판단
+    // (클라이언트 필터링으로 인해 정확하지 않을 수 있지만, 서버 페이지네이션 유지)
+    const calculatedHasNext = hasNext && paginatedPosts.length === pageSize;
+
     return {
-      posts,
-      totalCount,
+      posts: paginatedPosts,
+      totalCount: serverTotalCount, // 서버에서 받은 총 개수 사용
       currentPage: page,
-      hasNext,
+      hasNext: calculatedHasNext,
     };
   } catch (error: unknown) {
     if (axios.isCancel(error) || (error as Error).name === "AbortError") {
