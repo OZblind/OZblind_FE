@@ -13,7 +13,6 @@ import AssignedTagList from "@components/tags/AssignedTagList";
 import { adaptUserTag } from "@src/features/tags/adapters";
 import type { RawUserTag } from "@api/tags";
 
-
 export const SURVEYS_KEY = ["surveys"] as const;
 const PAGE_SIZE = LIST_SETTINGS.ITEMS_PER_PAGE;
 
@@ -65,6 +64,16 @@ export function useSurveys() {
         const maybeUser = (p as unknown as { user?: unknown }).user;
         const rawUser = isRawUserTag(maybeUser) ? maybeUser : null;
         const authorTags = adaptUserTag(rawUser);
+
+        (card as any).createdAtMs = Date.parse((p as any).created_at ?? 0) || 0;
+        (card as any).responseCount = Number(
+          (p as any).response_count ??
+            (p as any).participants ??
+            (p as any).votes ??
+            (p as any).view_count ?? // 최종 폴백
+            0
+        );
+
         return authorTags.length > 0
           ? {
               ...card,

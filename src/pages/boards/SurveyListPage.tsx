@@ -6,6 +6,8 @@ import { formatYyyyMmDdHms } from "@utils/date";
 import { useSurveys } from "@src/hooks/useSurveys";
 import { urlForPost } from "@src/utils/urlForPost";
 import type { SurveyCardProps } from "@components/Board/survey/SurveyCard";
+import type { SortValue } from "@src/types/sort";
+import sortClientSide from "@src/utils/sortClientSide";
 
 export default function SurveyListPage() {
   const nav = useNavigate();
@@ -14,6 +16,7 @@ export default function SurveyListPage() {
     formatYyyyMmDdHms(new Date())
   );
   const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
+  const [sort, setSort] = useState<SortValue>("latest");
 
   const {
     data,
@@ -32,8 +35,18 @@ export default function SurveyListPage() {
     [data]
   );
 
+  const sortedItems = useMemo(() => {
+    return sortClientSide(items, sort, {
+      createdAt: (it: any) =>
+        Number(it.createdAtMs ?? 0) ||
+        (it.deadline ? Date.parse(it.deadline) : 0) ||
+        Number(it.id ?? 0),
+      viewCount: (it: any) => Number(it.responseCount ?? it.participants ?? 0),
+    });
+  }, [items, sort]);
+
   // 초기 로딩/스켈레톤 제어
-  const isInitialLoading = items.length === 0 && !!isFetching;
+  const isInitialLoading = sortedItems.length === 0 && !!isFetching;
   const listIsLoading = isInitialLoading || isFetchingNextPage;
 
   // 무한 스크롤
@@ -62,7 +75,7 @@ export default function SurveyListPage() {
     <div className="self-stretch w-[800px] max-w-full p-4">
       <section className="w-full rounded-xl border border-base-content/30 p-3 pb-8 h-[calc(100vh-200px)] overflow-hidden">
         <SurveyList
-          items={items}
+          items={sortedItems}
           onItemClick={(id) => nav(urlForPost.postDetail("survey", id))}
           topBar={{
             boardName: "설문 게시판",
@@ -80,6 +93,12 @@ export default function SurveyListPage() {
           scrollRootRef={setRootEl}
           empty={{ message: "등록된 설문이 없습니다." }}
           className="py-2"
+          sortValue={sort}
+          onChangeSort={(v) => {
+            setSort(v);
+            setLastLoadedAt(formatYyyyMmDdHms(new Date()));
+            rootEl?.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+          }}
         />
       </section>
     </div>
