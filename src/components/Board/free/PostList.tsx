@@ -3,7 +3,7 @@ import EmptyState, {
   type EmptyStateProps,
 } from "@components/Board/common/EmptyState";
 import PostRow, { type FreeBoardItem, FREE_LIST_GRID } from "./PostRow";
-// import PostCard from "./PostCard";
+// import PostCard from "./PostCard"; // 반응형 임시 삭제, UI 통일감 목적
 import { LastLoadedBar, BoardTopBar } from "../common";
 import { useRef, useState, type ReactNode } from "react";
 import SortRadioPopover from "@components/Board/common/sort/SortRadioPopover";
@@ -41,6 +41,9 @@ export type PostListProps = {
   scrollRootRef?: (el: HTMLDivElement | null) => void;
 
   renderAuthorLabel?: (item: FreeBoardItem) => ReactNode;
+
+  sortValue?: SortValue;
+  onChangeSort?: (v: SortValue) => void;
 };
 
 export default function PostList({
@@ -59,12 +62,19 @@ export default function PostList({
   className,
   scrollRootRef,
   renderAuthorLabel,
+  sortValue,
+  onChangeSort,
 }: PostListProps) {
   // ------ 정렬(UI) ------
   const sortBtnRef = useRef<HTMLButtonElement>(null);
   const [openSort, setOpenSort] = useState(false);
-  const [sort, setSort] = useState<SortValue>("latest"); // UI 전용
+  const [internalSort, setInternalSort] = useState<SortValue>("latest");
+  const sort: SortValue = sortValue ?? internalSort;
   const sortActive = sort !== "latest";
+  const handleSortChange = (v: SortValue) => {
+    setInternalSort(v);
+    onChangeSort?.(v);
+  };
 
   // ------ 태그(UI) ------
   const tagBtnRef = useRef<HTMLButtonElement>(null);
@@ -190,12 +200,12 @@ export default function PostList({
         )}
       </div>
 
-      {/* 정렬 팝오버 (UI) */}
+      {/* 정렬 팝오버 */}
       <SortRadioPopover
         open={openSort}
         anchorRef={sortBtnRef}
         value={sort}
-        onChange={(v) => setSort(v)}
+        onChange={handleSortChange}
         onRequestClose={() => setOpenSort(false)}
       />
 
