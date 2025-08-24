@@ -8,6 +8,7 @@ import {
 import PostDetail from "@components/Post/PostDetail"; // 네가 준 컴포넌트
 import type { PostMeta } from "@src/types/post";
 import { fetchGithubExtra, fetchSurveyExtra } from "@src/api/posts.special";
+import { BOARD_DISPLAY_NAME } from "@constants/boardDisplay";
 
 const BOARD_ALIAS: Record<
   number,
@@ -99,7 +100,6 @@ export default function PostDetailPage() {
 
     // 2) slug -> 화면 표기용 이름
     const boardTitle = BOARD_DISPLAY_NAME[alias] ?? "게시판";
-
     const commentsCount = Array.isArray(data.root_comments)
       ? data.root_comments.length
       : 0;

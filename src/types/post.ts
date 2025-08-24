@@ -1,6 +1,7 @@
 export interface PostMeta {
   id: string;
   boardName: string; // 예: "OO 게시판"
+  boardSlug: "free" | "jobs" | "info" | "survey" | "github";
   title: string;
   content: string; // \n 포함 가능
   cohort?: string; // 예: "11기"
