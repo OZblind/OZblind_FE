@@ -2,6 +2,7 @@
 import { api } from "@api/client";
 import type { CommentMeta } from "@src/types/post";
 import { fetchRandomNickname } from "@src/api/nickname"; // 랜덤 닉네임 API
+import { fetchPostDetailCached } from "./posts";
 
 /** ------------------------------
  * 닉네임 태그(본문 내 임베딩) 유틸
@@ -109,12 +110,10 @@ export function filterDeletedThread(
 export async function listCommentsByPost(
   postId: string | number
 ): Promise<CommentMeta[]> {
-  const { data } = await api.get(`/api/posts/${postId}/`, {
-    withCredentials: true,
-  });
-  const roots = Array.isArray(data?.root_comments)
-    ? (data.root_comments as any[])
-    : [];
+  // 동일 postId에 대해 네트워크 최대 1회 + 짧은 TTL 재사용
+  // (PostDetail, 태그, 댓글이 동시에 호출돼도 추가 조회수 증가 없음)
+  const post: any = await fetchPostDetailCached(postId);
+  const roots = Array.isArray(post?.root_comments) ? post.root_comments : [];
 
   // 자기 자신 섞임 제거는 toClientFromPostDetail에서 처리
   const tree = roots.map(toClientFromPostDetail);

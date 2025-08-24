@@ -38,10 +38,20 @@ export function useAssignedTags(
         if (target === "me") {
           result = await getMyAssignedTags();
         } else {
-          result = await getAuthorAssignedTags({
-            postId: author?.postId,
-            inlineUser: author?.inlineUser ?? null,
-          });
+          // inlineUser가 있으면 네트워크 요청 없이 바로 처리 (조회수 증가 방지)
+          if (author?.inlineUser) {
+            // getAuthorAssignedTags 가 inlineUser만 주면 네트워크를 치지 않고
+            // 태그 배열을 만들어 돌려주도록 구현되어 있어야 합니다 (아래 참고).
+            result = await getAuthorAssignedTags({
+              inlineUser: author.inlineUser,
+            });
+          } else {
+            // inlineUser가 없을 때만 서버 호출
+            result = await getAuthorAssignedTags({
+              postId: author?.postId,
+              inlineUser: null,
+            });
+          }
         }
         if (cancelled) return;
         setTags(result);

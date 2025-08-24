@@ -22,7 +22,6 @@ function guessCategory(label: string): Tag["category"] {
 }
 
 /** NOTE: 서버 태그 포맷이 확정되기 전까지 안전 변환 */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeTag(input: any): Tag {
   const label = String(input?.label ?? input?.name ?? "");
   const category = (input?.category ?? guessCategory(label)) as TagCategory;
@@ -34,7 +33,6 @@ function normalizeTag(input: any): Tag {
   return { id, label, category };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function mapTagsFromApi(raw: any, limit = 2): Tag[] {
   if (!raw) return [];
   const arr = Array.isArray(raw?.results) ? raw.results : raw;
@@ -48,7 +46,6 @@ export function mapTagsFromApi(raw: any, limit = 2): Tag[] {
       );
   }
   // 객체 배열
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return arr.slice(0, limit).map((t: any) => normalizeTag(t));
 }
 
