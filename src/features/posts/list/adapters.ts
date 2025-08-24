@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { PostListItem } from "@api/posts";
 import type { FreeBoardItem } from "@src/components/Board/free";
 import type {

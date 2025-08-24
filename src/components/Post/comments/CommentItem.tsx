@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { fmtDate, fmtNum } from "@src/utils/utils";
 import {
   ChevronDown,
@@ -11,6 +13,23 @@ import clsx from "clsx";
 import ReplyControl from "./ReplyControl";
 import type { CommentMeta } from "@src/types/post";
 import { useCanManage } from "@src/hooks/useCanManage";
+import { useToastStore } from "@src/store/toastStore";
+import {
+  toggleDislikeOnComment,
+  toggleLikeOnComment,
+} from "@src/api/reactions";
+
+type CommentItemProps = {
+  data: CommentMeta;
+  depth?: number;
+  rootId: CommentMeta["id"];
+  branchStyle: { bg: string; stroke: string; fill: string };
+  onEdit: (id: CommentMeta["id"], content: string) => void;
+  onDelete: (id: CommentMeta["id"]) => void;
+  onAddReply: (rootId: CommentMeta["id"], content: string) => void;
+  submittingRootId?: string | null;
+  loading?: boolean;
+};
 
 export default function CommentItem({
   data,
@@ -22,22 +41,9 @@ export default function CommentItem({
   onAddReply,
   submittingRootId,
   loading,
-}: {
-  data: CommentMeta;
-  depth?: number;
-  rootId: CommentMeta["id"];
-  branchStyle: { bg: string; stroke: string; fill: string };
-  onEdit: (id: CommentMeta["id"], content: string) => void;
-  onDelete: (id: CommentMeta["id"]) => void;
-  onAddReply: (rootId: CommentMeta["id"], content: string) => void;
-  submittingRootId?: string | null;
-  loading?: boolean;
-}) {
+}: CommentItemProps) {
   const [expanded, setExpanded] = useState(depth === 0 && data.hasReplies);
-  const [like, setLike] = useState(Boolean(data.liked));
-  const [dislike, setDislike] = useState(Boolean(data.disliked));
-  const [likes, setLikes] = useState(data.likes ?? 0);
-  const [dislikes, setDislikes] = useState(data.dislikes ?? 0);
+  const [reacting, setReacting] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editDraft, setEditDraft] = useState(data.content);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -47,35 +53,101 @@ export default function CommentItem({
     allowModerator: true,
   });
 
+  // === 1) 내 리액션 + 집계 상태 ===
+  const initialMine =
+    (data as any)?.viewerReaction ??
+    (data.liked ? "like" : data.disliked ? "dislike" : null);
+  const [mine, setMine] = useState<"like" | "dislike" | null>(initialMine);
+  const [counts, setCounts] = useState(() => ({
+    like:
+      (data as any)?.reactions?.like ??
+      (typeof data.likes === "number" ? data.likes : 0),
+    dislike:
+      (data as any)?.reactions?.dislike ??
+      (typeof data.dislikes === "number" ? data.dislikes : 0),
+  }));
+
+  const toast = useToastStore();
+
   useEffect(() => {
     if (depth === 0 && data.hasReplies) setExpanded(true);
   }, [data.hasReplies, depth]);
   useEffect(() => setEditDraft(data.content), [data.content]);
 
-  const handleLike = () => {
-    if (like) {
-      setLike(false);
-      setLikes((v) => Math.max(0, v - 1));
+  // === 2) 뒤로가기/재진입 보정 (서버가 viewerReaction 안 줄 때만) ===
+  useEffect(() => {
+    if ((data as any)?.viewerReaction == null) {
+      const s = sessionStorage.getItem(`myReaction:comment:${data.id}`);
+      if (s === "like" || s === "dislike") setMine(s as "like" | "dislike");
+    }
+  }, [data, data.id]);
+
+  useEffect(() => {
+    if (mine) sessionStorage.setItem(`myReaction:comment:${data.id}`, mine);
+    else sessionStorage.removeItem(`myReaction:comment:${data.id}`);
+  }, [mine, data.id]);
+
+  // === 3) 토글 핸들러 (낙관적 업데이트 → 실패 시 롤백) ===
+  const handleLike = async () => {
+    if (reacting) return;
+    setReacting(true);
+    const prev = { mine, counts: { ...counts } };
+    // mine 기준 증감
+    let nextMine = mine;
+    const nextCounts = { ...counts };
+    if (mine === "like") {
+      nextMine = null;
+      nextCounts.like = Math.max(0, nextCounts.like - 1);
+    } else if (mine === null) {
+      nextMine = "like";
+      nextCounts.like += 1;
     } else {
-      setLike(true);
-      setLikes((v) => v + 1);
-      if (dislike) {
-        setDislike(false);
-        setDislikes((v) => Math.max(0, v - 1));
-      }
+      // dislike → like
+      nextCounts.dislike = Math.max(0, nextCounts.dislike - 1);
+      nextCounts.like += 1;
+      nextMine = "like";
+    }
+    setMine(nextMine);
+    setCounts(nextCounts);
+    try {
+      await toggleLikeOnComment(Number(data.id));
+    } catch (e) {
+      setMine(prev.mine);
+      setCounts(prev.counts);
+      toast.push({ message: "리액션 처리에 실패했어요.", type: "error" });
+    } finally {
+      setReacting(false);
     }
   };
-  const handleDislike = () => {
-    if (dislike) {
-      setDislike(false);
-      setDislikes((v) => Math.max(0, v - 1));
+
+  const handleDislike = async () => {
+    if (reacting) return;
+    setReacting(true);
+    const prev = { mine, counts: { ...counts } };
+    let nextMine = mine;
+    const nextCounts = { ...counts };
+    if (mine === "dislike") {
+      nextMine = null;
+      nextCounts.dislike = Math.max(0, nextCounts.dislike - 1);
+    } else if (mine === null) {
+      nextMine = "dislike";
+      nextCounts.dislike += 1;
     } else {
-      setDislike(true);
-      setDislikes((v) => v + 1);
-      if (like) {
-        setLike(false);
-        setLikes((v) => Math.max(0, v - 1));
-      }
+      // like → dislike
+      nextCounts.like = Math.max(0, nextCounts.like - 1);
+      nextCounts.dislike += 1;
+      nextMine = "dislike";
+    }
+    setMine(nextMine);
+    setCounts(nextCounts);
+    try {
+      await toggleDislikeOnComment(Number(data.id));
+    } catch (e) {
+      setMine(prev.mine);
+      setCounts(prev.counts);
+      toast.push({ message: "리액션 처리에 실패했어요.", type: "error" });
+    } finally {
+      setReacting(false);
     }
   };
 
@@ -201,20 +273,28 @@ export default function CommentItem({
       {/* 액션바 + 답글 입력(다음 줄) */}
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <button
-          className={clsx("btn btn-ghost btn-sm", like && "text-primary")}
+          className={clsx(
+            "btn btn-ghost btn-sm",
+            mine === "like" && "text-primary"
+          )}
           onClick={handleLike}
-          aria-pressed={like ? "true" : "false"}
+          disabled={reacting}
+          aria-pressed={mine === "like" ? "true" : "false"}
           type="button"
         >
-          <ThumbsUp className="mr-1 h-4 w-4" /> {fmtNum(likes)}
+          <ThumbsUp className="mr-1 h-4 w-4" /> {fmtNum(counts.like)}
         </button>
         <button
-          className={clsx("btn btn-ghost btn-sm", dislike && "text-primary")}
+          className={clsx(
+            "btn btn-ghost btn-sm",
+            mine === "dislike" && "text-primary"
+          )}
           onClick={handleDislike}
-          aria-pressed={dislike ? "true" : "false"}
+          disabled={reacting}
+          aria-pressed={mine === "dislike" ? "true" : "false"}
           type="button"
         >
-          <ThumbsDown className="mr-1 h-4 w-4" /> {fmtNum(dislikes)}
+          <ThumbsDown className="mr-1 h-4 w-4" /> {fmtNum(counts.dislike)}
         </button>
 
         {/* 최상위 댓글에서만 “답글 작성” 표시 */}
