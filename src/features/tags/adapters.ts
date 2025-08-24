@@ -37,16 +37,3 @@ export function adaptUserTag(raw?: RawUserTag | null): Tag[] {
 
   return tags;
 }
-
-/** 작성자 라벨(예: "11기 · 프론트") */
-export function tagsToAuthorLabel(tags: Tag[]): string {
-  const cohort = tags.find((t) => t.category === "cohort")?.label;
-  const pos = tags.find((t) => t.category === "position")?.label;
-  if (cohort && pos) return `${cohort} · ${pos}`;
-  return cohort ?? pos ?? "";
-}
-
-/** RawUserTag 바로 → 작성자 라벨 */
-export function rawUserTagToAuthorLabel(raw?: RawUserTag | null): string {
-  return tagsToAuthorLabel(adaptUserTag(raw));
-}
