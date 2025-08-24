@@ -4,12 +4,13 @@ import sanitizeHtml from "sanitize-html";
 import { ENDPOINTS } from "@constants/endpoints"; // 추가된 import
 import { BOARD_ID, type BoardSlug } from "@constants/boards";
 import type { Post, Category, SearchPreview } from "@src/types/search";
+import type { RawUserTag } from "@src/types/tag";
 
 interface PostResponse {
   id: number;
   title: string;
   content?: string;
-  user: number | string;
+  user: number | string | RawUserTag;
   board: number;
   view_count: number;
   like_count: number;
