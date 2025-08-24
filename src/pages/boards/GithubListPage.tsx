@@ -69,7 +69,7 @@ export default function GithubListPage() {
       <section className="w-full rounded-xl border border-base-content/30 p-3 pb-8 h-[calc(100vh-200px)] overflow-hidden">
         <GithubList
           items={items}
-          onItemClick={(id) => nav(`/posts/${id}`)}
+          onItemClick={(id) => nav(urlForPost.postDetail("github", id))}
           onRepoClick={onRepoClick}
           topBar={{
             boardName: "GitHub 게시판",
