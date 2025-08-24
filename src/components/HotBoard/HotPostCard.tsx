@@ -1,7 +1,7 @@
+import { useMemo } from "react";
 import { icons } from "@src/assets";
 import { useThemeIcon } from "@hooks/useThemeIcon";
-import { useMemo } from "react";
-import type { HotPost } from "./data";
+import type { HotPost } from "@src/types/hotPost";
 import { CARD_STYLE, CARD_TEXT } from "./boardColor";
 
 export default function HotPostCard({ post }: { post: HotPost }) {
@@ -30,7 +30,8 @@ export default function HotPostCard({ post }: { post: HotPost }) {
         </div>
         <div className="flex items-center justify-end text-sm w-full font-thin text-base-content/40">
           <div className="flex items-center gap-1">
-            <img src={thumbUp} alt="thumbUp" className="w-4 h-4" /> {post.likes}
+            <img src={thumbUp} alt="thumbUp" className="w-4 h-4" />
+            {post.like_count}
           </div>
         </div>
       </div>
