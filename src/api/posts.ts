@@ -50,6 +50,8 @@ export async function fetchPosts(params?: {
   ordering?: "-created_at" | "created_at" | "-view_count" | "view_count";
   page?: number; // DRF는 1-base, 0은 절대 보내지 않기
   page_size?: number;
+  user_tag_class?: "FE" | "BE";
+  user_tag_number?: number;
 }) {
   const query = new URLSearchParams();
 
@@ -58,6 +60,12 @@ export async function fetchPosts(params?: {
   if (params?.ordering) query.set("ordering", params.ordering);
   if (params?.page) query.set("page", String(params.page));
   if (params?.page_size) query.set("page_size", String(params.page_size));
+  if (params?.user_tag_class) {
+    query.set("user_tag_class", params.user_tag_class);
+  }
+  if (typeof params?.user_tag_number === "number") {
+    query.set("user_tag_number", String(params.user_tag_number));
+  }
 
   try {
     const { data } = await api.get<
@@ -66,9 +74,13 @@ export async function fetchPosts(params?: {
     return Array.isArray(data) ? data : (data?.results ?? []);
   } catch (e: unknown) {
     const err = e as AxiosError;
-    if (err.response?.status === 404) {
+    if (err.response?.status === 404 || err.response?.status === 500) {
       if (import.meta.env.DEV) {
-        console.info("[useInfiniteQuery] 더 불러올 데이터 없음 (404 수신)");
+        console.info(
+          "[useInfiniteQuery] 불러올 데이터 없음 (",
+          err.response?.status,
+          " 수신)"
+        );
       }
       return [];
     }

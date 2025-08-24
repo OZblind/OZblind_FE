@@ -1,4 +1,5 @@
 import type { RawUserTag, Tag } from "@src/types/tag";
+import { TAG_LABELS } from "@utils/tagRules";
 
 /** 서버 RawUserTag 타입가드 (안전한 분기용) */
 export function isRawUserTag(u: unknown): u is RawUserTag {
@@ -17,7 +18,6 @@ export function adaptUserTag(raw?: RawUserTag | null): Tag[] {
 
   const tags: Tag[] = [];
 
-  // cohort (기수)
   if (typeof raw.tag_number === "number") {
     tags.push({
       id: `${raw.id}-cohort`,
@@ -26,12 +26,11 @@ export function adaptUserTag(raw?: RawUserTag | null): Tag[] {
     });
   }
 
-  // position (FE/BE)
-  if (raw.tag_class === "FE" || raw.tag_class === "BE") {
+  if (raw.tag_class && TAG_LABELS[raw.tag_class]) {
     tags.push({
       id: `${raw.id}-pos`,
       category: "position",
-      label: raw.tag_class === "FE" ? "프론트" : "백엔드",
+      label: TAG_LABELS[raw.tag_class],
     });
   }
 

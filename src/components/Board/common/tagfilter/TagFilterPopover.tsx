@@ -17,7 +17,7 @@ type Props = {
   onChangePosition: (v: PositionValue) => void;
   onChangeCohort: (v: number) => void;
   onReset?: () => void; // (옵션) 외부 초기화 버튼이 따로 있을 때만 사용
-  onApply?: () => void; // (옵션) 적용 알림만 필요하면 사용
+  onApply?: (next: { pos: PositionValue; cohort: number } | null) => void;
   onRequestClose: () => void; // 닫힘
   // (선택) 내부 초기화 기본값 — 없으면 back/11로 처리
   defaultPosition?: PositionValue;
@@ -130,20 +130,27 @@ export default function TagFilterPopover({
     };
   }, [open, onRequestClose, anchorRef]);
 
-  // 적용 시에만 상위 콜백 호출
   const handleApply = useCallback(() => {
+    // 부모로 최신 draft 값 전달 → 적용
+    onApply?.({ pos: draftPosition, cohort: draftCohort });
+    // 내부 표시 상태도 동기화 (선택)
     onChangePosition(draftPosition);
     onChangeCohort(draftCohort);
-    onApply?.();
     onRequestClose();
   }, [
     draftPosition,
     draftCohort,
+    onApply,
     onChangePosition,
     onChangeCohort,
-    onApply,
     onRequestClose,
   ]);
+
+  const handleClear = useCallback(() => {
+    // 전체 보기(필터 미적용)
+    onApply?.(null);
+    onRequestClose();
+  }, [onApply, onRequestClose]);
 
   // 초기화는 draft만 리셋 (외부 상태는 건들지 않음)
   const handleReset = useCallback(() => {
@@ -186,6 +193,13 @@ export default function TagFilterPopover({
         </div>
 
         <div className="mt-4 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={handleClear}
+            className="btn btn-ghost btn-sm mr-auto"
+          >
+            필터 해제
+          </button>
           <button
             type="button"
             onClick={handleReset}

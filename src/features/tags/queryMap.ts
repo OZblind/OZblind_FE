@@ -1,4 +1,4 @@
-export type PositionValue = "front" | "back" | "startup" | "design";
+import type { PositionValue } from "@src/types/tag";
 
 /** UI 포지션 → 서버 class */
 export function posToTagClass(pos?: PositionValue): "FE" | "BE" | undefined {
