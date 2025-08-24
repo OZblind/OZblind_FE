@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PostList from "@src/components/Board/free/PostList";
 import type { BoardSlug } from "@src/constants/boards";
@@ -27,6 +27,13 @@ export default function PostListPage({ board }: { board: BoardSlug }) {
   );
   const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
   const [sort, setSort] = useState<SortValue>("latest");
+
+  // 게시판 변경 시 필터/스크롤 초기화
+  useEffect(() => {
+    setSort("latest");
+    setLastLoadedAt(formatYyyyMmDdHms(new Date()));
+    setRootEl(null);
+  }, [board]);
 
   const {
     data,
