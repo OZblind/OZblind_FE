@@ -1,16 +1,16 @@
 import { icons } from "@src/assets";
 import { useThemeIcon } from "@hooks/useThemeIcon";
 import { NotificationModal } from "@components/Notice";
-import { useNewFlagEvery30s } from "@hooks/useNewFlagEvery30s";
 import { useEffect, useMemo, useState } from "react";
 import ProfileSection from "./ProfileSection";
 import SmallProfileSection from "./SmallProfileSection";
 import PostListSection from "./PostListSection";
 import LogoutSection from "./LogoutSection";
+import { useNewFlagValue } from "@src/hooks/useNotifications";
 
 export function SidebarOpen({ onToggle }: { onToggle: () => void }) {
   const [noticeOpen, setNoticeOpen] = useState(false);
-  const hasNew = useNewFlagEvery30s();
+  const hasNew = useNewFlagValue();
 
   const [isSmall, setIsSmall] = useState(false);
   const themeIcon = useThemeIcon();

@@ -17,7 +17,8 @@ const QK = {
   check: ["notifications", "check"] as const,
 };
 
-export function useNotificationList() {
+export function useNotificationList(opts?: { enabled?: boolean }) {
+  const enabled = opts?.enabled ?? true;
   const qc = useQueryClient();
 
   const { data, isLoading, isError, refetch } = useQuery({
@@ -27,6 +28,7 @@ export function useNotificationList() {
     gcTime: 5 * 60_000,
     refetchOnWindowFocus: false,
     networkMode: "always",
+    enabled, // 로그인/키인증 아닐 때는 아예 요청 X
   });
 
   const items: Notification[] = useMemo(
@@ -121,15 +123,33 @@ export function useNotificationList() {
 }
 
 /** 30초 폴링 전역 플래그 */
-export function useNewNotificationFlag(pollMs = 30_000) {
+export function useNewNotificationFlag(
+  pollMs = 30_000,
+  opts?: { enabled?: boolean }
+) {
+  const enabled = opts?.enabled ?? true;
+
   const q = useQuery({
     queryKey: QK.check,
     queryFn: apiCheckNew,
-    refetchInterval: pollMs,
+    enabled, // 로그인/OzKey 아니면 쿼리 자체 비활성
+    refetchInterval: enabled ? pollMs : false,
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
     staleTime: 10_000,
     networkMode: "always",
   });
+
   return { hasNew: q.data?.new ?? false, refetch: q.refetch };
+}
+
+/** 폴링 없이 캐시만 구독 (사이드바 배지용) */
+export function useNewFlagValue() {
+  const q = useQuery({
+    queryKey: QK.check,
+    queryFn: apiCheckNew,
+    enabled: false, // 네트워크 요청 X
+    select: (d) => d?.new ?? false,
+  });
+  return q.data ?? false;
 }

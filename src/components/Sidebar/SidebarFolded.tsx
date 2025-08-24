@@ -4,14 +4,14 @@ import { useThemeIcon } from "@hooks/useThemeIcon";
 import profile from "@assets/images/profile.jpg";
 import person from "@assets/images/person.png";
 import { NotificationModal } from "@components/Notice";
-import { useNewFlagEvery30s } from "@hooks/useNewFlagEvery30s";
 import FoldedPostListSection from "./FoldedPostListSection";
 import { PATHS } from "@src/constants/paths";
 import { Link } from "react-router-dom";
+import { useNewFlagValue } from "@src/hooks/useNotifications";
 
 export function SidebarFolded({ onToggle }: { onToggle: () => void }) {
   const [noticeOpen, setNoticeOpen] = useState(false);
-  const hasNew = useNewFlagEvery30s();
+  const hasNew = useNewFlagValue();
 
   const themeIcon = useThemeIcon();
   const { menuIcon, notificationsIcon } = useMemo(() => {
