@@ -76,7 +76,7 @@ export default function SurveyListPage() {
       <section className="w-full rounded-xl border border-base-content/30 p-3 pb-8 h-[calc(100vh-200px)] overflow-hidden">
         <SurveyList
           items={sortedItems}
-          onItemClick={(id) => nav(urlForPost.postDetail("survey", id))}
+          onItemClick={(id) => nav(`/posts/${id}`)}
           topBar={{
             boardName: "설문 게시판",
             onOpenTag: () => {}, // TODO[UI→API-TAGS]: 태그 필터를 훅/서버에 연결
