@@ -3,7 +3,7 @@ export const urlForPost = {
   postDetail: (
     board: "free" | "jobs" | "info" | "survey" | "github",
     id: string | number
-  ) => `/board/${board}/post/${id}`,
+  ) => `/posts/${id}`,
 
   /** 작성: /write?board=... (board 없으면 /write) */
   postCreate: (board?: "free" | "jobs" | "info" | "survey" | "github") =>

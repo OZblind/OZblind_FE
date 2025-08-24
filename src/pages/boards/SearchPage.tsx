@@ -388,6 +388,8 @@ export default function SearchPage() {
       const boardType = item?.category
         ? getCategoryBoardType(item.category)
         : "free";
+      const finalUrl = urlForPost.postDetail(boardType, id);
+      console.log("Navigating to URL:", finalUrl);
       navigate(urlForPost.postDetail(boardType, id));
     },
     [navigate, items]

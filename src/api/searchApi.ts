@@ -1,7 +1,7 @@
 import api from "@api/client";
 import axios from "axios";
 import sanitizeHtml from "sanitize-html";
-import { ENDPOINTS } from "@constants/endpoints"; // 추가된 import
+import { ENDPOINTS } from "@constants/endpoints";
 import { BOARD_ID, type BoardSlug } from "@constants/boards";
 import type { Post, Category, SearchPreview } from "@src/types/search";
 import type { RawUserTag } from "@src/types/tag";
@@ -10,7 +10,7 @@ interface PostResponse {
   id: number;
   title: string;
   content?: string;
-  user: number | string | RawUserTag;
+  user: number | string;
   board: number;
   view_count: number;
   like_count: number;
@@ -38,79 +38,145 @@ const CATEGORY_TO_BOARD_SLUG: Record<Category, BoardSlug | null> = {
   GitHub: "github",
 };
 
-const isRawUserTag = (u: unknown): u is RawUserTag =>
-  typeof u === "object" &&
-  u !== null &&
-  "id" in u &&
-  "tag_class" in u &&
-  "tag_number" in u;
-
 // 검색어 전처리 함수
 const preprocessQuery = (query: string): string => {
   return query.trim().replace(/\s+/g, " ").toLowerCase();
 };
 
-// 클라이언트 사이드 필터링 (영어 검색 정확도 개선)
+// 클라이언트 사이드 필터링 (영어 검색 정확도 개선 + 숫자 검색 지원)
 const filterPostsByRelevance = (
   posts: Post[],
   originalQuery: string
 ): Post[] => {
   const query = preprocessQuery(originalQuery);
 
-  if (query.length <= 2 || /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(query)) {
+  // 검색어 유형 판별
+  const isNumericQuery = /^\d+$/.test(query);
+  const isEnglishQuery = /^[a-zA-Z\s]+$/.test(query);
+  const isAlphanumericQuery = /^[a-zA-Z0-9\s]+$/.test(query);
+
+  // 기존 조건 수정 - 숫자나 영어+숫자 검색은 예외 처리
+  if (
+    !isNumericQuery &&
+    !isAlphanumericQuery &&
+    (query.length <= 2 || /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(query))
+  ) {
     return posts;
   }
 
-  if (/^[a-zA-Z\s]+$/.test(query)) {
+  // 숫자 검색 전용 필터링
+  if (isNumericQuery) {
     return posts.filter((post) => {
       const titleLower = post.title.toLowerCase();
       const contentLower = post.content.toLowerCase();
-      const words = query.split(" ").filter((word) => word.length > 0);
+      const queryStr = query;
 
-      return words.some((word) => {
-        const wordRegex = new RegExp(`\\b${word}\\b`, "i");
-        return (
-          wordRegex.test(titleLower) ||
-          wordRegex.test(contentLower) ||
-          titleLower.includes(word) ||
-          contentLower.includes(word)
-        );
-      });
+      // 숫자가 포함되어 있는지 확인 (정확한 일치 + 부분 일치)
+      const titleIncludes = titleLower.includes(queryStr);
+      const contentIncludes = contentLower.includes(queryStr);
+      const idMatch = post.id.toString() === queryStr; // ID 정확히 일치
+
+      // 단어 경계를 고려한 정확한 숫자 매칭
+      const numberRegex = new RegExp(`\\b${queryStr}\\b`);
+      const titleExactMatch = numberRegex.test(titleLower);
+      const contentExactMatch = numberRegex.test(contentLower);
+
+      return (
+        titleIncludes ||
+        contentIncludes ||
+        idMatch ||
+        titleExactMatch ||
+        contentExactMatch
+      );
     });
   }
 
+  // 영어 또는 영어+숫자 검색 로직
+  if (isEnglishQuery || isAlphanumericQuery) {
+    return posts.filter((post) => {
+      const titleLower = post.title.toLowerCase();
+      const contentLower = post.content.toLowerCase();
+
+      // 전체 검색어로 먼저 검사 (정확한 일치 + 부분 일치)
+      const titleIncludes = titleLower.includes(query);
+      const contentIncludes = contentLower.includes(query);
+
+      // 단어 경계를 고려한 정확한 매칭 (정규식 특수문자 이스케이프)
+      const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const exactRegex = new RegExp(`\\b${escapedQuery}\\b`, "i");
+      const titleExactMatch = exactRegex.test(titleLower);
+      const contentExactMatch = exactRegex.test(contentLower);
+
+      // 공백으로 나눠서 각 단어별로도 검사
+      const words = query.split(/\s+/).filter((word) => word.length > 0);
+      const wordMatch = words.some((word) => {
+        const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const wordRegex = new RegExp(`\\b${escapedWord}\\b`, "i");
+        return (
+          wordRegex.test(titleLower) ||
+          wordRegex.test(contentLower) ||
+          titleLower.includes(word.toLowerCase()) ||
+          contentLower.includes(word.toLowerCase())
+        );
+      });
+
+      return (
+        titleIncludes ||
+        contentIncludes ||
+        titleExactMatch ||
+        contentExactMatch ||
+        wordMatch
+      );
+    });
+  }
+
+  // 기타 검색어는 기존 로직 그대로
   return posts;
 };
 
 // API 응답을 Post 타입으로 변환
 const transformPostResponse = (response: PostResponse): Post => {
-  const transformedPost: Post = {
+  // user 객체에서 적절한 작성자 이름 생성
+  let authorName = "익명";
+  let userForTag: RawUserTag | undefined = undefined;
+
+  if (typeof response.user === "string") {
+    authorName = response.user;
+  } else if (response.user && typeof response.user === "object") {
+    // user 객체에서 적절한 표시명 생성
+    const userObj = response.user as {
+      id?: number;
+      tag_class?: string;
+      tag_number?: number;
+    };
+    if (userObj.tag_class && userObj.tag_number && userObj.id) {
+      // RawUserTag 형태로 변환
+      userForTag = {
+        id: userObj.id,
+        tag_class: userObj.tag_class as "FE" | "BE",
+        tag_number: userObj.tag_number,
+      };
+      authorName = `${userObj.tag_class} ${userObj.tag_number}기`;
+    } else {
+      authorName = `사용자${userObj.id || ""}`;
+    }
+  } else if (typeof response.user === "number") {
+    authorName = `사용자${response.user}`;
+  }
+
+  return {
     id: response.id,
     title: response.title,
     content: sanitizeHtml(response.content ?? "", {
       allowedTags: [],
       allowedAttributes: {},
     }),
+    author: authorName,
     category: BOARD_ID_TO_CATEGORY[response.board] || "기타",
     createdAt: response.created_at,
     viewCount: response.view_count,
-    author: "", // 초기화
+    user: userForTag, // RawUserTag 형태로 변환된 객체만 전달
   };
-
-  if (typeof response.user === "string") {
-    transformedPost.author = response.user; // 문자열 닉네임인 경우
-  } else if (typeof response.user === "number") {
-    transformedPost.author = `사용자${response.user}`; // 숫자 ID인 경우
-  } else if (isRawUserTag(response.user)) {
-    // RawUserTag 객체인 경우
-    transformedPost.user = response.user; // Post 타입의 user 필드에 RawUserTag 객체 저장
-    transformedPost.author = `사용자${response.user.id}`; // 임시 닉네임
-  } else {
-    // 예상치 못한 타입인 경우
-    transformedPost.author = "익명";
-  }
-
-  return transformedPost; // 여기가 transformPostResponse의 끝이야!
 };
 
 // 공통 API 호출 로직 - ENDPOINTS 상수 사용
@@ -126,8 +192,7 @@ const callSearchApi = async (
         next?: string | null;
       }
     | PostResponse[]
-  >(`${ENDPOINTS.POST_DETAIL}/?${queryParams.toString()}`, {
-    // POSTS로 변경
+  >(`${ENDPOINTS.POSTS}/?${queryParams.toString()}`, {
     signal,
     timeout,
   });
