@@ -163,18 +163,37 @@ export async function createReply(opts: {
 }
 
 /** 수정
- *  - 현재는 ‘본문만’ 전달받으므로, 기존 닉네임을 유지하려면
- *    호출부에서 n.authorName을 전달해 embed 해야 함.
- *  - 일단은 ‘닉 헤더 없이’ 저장하면 다음 로드에서 '익명'이 될 수 있음.
- *    (필요 시 patch에 nick?: string 옵션을 추가해 확장 가능)
+ *  - 일단은 ‘닉 헤더 없이’ 저장되면 다음 로드에서 '익명'이 될 수 있음.
  */
 export async function updateComment(
   id: string | number,
   content: string,
   opts?: { nick?: string }
 ): Promise<void> {
+  // 1) 우선 호출부가 닉을 주면 그걸 사용
+  let nick = opts?.nick;
+
+  // 2) 없으면 내 댓글 목록에서 해당 id를 찾아 기존 본문에서 닉 추출 (작성자만 수정 가능하므로 항상 조회 가능)
+  if (!nick) {
+    try {
+      const { data } = await api.get(`/api/comments/me`, {
+        withCredentials: true,
+      });
+      const mine = Array.isArray(data)
+        ? data.find((c: any) => String(c.id) === String(id))
+        : undefined;
+      if (mine) {
+        const parsed = extractNickHeader(mine.content);
+        if (parsed.nick) nick = parsed.nick;
+      }
+    } catch {
+      // 무시: 닉을 못 구해도 계속 진행 (익명 처리됨)
+    }
+  }
+
+  // 3) 닉이 있으면 헤더 임베딩 후 PATCH, 없으면 본문만 PATCH
   const payload = {
-    content: opts?.nick ? embedNickHeader(opts.nick, content) : content,
+    content: nick ? embedNickHeader(nick, content) : content,
   };
   await api.patch(`/api/comments/${id}`, payload, { withCredentials: true });
 }
