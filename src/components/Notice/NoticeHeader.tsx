@@ -14,10 +14,14 @@ export default function NoticeHeader({
   deleteMode,
   onToggleDeleteMode,
   onRequestClose,
+  onMarkAllRead,
+  onDeleteAll,
 }: {
   deleteMode: boolean;
   onToggleDeleteMode: () => void;
   onRequestClose: () => void;
+  onMarkAllRead: () => void;
+  onDeleteAll: () => void;
 }) {
   const { isDark } = useTheme();
   const icon = deleteMode
@@ -53,7 +57,23 @@ export default function NoticeHeader({
           <span className="sr-only">{tip}</span>
         </button>
 
-        {deleteMode ? <DeleteAllButton /> : <MarkAllReadButton />}
+        {deleteMode ? (
+          <button
+            type="button"
+            className="btn btn-error btn-xs text-white"
+            onClick={onDeleteAll}
+          >
+            모두 삭제
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs"
+            onClick={onMarkAllRead}
+          >
+            모두 읽음
+          </button>
+        )}
 
         {/* 모바일 full-height 닫기 */}
         <button
@@ -66,29 +86,5 @@ export default function NoticeHeader({
         </button>
       </div>
     </header>
-  );
-}
-
-function MarkAllReadButton() {
-  return (
-    <button
-      type="button"
-      className="btn btn-ghost btn-xs"
-      aria-label="모두 읽음 처리"
-    >
-      모두 읽음
-    </button>
-  );
-}
-
-function DeleteAllButton() {
-  return (
-    <button
-      type="button"
-      className="btn btn-error btn-xs text-white"
-      aria-label="모두 삭제"
-    >
-      모두 삭제
-    </button>
   );
 }
