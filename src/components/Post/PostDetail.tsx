@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useMemo, useState } from "react";
 import {
   Bookmark,
@@ -12,16 +13,14 @@ import {
   Pencil,
 } from "lucide-react";
 import clsx from "clsx";
-import { demoComments } from "@src/mocks/post.demo";
 import { fmtDate, fmtNum } from "@src/utils/utils";
 import { PostComment } from "@src/components/Post/comments";
 import DropdownMenu, {
   type DropdownItem,
 } from "@src/components/ui/DropdownMenu";
 import { useToastStore } from "@src/store/toastStore";
-import type { CommentMeta, PostMeta } from "@src/types/post";
+import type { PostMeta } from "@src/types/post";
 import { onlyWhen, useCanManage } from "@src/hooks/useCanManage";
-import { fetchRandomNickname } from "@src/api/nickname";
 import { useAssignedTags } from "@hooks/useAssignedTags";
 import type { RawUserTag } from "@api/tags";
 import AssignedTagList from "../tags/AssignedTagList";
@@ -29,6 +28,7 @@ import { RepoPreviewCard } from "../Board/RepoPreviewCard";
 import LinkPreviewCard from "../Board/LinkPreviewCard";
 import { useNavigate } from "react-router-dom";
 import { urlForPost } from "@src/utils/urlForPost";
+import { createRootComment } from "@api/comments";
 
 const BOARD_LABEL: Record<string, string> = {
   free: "자유게시판",
@@ -45,10 +45,10 @@ export default function PostDetail({ post }: { post: PostMeta }) {
   const [bookmarked, setBookmarked] = useState(false);
   const [commentDraft, setCommentDraft] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  const [comments, setComments] = useState<CommentMeta[]>(() => demoComments);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const navigate = useNavigate();
+  const toast = useToastStore();
 
   const reaction = useMemo(
     () => ({
@@ -75,40 +75,29 @@ export default function PostDetail({ post }: { post: PostMeta }) {
     }
   };
 
+  // 중앙 API(createRootComment)로 루트 댓글 작성
   const submitComment = async () => {
-    if (!commentDraft.trim()) return;
-    setSubmitting(true);
     const text = commentDraft.trim();
-    if (!text) return;
+    if (!text || submitting) return;
 
-    // TODO: API 연동
+    setSubmitting(true);
     try {
-      const nickname = await fetchRandomNickname();
-      setComments((prev) => [
-        {
-          id: Math.random().toString(36).slice(2), // string ID여도 PostComment가 대응함
-          author: nickname, // 닉네임(짧은 표시용)
-          authorId: "me", // 고유 사용자 ID (실제 로그인 유저 ID 넣는게 베스트)
-          authorName: "현재 사용자", // 선택적 표시 이름
-          content: commentDraft.trim(),
-          createdAt: new Date().toISOString(),
-          liked: false,
-          disliked: false,
-          likes: 0,
-          dislikes: 0,
-        },
-        ...prev,
-      ]);
+      await createRootComment(post.id, text); // ← /api/comments POST (root 없이)
       setCommentDraft("");
-    } catch (err) {
-      console.error(err);
-      useToastStore.getState().push({
-        message: "닉네임 생성에 실패했습니다!",
-        type: "error",
-        durationMs: 3000, // 선택 (기본값: 2500ms)
-      });
+      setRefreshKey((k) => k + 1); // 댓글 목록 재조회(리마운트 유도)
+      toast.push({ message: "댓글이 등록되었습니다.", type: "success" });
+    } catch (e: any) {
+      const code = e?.response?.status;
+      if (code === 401) {
+        toast.push({ message: "로그인이 필요합니다.", type: "warning" });
+      } else if (code === 403) {
+        toast.push({ message: "권한이 없습니다.", type: "warning" });
+      } else {
+        toast.push({ message: "댓글 등록에 실패했어요.", type: "error" });
+      }
+    } finally {
+      setSubmitting(false); // 반드시 로더 해제
     }
-    setSubmitting(false);
   };
 
   const { canManage } = useCanManage(post.authorId, {
@@ -116,15 +105,14 @@ export default function PostDetail({ post }: { post: PostMeta }) {
     allowModerator: true,
   });
 
-  // 상단 드롭다운 액션 (필요 시 실제 로직 연결)
+  // 상단 드롭다운 액션
   const menuItems: DropdownItem[] = [
     {
       label: "URL 복사",
       icon: <Copy className="h-4 w-4" />,
       onSelect: () => {
         void navigator.clipboard.writeText(window.location.href);
-
-        useToastStore.getState().push({
+        toast.push({
           message: "URL 복사에 성공했습니다!",
           type: "success",
           durationMs: 3000, // 선택 (기본값: 2500ms)
@@ -137,8 +125,7 @@ export default function PostDetail({ post }: { post: PostMeta }) {
         label: "게시글 수정",
         icon: <Pencil className="h-4 w-4" />,
         onSelect: () => {
-          // TODO: 수정 페이지 이동
-          navigate(urlForPost.postEdit(String(post.id))); // UI 테스트 연결용
+          navigate(urlForPost.postEdit(String(post.id)));
         },
       },
       {
@@ -170,7 +157,7 @@ export default function PostDetail({ post }: { post: PostMeta }) {
           <span>{fmtDate(post.createdAt)}</span>
         </div>
 
-        {/* dropdown: role/tabIndex 없이 ul>li>button 패턴 */}
+        {/* dropdown */}
         <div className="dropdown dropdown-end">
           <DropdownMenu
             items={menuItems}
@@ -205,6 +192,7 @@ export default function PostDetail({ post }: { post: PostMeta }) {
 
       {/* 구분선 */}
       <div className="divider my-5"></div>
+
       {/* 본문 위 카드 */}
       {(() => {
         switch (post.boardName) {
@@ -230,6 +218,7 @@ export default function PostDetail({ post }: { post: PostMeta }) {
             return null;
         }
       })()}
+
       {/* 본문 */}
       <div className="m-2 bg-base-100 shadow-none">
         <div dangerouslySetInnerHTML={{ __html: post.content }} />
@@ -272,19 +261,21 @@ export default function PostDetail({ post }: { post: PostMeta }) {
           onChange={(e) => setCommentDraft(e.target.value)}
           placeholder="주제와 무관한 댓글은 삭제될 수 있습니다."
           className="textarea textarea-bordered w-full min-h-[88px]"
+          disabled={submitting}
         />
         <div className="mt-2 flex items-center justify-end gap-2">
           <button
             className="btn btn-outline btn-sm"
             onClick={() => setCommentDraft("")}
             type="button"
+            disabled={submitting}
           >
             취소
           </button>
           <button
             className="btn btn-primary btn-sm"
             onClick={submitComment}
-            disabled={submitting}
+            disabled={submitting || !commentDraft.trim()}
             type="button"
           >
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{" "}
@@ -294,7 +285,7 @@ export default function PostDetail({ post }: { post: PostMeta }) {
       </div>
 
       {/* 댓글 창 */}
-      <PostComment comments={comments} />
+      <PostComment key={refreshKey} postId={post.id} />
     </div>
   );
 }
