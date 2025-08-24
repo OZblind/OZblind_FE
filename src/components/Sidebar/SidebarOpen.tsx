@@ -6,9 +6,12 @@ import ProfileSection from "./ProfileSection";
 import SmallProfileSection from "./SmallProfileSection";
 import PostListSection from "./PostListSection";
 import LogoutSection from "./LogoutSection";
+import { useNewFlagValue } from "@src/hooks/useNotifications";
 
 export function SidebarOpen({ onToggle }: { onToggle: () => void }) {
   const [noticeOpen, setNoticeOpen] = useState(false);
+  const hasNew = useNewFlagValue();
+
   const [isSmall, setIsSmall] = useState(false);
   const themeIcon = useThemeIcon();
   const { menuIcon, notificationsIcon } = useMemo(() => {
@@ -46,6 +49,12 @@ export function SidebarOpen({ onToggle }: { onToggle: () => void }) {
               className="p-2 rounded-full hover:bg-base-300"
             >
               <img src={notificationsIcon} alt="notificationsIcon" />
+              {hasNew && (
+                <i
+                  className="absolute right-2 top-2 w-2 h-2 rounded-full bg-error"
+                  aria-hidden
+                />
+              )}
             </button>
             <button
               onClick={onToggle}

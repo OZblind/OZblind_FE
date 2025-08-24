@@ -7,9 +7,12 @@ import { NotificationModal } from "@components/Notice";
 import FoldedPostListSection from "./FoldedPostListSection";
 import { PATHS } from "@src/constants/paths";
 import { Link } from "react-router-dom";
+import { useNewFlagValue } from "@src/hooks/useNotifications";
 
 export function SidebarFolded({ onToggle }: { onToggle: () => void }) {
   const [noticeOpen, setNoticeOpen] = useState(false);
+  const hasNew = useNewFlagValue();
+
   const themeIcon = useThemeIcon();
   const { menuIcon, notificationsIcon } = useMemo(() => {
     const dark = themeIcon === "oz_dark";
@@ -37,6 +40,12 @@ export function SidebarFolded({ onToggle }: { onToggle: () => void }) {
           className="p-2 rounded-full hover:bg-base-300"
         >
           <img src={notificationsIcon} alt="notificationsIcon" />
+          {hasNew && (
+            <i
+              className="absolute right-2 top-2 w-2 h-2 rounded-full bg-error"
+              aria-hidden
+            />
+          )}
         </button>
         <Link
           to={PATHS.MYPAGE}

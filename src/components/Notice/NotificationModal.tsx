@@ -2,12 +2,14 @@ import { useEffect } from "react";
 import NoticeHeader from "./NoticeHeader";
 import NoticeList from "./NoticeList";
 import { useNoticeDeleteMode } from "./useNoticeDeleteMode";
+import { useNotificationList } from "@src/hooks/useNotifications";
 
 type Props = { open: boolean; onClose?: () => void };
 
 export default function NotificationModal({ open, onClose }: Props) {
   const { deleteMode, toggleDeleteMode, resetDeleteMode } =
     useNoticeDeleteMode();
+  const { markAllRead, deleteAll, refetch } = useNotificationList();
 
   const handleClose = () => {
     onClose?.();
@@ -16,6 +18,7 @@ export default function NotificationModal({ open, onClose }: Props) {
 
   useEffect(() => {
     if (!open) return;
+    refetch();
 
     // ESC 닫기 + 바디 스크롤 잠금
     const h = (e: KeyboardEvent) => {
@@ -31,11 +34,10 @@ export default function NotificationModal({ open, onClose }: Props) {
       document.body.style.overflow = prev;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, refetch]);
 
   if (!open) return null;
 
-  // TODO: 테스트용 스타일로, 추후 위치 조정 필요(알림 버튼 옆)
   return (
     <div className="fixed inset-0 z-[2000]">
       {/* 오버레이(바깥 클릭 시 닫기) */}
@@ -61,6 +63,8 @@ export default function NotificationModal({ open, onClose }: Props) {
           deleteMode={deleteMode}
           onToggleDeleteMode={toggleDeleteMode}
           onRequestClose={handleClose}
+          onMarkAllRead={() => markAllRead.mutate()}
+          onDeleteAll={() => deleteAll.mutate()}
         />
         <div className="flex-1 overflow-y-auto p-2 md:p-3">
           <NoticeList deleteMode={deleteMode} />
