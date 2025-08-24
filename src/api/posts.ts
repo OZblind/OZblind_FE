@@ -152,51 +152,64 @@ export async function deletePost(id: number) {
   await api.delete(`/api/posts/${id}`);
 }
 
+type AnyPostDetail = unknown;
 type Key = string;
 const keyOf = (id: string | number): Key => String(id);
 
-// === Anti-duplicate view: 상세 호출 단일화 + 짧은 캐시(TTL) ==================
-// 동일 postId 동시 호출 결합
-const _detailInflight = new Map<Key, Promise<PostDetail>>();
+// inflight / cache map도 Key를 사용
+const _detailInflight = new Map<Key, Promise<AnyPostDetail>>();
+const _detailCache = new Map<Key, { data: AnyPostDetail; exp: number }>();
 
-// 짧은 메모리 캐시 (기본 30초)
-const _detailCache = new Map<Key, { data: PostDetail; exp: number }>();
-
-/** (선택) 외부에서 상세 응답을 바로 캐시에 심고 싶을 때 사용 */
 export function primePostDetailCache(
   id: string | number,
-  data: PostDetail,
+  data: AnyPostDetail,
   ttlMs = 30_000
 ) {
-  const key = keyOf(id);
-  _detailCache.set(key, { data, exp: Date.now() + ttlMs });
+  _detailCache.set(keyOf(id), { data, exp: Date.now() + ttlMs });
 }
 
-/** 상세 조회를 최대 1회로 제한하고, TTL 내 재사용 */
+export function readPostDetailCache(
+  id: string | number
+): AnyPostDetail | undefined {
+  return _detailCache.get(keyOf(id))?.data;
+}
+
+export function mutatePostDetailCache(
+  id: string | number,
+  updater: (prev: AnyPostDetail) => AnyPostDetail
+): void {
+  const k = keyOf(id);
+  const entry = _detailCache.get(k);
+  if (!entry) return;
+  const next = updater(entry.data);
+  _detailCache.set(k, { data: next, exp: entry.exp });
+}
+
+// fetchPostDetailCached 안에서도 keyOf 사용
 export async function fetchPostDetailCached(
   id: string | number,
   opts?: { ttlMs?: number; force?: boolean }
-): Promise<PostDetail> {
-  const key = keyOf(id);
+): Promise<AnyPostDetail> {
+  const k = keyOf(id);
   const ttlMs = opts?.ttlMs ?? 30_000;
   const force = opts?.force ?? false;
 
   const now = Date.now();
-  const cached = _detailCache.get(key);
-  if (!force && cached && cached.exp > now) {
-    return cached.data;
-  }
+  const cached = _detailCache.get(k);
+  if (!force && cached && cached.exp > now) return cached.data;
 
-  const inflight = _detailInflight.get(key);
+  const inflight = _detailInflight.get(k);
   if (inflight) return inflight;
 
-  const p = (fetchPostDetail as (x: string | number) => Promise<PostDetail>)(id)
+  const p = (fetchPostDetail as (x: string | number) => Promise<AnyPostDetail>)(
+    id
+  )
     .then((data) => {
-      _detailCache.set(key, { data, exp: now + ttlMs });
+      _detailCache.set(k, { data, exp: now + ttlMs });
       return data;
     })
-    .finally(() => _detailInflight.delete(key));
+    .finally(() => _detailInflight.delete(k));
 
-  _detailInflight.set(key, p);
+  _detailInflight.set(k, p);
   return p;
 }

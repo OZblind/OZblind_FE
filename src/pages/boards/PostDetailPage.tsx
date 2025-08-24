@@ -106,6 +106,11 @@ export default function PostDetailPage() {
 
     const x = extra ?? {};
 
+    const toInt = (v: unknown) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    };
+
     // PostDetail(API) -> PostMeta(UI) 매핑
     return {
       id: data.id,
@@ -114,18 +119,28 @@ export default function PostDetailPage() {
       authorId: String(data.user ?? ""), // PostDetail.tsx가 string 기대
       boardName: boardTitle,
       boardSlug: alias,
-      views: data.view_count ?? 0,
+
+      // 숫자 필드는 전부 Number()로 고정
+      views: toInt(data.view_count),
       commentsCount,
+
       reactions: {
-        like: data.like_count ?? 0,
-        bookmark: data.bookmark_count ?? 0,
+        like: toInt(data.like_count),
+        // 백엔드 필드명이 다양할 수 있으니 모두 대비
+        dislike: toInt(
+          (data as any).dislike_count ??
+            (data as any).downvote_count ??
+            (data as any).hate_count ??
+            0
+        ),
+        bookmark: toInt(data.bookmark_count),
       },
       createdAt: data.created_at,
 
       // 선택 필드들 (설문/깃헙 전용)
-      formLink: x.formLink,
-      endDate: x.endDate,
-      repoUrl: x.repoUrl,
+      formLink: x?.formLink ?? null,
+      endDate: x?.endDate ?? null,
+      repoUrl: x?.repoUrl ?? null,
 
       // useAssignedTags가 inlineUser로 재호출을 생략하게 하기 위해
       user: (data as any).user ?? null,
