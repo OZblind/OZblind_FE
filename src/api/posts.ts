@@ -152,15 +152,15 @@ export async function deletePost(id: number) {
   await api.delete(`/api/posts/${id}`);
 }
 
+type Key = string;
+const keyOf = (id: string | number): Key => String(id);
+
 // === Anti-duplicate view: 상세 호출 단일화 + 짧은 캐시(TTL) ==================
 // 동일 postId 동시 호출 결합
-const _detailInflight = new Map<string | number, Promise<PostDetail>>();
+const _detailInflight = new Map<Key, Promise<PostDetail>>();
 
 // 짧은 메모리 캐시 (기본 30초)
-const _detailCache = new Map<
-  string | number,
-  { data: PostDetail; exp: number }
->();
+const _detailCache = new Map<Key, { data: PostDetail; exp: number }>();
 
 /** (선택) 외부에서 상세 응답을 바로 캐시에 심고 싶을 때 사용 */
 export function primePostDetailCache(
@@ -168,7 +168,8 @@ export function primePostDetailCache(
   data: PostDetail,
   ttlMs = 30_000
 ) {
-  _detailCache.set(id, { data, exp: Date.now() + ttlMs });
+  const key = keyOf(id);
+  _detailCache.set(key, { data, exp: Date.now() + ttlMs });
 }
 
 /** 상세 조회를 최대 1회로 제한하고, TTL 내 재사용 */
@@ -176,26 +177,26 @@ export async function fetchPostDetailCached(
   id: string | number,
   opts?: { ttlMs?: number; force?: boolean }
 ): Promise<PostDetail> {
+  const key = keyOf(id);
   const ttlMs = opts?.ttlMs ?? 30_000;
   const force = opts?.force ?? false;
 
   const now = Date.now();
-  const cached = _detailCache.get(id);
+  const cached = _detailCache.get(key);
   if (!force && cached && cached.exp > now) {
     return cached.data;
   }
 
-  const inflight = _detailInflight.get(id);
+  const inflight = _detailInflight.get(key);
   if (inflight) return inflight;
 
-  // 이 파일에 이미 존재하는 fetchPostDetail을 그대로 사용합니다.
   const p = (fetchPostDetail as (x: string | number) => Promise<PostDetail>)(id)
     .then((data) => {
-      _detailCache.set(id, { data, exp: now + ttlMs });
+      _detailCache.set(key, { data, exp: now + ttlMs });
       return data;
     })
-    .finally(() => _detailInflight.delete(id));
+    .finally(() => _detailInflight.delete(key));
 
-  _detailInflight.set(id, p);
+  _detailInflight.set(key, p);
   return p;
 }
