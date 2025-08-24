@@ -26,7 +26,7 @@ import type { RawUserTag } from "@api/tags";
 import AssignedTagList from "../tags/AssignedTagList";
 import { RepoPreviewCard } from "../Board/RepoPreviewCard";
 import LinkPreviewCard from "../Board/LinkPreviewCard";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { urlForPost } from "@src/utils/urlForPost";
 import { createRootComment } from "@api/comments";
 import { toggleReaction } from "@src/api/reactions";
@@ -204,9 +204,13 @@ export default function PostDetail({ post }: { post: PostMeta }) {
       {/* 상단 바 */}
       <div className="flex items-center justify-between text-sm text-base-content/70">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-base-content">
+          <Link
+            to={`/board/${post.boardSlug}`}
+            className="font-medium text-base-content hover:underline"
+            aria-label={`${BOARD_LABEL[post.boardName] ?? post.boardName} 목록으로 이동`}
+          >
             {BOARD_LABEL[post.boardName] ?? post.boardName}
-          </span>
+          </Link>
           <span>•</span>
           <span>{fmtDate(post.createdAt)}</span>
         </div>
