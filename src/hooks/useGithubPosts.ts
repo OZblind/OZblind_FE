@@ -10,34 +10,28 @@ import { adaptUserTag } from "@src/features/tags/adapters";
 import type { RawUserTag } from "@api/tags";
 import { LIST_SETTINGS } from "@src/constants/ui";
 import type { AxiosError } from "axios";
+import type { SortValue } from "@src/types/sort";
 
 // NOTE: 키 표시에만 사용 (API 파라미터는 github.ts에서 board id 사용)
 const GITHUB_BOARD_SLUG = "github" as const;
 
-// ---------------------------
-// TODO(sort): UI의 SortValue ↔ API ordering 매핑 표
-export type SortValue = "latest" | "oldest" | "mostViewed" | "leastViewed";
-function toOrdering(
-  v: SortValue | undefined
-): "-created_at" | "created_at" | "-view_count" | "view_count" | undefined {
-  switch (v) {
-    case "latest":
-      return "-created_at";
-    case "oldest":
-      return "created_at";
-    case "mostViewed":
-      return "-view_count";
-    case "leastViewed":
-      return "view_count";
-    default:
-      return undefined;
-  }
-}
-// ---------------------------
+// UI SortValue → API ordering
+const SORT_TO_ORDERING: Record<
+  SortValue | "most_viewed" | "least_viewed",
+  "-created_at" | "created_at" | "-view_count" | "view_count"
+> = {
+  latest: "-created_at",
+  oldest: "created_at",
+  mostViewed: "-view_count",
+  leastViewed: "view_count",
+  // snake_case 폴백
+  most_viewed: "-view_count",
+  least_viewed: "view_count",
+};
 
 export type UseGithubPostsOptions = {
   pageSize?: number; // default LIST_SETTINGS.ITEMS_PER_PAGE
-  sort?: SortValue; // default 'latest'
+  sort?: SortValue;
   search?: string;
   tagIds?: number[];
 };
@@ -48,10 +42,14 @@ async function fetchGithubPage(
   page: number,
   opt?: UseGithubPostsOptions
 ): Promise<GithubPostsPage> {
+  type SortKey = keyof typeof SORT_TO_ORDERING;
+  const sortKey: SortKey = (opt?.sort ?? "latest") as SortKey;
+  const ordering = SORT_TO_ORDERING[sortKey] ?? "-created_at";
+
   return fetchGithubListPage({
     page,
     page_size: opt?.pageSize ?? LIST_SETTINGS.ITEMS_PER_PAGE,
-    ordering: toOrdering(opt?.sort) ?? "-created_at",
+    ordering,
     // search: opt?.search,
     // tags: opt?.tagIds,
   });
@@ -59,7 +57,9 @@ async function fetchGithubPage(
 
 export function useGithubPosts(opt?: UseGithubPostsOptions) {
   const pageSize = opt?.pageSize ?? LIST_SETTINGS.ITEMS_PER_PAGE;
-  const ordering = toOrdering(opt?.sort) ?? "-created_at";
+  type SortKey = keyof typeof SORT_TO_ORDERING;
+  const sortKey: SortKey = (opt?.sort ?? "latest") as SortKey;
+  const ordering = SORT_TO_ORDERING[sortKey] ?? "-created_at";
 
   return useInfiniteQuery<GithubPostsPage, unknown>({
     // 옵션 포함해서 캐시 분리

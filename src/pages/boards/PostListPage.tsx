@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PostList from "@src/components/Board/free/PostList";
 import type { BoardSlug } from "@src/constants/boards";
@@ -10,6 +10,7 @@ import { LIST_SETTINGS, ERROR_MESSAGES } from "@constants/ui";
 import { tagsToAuthorLabel } from "@utils/tagsToAuthorLabel";
 import { adaptUserTag } from "@src/features/tags/adapters";
 import type { RawUserTag } from "@api/tags";
+import type { SortValue } from "@src/types/sort";
 
 const BOARD_LABEL: Record<BoardSlug, string> = {
   free: "자유 게시판",
@@ -25,6 +26,14 @@ export default function PostListPage({ board }: { board: BoardSlug }) {
     formatYyyyMmDdHms(new Date())
   );
   const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
+  const [sort, setSort] = useState<SortValue>("latest");
+
+  // 게시판 변경 시 필터/스크롤 초기화
+  useEffect(() => {
+    setSort("latest");
+    setLastLoadedAt(formatYyyyMmDdHms(new Date()));
+    setRootEl(null);
+  }, [board]);
 
   const {
     data,
@@ -37,8 +46,7 @@ export default function PostListPage({ board }: { board: BoardSlug }) {
     refetch,
   } = useBoardPosts(board, {
     pageSize: LIST_SETTINGS.ITEMS_PER_PAGE,
-    sort: "latest", // TODO(sort): UI 정렬 상태와 연결 (또는 ordering 직접 지정)
-    // ordering: "-created_at",
+    sort,
     // search,                // TODO(filter): 검색어 연결
     // tags: [...],           // TODO(filter): 태그 필터 연결
   });
@@ -46,7 +54,6 @@ export default function PostListPage({ board }: { board: BoardSlug }) {
   // pages(flat) → PostListItem[]
   const items = useMemo(() => (data?.pages ?? []).flat(), [data]);
 
-  // API 응답 → UI 아이템(FreeBoardItem)으로 변환
   const uiItems = useMemo(() => items.map(mapToFreeItem), [items]);
 
   // 작성자 태그 타입가드
@@ -115,6 +122,12 @@ export default function PostListPage({ board }: { board: BoardSlug }) {
           empty={{ message: "등록된 게시글이 없습니다." }}
           className="py-2"
           renderAuthorLabel={(it) => authorLabelMap.get(Number(it.id)) ?? ""}
+          sortValue={sort}
+          onChangeSort={(v) => {
+            setSort(v);
+            setLastLoadedAt(formatYyyyMmDdHms(new Date()));
+            rootEl?.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+          }}
         />
       </section>
     </div>
