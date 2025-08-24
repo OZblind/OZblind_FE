@@ -3,8 +3,10 @@ import { icons } from "@src/assets";
 import { useThemeIcon } from "@hooks/useThemeIcon";
 import type { HotPost } from "@src/types/hotPost";
 import { CARD_STYLE, CARD_TEXT } from "./boardColor";
+import { useNavigate } from "react-router-dom";
 
 export default function HotPostCard({ post }: { post: HotPost }) {
+  const navigate = useNavigate();
   const themeIcon = useThemeIcon();
   const { thumbUp } = useMemo(() => {
     const dark = themeIcon === "oz_dark";
@@ -18,6 +20,7 @@ export default function HotPostCard({ post }: { post: HotPost }) {
       className={`flex w-full h-[148px] rounded-lg shadow-md overflow-hidden border-2
         ${CARD_STYLE[post.board]}
         hover:shadow-lg hover:scale-105 transition-all duration-200`}
+      onClick={() => navigate(`/posts/${post.id}`)}
     >
       <div className="flex flex-col justify-between p-2 flex-1 items-start text-left">
         <div>
