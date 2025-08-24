@@ -11,6 +11,23 @@ import clsx from "clsx";
 import ReplyControl from "./ReplyControl";
 import type { CommentMeta } from "@src/types/post";
 import { useCanManage } from "@src/hooks/useCanManage";
+import { useToastStore } from "@src/store/toastStore";
+import {
+  toggleDislikeOnComment,
+  toggleLikeOnComment,
+} from "@src/api/reactions";
+
+type CommentItemProps = {
+  data: CommentMeta;
+  depth?: number;
+  rootId: CommentMeta["id"];
+  branchStyle: { bg: string; stroke: string; fill: string };
+  onEdit: (id: CommentMeta["id"], content: string) => void;
+  onDelete: (id: CommentMeta["id"]) => void;
+  onAddReply: (rootId: CommentMeta["id"], content: string) => void;
+  submittingRootId?: string | null;
+  loading?: boolean;
+};
 
 export default function CommentItem({
   data,
@@ -22,22 +39,13 @@ export default function CommentItem({
   onAddReply,
   submittingRootId,
   loading,
-}: {
-  data: CommentMeta;
-  depth?: number;
-  rootId: CommentMeta["id"];
-  branchStyle: { bg: string; stroke: string; fill: string };
-  onEdit: (id: CommentMeta["id"], content: string) => void;
-  onDelete: (id: CommentMeta["id"]) => void;
-  onAddReply: (rootId: CommentMeta["id"], content: string) => void;
-  submittingRootId?: string | null;
-  loading?: boolean;
-}) {
+}: CommentItemProps) {
   const [expanded, setExpanded] = useState(depth === 0 && data.hasReplies);
   const [like, setLike] = useState(Boolean(data.liked));
   const [dislike, setDislike] = useState(Boolean(data.disliked));
   const [likes, setLikes] = useState(data.likes ?? 0);
   const [dislikes, setDislikes] = useState(data.dislikes ?? 0);
+  const [reacting, setReacting] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editDraft, setEditDraft] = useState(data.content);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -47,12 +55,19 @@ export default function CommentItem({
     allowModerator: true,
   });
 
+  const toast = useToastStore();
+
   useEffect(() => {
     if (depth === 0 && data.hasReplies) setExpanded(true);
   }, [data.hasReplies, depth]);
   useEffect(() => setEditDraft(data.content), [data.content]);
 
-  const handleLike = () => {
+  const handleLike = async () => {
+    if (reacting) return;
+    setReacting(true);
+    const prev = { like, dislike, likes, dislikes };
+
+    // 낙관적 업데이트
     if (like) {
       setLike(false);
       setLikes((v) => Math.max(0, v - 1));
@@ -64,8 +79,27 @@ export default function CommentItem({
         setDislikes((v) => Math.max(0, v - 1));
       }
     }
+    try {
+      await toggleLikeOnComment(Number(data.id));
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (e) {
+      // 롤백
+      setLike(prev.like);
+      setDislike(prev.dislike);
+      setLikes(prev.likes);
+      setDislikes(prev.dislikes);
+      toast.push({ message: "리액션 처리에 실패했어요.", type: "error" });
+    } finally {
+      setReacting(false);
+    }
   };
-  const handleDislike = () => {
+
+  const handleDislike = async () => {
+    if (reacting) return;
+    setReacting(true);
+    const prev = { like, dislike, likes, dislikes };
+
+    // 낙관적 업데이트
     if (dislike) {
       setDislike(false);
       setDislikes((v) => Math.max(0, v - 1));
@@ -76,6 +110,19 @@ export default function CommentItem({
         setLike(false);
         setLikes((v) => Math.max(0, v - 1));
       }
+    }
+    try {
+      await toggleDislikeOnComment(Number(data.id));
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (e) {
+      // 롤백
+      setLike(prev.like);
+      setDislike(prev.dislike);
+      setLikes(prev.likes);
+      setDislikes(prev.dislikes);
+      toast.push({ message: "리액션 처리에 실패했어요.", type: "error" });
+    } finally {
+      setReacting(false);
     }
   };
 
@@ -203,6 +250,7 @@ export default function CommentItem({
         <button
           className={clsx("btn btn-ghost btn-sm", like && "text-primary")}
           onClick={handleLike}
+          disabled={reacting}
           aria-pressed={like ? "true" : "false"}
           type="button"
         >
@@ -211,6 +259,7 @@ export default function CommentItem({
         <button
           className={clsx("btn btn-ghost btn-sm", dislike && "text-primary")}
           onClick={handleDislike}
+          disabled={reacting}
           aria-pressed={dislike ? "true" : "false"}
           type="button"
         >
