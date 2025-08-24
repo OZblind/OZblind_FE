@@ -4,6 +4,7 @@ import ToastEditor from "@components/Board/editor/ToastEditor";
 import LinkPreviewCard from "./LinkPreviewCard";
 import { createSurveyPost } from "@src/api/posts.special";
 import { useNavigate } from "react-router-dom";
+import { useToastStore } from "@src/store/toastStore";
 
 interface Props {
   onCancel: () => void;
@@ -23,6 +24,7 @@ export default function SurveyPostForm({ onCancel }: Props) {
   const [provider, setProvider] = useState<string>(""); // placeholder 상태
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const toast = useToastStore();
 
   const urlPattern = /^(https?:\/\/)[^\s$.?#].[^\s]*$/i;
 
@@ -44,7 +46,7 @@ export default function SurveyPostForm({ onCancel }: Props) {
     if (!formLink.trim()) return alert("작성한 설문 링크를 입력하세요.");
     if (!endDate) return alert("설문 종료일을 선택하세요.");
 
-    // ✅ Date → ISO (KST 기준 하루 끝으로 보낼 예시)
+    // Date → ISO (KST 기준 하루 끝으로 보낼 예시)
     const end_date_iso = new Date(`${endDate}T23:59:59+09:00`).toISOString();
 
     // 실제 API 연동
@@ -58,7 +60,10 @@ export default function SurveyPostForm({ onCancel }: Props) {
     requestAnimationFrame(() => navigate(`/posts/${res.post_id}`));
 
     console.log({ title, content, formLink, endDate });
-    alert("설문 게시글이 등록되었습니다. (mock)");
+    toast.push({
+      message: "설문 게시글이 등록되었습니다.",
+      type: "success",
+    });
     onCancel();
   };
 
