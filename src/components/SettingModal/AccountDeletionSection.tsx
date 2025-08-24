@@ -1,6 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { deleteAccount } from "@api/deleteAccount";
 import { tokenStore } from "@api/client";
+import { useToastStore } from "@store/toastStore";
+import { PATHS } from "@constants/paths";
+import { useLogoutMutation } from "@hooks/useAuthQueries";
 
 interface AccountDeletionSectionProps {
   onSuccess?: () => void;
@@ -9,12 +13,13 @@ interface AccountDeletionSectionProps {
 export function AccountDeletionSection({
   onSuccess,
 }: AccountDeletionSectionProps) {
+  const navigate = useNavigate();
+  const logoutMut = useLogoutMutation();
   const [inputValue, setInputValue] = useState("");
   const [isWarningVisible, setIsWarningVisible] = useState(false);
   const [isConfirmVisible, setIsConfirmVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
 
   const isValid = inputValue === "회원 탈퇴";
 
@@ -29,14 +34,20 @@ export function AccountDeletionSection({
 
     setLoading(true);
     setError(null);
-    setMessage(null);
 
     try {
-      const result = await deleteAccount();
-      setMessage(result.message);
+      await deleteAccount();
       setIsConfirmVisible(false);
       tokenStore.clear(); // 탈퇴 성공 시 토큰 초기화
       if (onSuccess) onSuccess();
+      navigate(PATHS.ROOT, { replace: true });
+      await logoutMut.mutateAsync();
+      useToastStore.getState().push({
+        // toast
+        message: "회원 탈퇴에 성공했어요.",
+        type: "success",
+        durationMs: 4000,
+      });
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -54,7 +65,6 @@ export function AccountDeletionSection({
       setIsConfirmVisible(false);
       setInputValue("");
       setError(null);
-      setMessage(null);
     } else {
       setIsWarningVisible(true);
     }
@@ -114,7 +124,6 @@ export function AccountDeletionSection({
             {loading ? "탈퇴 처리 중..." : "회원 탈퇴"}
           </button>
           {error && <p className="text-red-600 mt-2">{error}</p>}
-          {message && <p className="text-green-600 mt-2">{message}</p>}
         </div>
       )}
     </>
