@@ -4,6 +4,7 @@ import { fetchPostDetail, type PostDetail as ApiPostDetail } from "@api/posts";
 import PostDetail from "@components/Post/PostDetail"; // 네가 준 컴포넌트
 import type { PostMeta } from "@src/types/post";
 import { fetchGithubExtra, fetchSurveyExtra } from "@src/api/posts.special";
+import { BOARD_DISPLAY_NAME } from "@constants/boardDisplay";
 
 const BOARD_ALIAS: Record<
   number,
@@ -64,13 +65,19 @@ export default function PostDetailPage() {
   const postMeta: PostMeta | null = useMemo(() => {
     if (!data) return null;
 
+    // 1) board id -> slug(alias)
+    const alias = BOARD_ALIAS[data.board] ?? "free";
+
+    // 2) slug -> 화면 표기용 이름
+    const boardTitle = BOARD_DISPLAY_NAME[alias] ?? "게시판";
+
     // PostDetail(API) -> PostMeta(UI) 매핑
     return {
       id: data.id,
       title: data.title,
       content: data.content, // HTML 그대로
       authorId: String(data.user ?? ""), // PostDetail.tsx가 string 기대
-      boardName: BOARD_ALIAS[data.board] ?? "free",
+      boardName: boardTitle,
       views: data.view_count ?? 0,
       commentsCount: Array.isArray(data.root_comments)
         ? data.root_comments.length
