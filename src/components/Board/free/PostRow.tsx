@@ -1,3 +1,5 @@
+import type { RawUserTag } from "@src/types/tag";
+
 export const FREE_LIST_GRID =
   "grid grid-cols-[64px_minmax(0,1fr)_96px_72px_72px_72px]";
 
@@ -10,6 +12,7 @@ export type FreeBoardItem = {
   dateText: string; // YY.MM.DD
   views?: number | null | undefined;
   likes?: number | null | undefined;
+  user?: RawUserTag;
 };
 
 type Props = {
@@ -33,7 +36,9 @@ export default function PostRow({
       type="button"
       onClick={() => onClick?.(item.id)}
       className={`${FREE_LIST_GRID} w-full items-center gap-2 rounded-md px-0 py-2 text-sm
-                  hover:bg-base-200/60 focus:outline-none focus:ring-2 focus:ring-primary/40 ${className ?? ""}`}
+                  hover:bg-base-200/60 focus:outline-none focus:ring-2 focus:ring-primary/40 ${
+                    className ?? ""
+                  }`}
       aria-label={`게시글 ${item.title}`}
     >
       {/* 번호 */}

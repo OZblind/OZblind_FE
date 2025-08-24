@@ -1,16 +1,50 @@
 import { useState } from "react";
+import { deleteAccount } from "@api/deleteAccount";
+import { tokenStore } from "@api/client";
 
-export function AccountDeletionSection() {
+interface AccountDeletionSectionProps {
+  onSuccess?: () => void;
+}
+
+export function AccountDeletionSection({
+  onSuccess,
+}: AccountDeletionSectionProps) {
   const [inputValue, setInputValue] = useState("");
   const [isWarningVisible, setIsWarningVisible] = useState(false);
   const [isConfirmVisible, setIsConfirmVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   const isValid = inputValue === "회원 탈퇴";
 
-  const handleDelete = () => {
-    if (isValid) {
+  const handleDelete = async () => {
+    if (!isValid) return;
+
+    const idToken = tokenStore.access;
+    if (!idToken) {
+      setError("로그인 후에만 회원 탈퇴가 가능합니다.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const result = await deleteAccount();
+      setMessage(result.message);
       setIsConfirmVisible(false);
-      // 탈퇴 처리 콜백
+      tokenStore.clear(); // 탈퇴 성공 시 토큰 초기화
+      if (onSuccess) onSuccess();
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("회원 탈퇴 중 알 수 없는 오류가 발생했습니다.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -19,6 +53,8 @@ export function AccountDeletionSection() {
       setIsWarningVisible(false);
       setIsConfirmVisible(false);
       setInputValue("");
+      setError(null);
+      setMessage(null);
     } else {
       setIsWarningVisible(true);
     }
@@ -68,15 +104,17 @@ export function AccountDeletionSection() {
           />
           <button
             onClick={handleDelete}
-            disabled={!isValid}
+            disabled={!isValid || loading}
             className={`w-full py-2 rounded text-white ${
               isValid
                 ? "bg-red-600 hover:bg-red-700"
                 : "bg-base-300 cursor-not-allowed"
             } transition`}
           >
-            회원 탈퇴
+            {loading ? "탈퇴 처리 중..." : "회원 탈퇴"}
           </button>
+          {error && <p className="text-red-600 mt-2">{error}</p>}
+          {message && <p className="text-green-600 mt-2">{message}</p>}
         </div>
       )}
     </>

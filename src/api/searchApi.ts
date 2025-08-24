@@ -38,6 +38,13 @@ const CATEGORY_TO_BOARD_SLUG: Record<Category, BoardSlug | null> = {
   GitHub: "github",
 };
 
+const isRawUserTag = (u: unknown): u is RawUserTag =>
+  typeof u === "object" &&
+  u !== null &&
+  "id" in u &&
+  "tag_class" in u &&
+  "tag_number" in u;
+
 // 검색어 전처리 함수
 const preprocessQuery = (query: string): string => {
   return query.trim().replace(/\s+/g, " ").toLowerCase();
@@ -77,21 +84,33 @@ const filterPostsByRelevance = (
 
 // API 응답을 Post 타입으로 변환
 const transformPostResponse = (response: PostResponse): Post => {
-  return {
+  const transformedPost: Post = {
     id: response.id,
     title: response.title,
     content: sanitizeHtml(response.content ?? "", {
       allowedTags: [],
       allowedAttributes: {},
     }),
-    author:
-      typeof response.user === "string"
-        ? response.user
-        : `사용자${response.user}`,
     category: BOARD_ID_TO_CATEGORY[response.board] || "기타",
     createdAt: response.created_at,
     viewCount: response.view_count,
+    author: "", // 초기화
   };
+
+  if (typeof response.user === "string") {
+    transformedPost.author = response.user; // 문자열 닉네임인 경우
+  } else if (typeof response.user === "number") {
+    transformedPost.author = `사용자${response.user}`; // 숫자 ID인 경우
+  } else if (isRawUserTag(response.user)) {
+    // RawUserTag 객체인 경우
+    transformedPost.user = response.user; // Post 타입의 user 필드에 RawUserTag 객체 저장
+    transformedPost.author = `사용자${response.user.id}`; // 임시 닉네임
+  } else {
+    // 예상치 못한 타입인 경우
+    transformedPost.author = "익명";
+  }
+
+  return transformedPost; // 여기가 transformPostResponse의 끝이야!
 };
 
 // 공통 API 호출 로직 - ENDPOINTS 상수 사용

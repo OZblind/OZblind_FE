@@ -11,16 +11,10 @@ import { formatYyMmDd, formatYyyyMmDdHms } from "@utils/date";
 import { urlForPost } from "@utils/urlForPost";
 import { searchFullResultsApi } from "@src/api/searchApi";
 import type { Post, Category } from "@src/types/search";
-
-import {
-  profileToTagsMock,
-  COHORTS,
-  POSITIONS,
-  type CohortLabel,
-  type PositionLabel,
-} from "@src/mocks/tags.mock";
 import { tagsToAuthorLabel } from "@utils/tagsToAuthorLabel";
 import { ERROR_MESSAGES, LIST_MESSAGES, LOADING_MESSAGES } from "@constants/ui";
+import type { RawUserTag } from "@src/types/tag";
+import { adaptUserTag } from "@src/features/tags/adapters";
 
 const PAGE_SIZE = 15;
 
@@ -39,6 +33,13 @@ const getCategoryBoardType = (category: string): BoardType => {
   return categoryMap[category] || "free";
 };
 
+const isRawUserTag = (u: unknown): u is RawUserTag =>
+  typeof u === "object" &&
+  u !== null &&
+  "id" in u &&
+  "tag_class" in u &&
+  "tag_number" in u;
+
 // Post를 FreeBoardItem으로 변환하는 함수
 const transformPostToFreeBoardItem = (
   post: Post,
@@ -54,6 +55,7 @@ const transformPostToFreeBoardItem = (
     views: post.viewCount,
     likes: 0,
     category: post.category, // 카테고리 정보 보존
+    user: post.user,
   };
 };
 
@@ -158,15 +160,17 @@ function SearchResultList({
               </div>
 
               <ul className="divide-y divide-base-300">
-                {items.map((it) => (
-                  <li key={String(it.id)}>
-                    <PostRow
-                      item={it}
-                      onClick={onItemClick}
-                      authorLabel={renderAuthorLabel?.(it)}
-                    />
-                  </li>
-                ))}
+                {items.map((it) => {
+                  return (
+                    <li key={String(it.id)}>
+                      <PostRow
+                        item={it}
+                        onClick={onItemClick}
+                        authorLabel={renderAuthorLabel?.(it)}
+                      />
+                    </li>
+                  );
+                })}
               </ul>
             </div>
 
@@ -250,26 +254,28 @@ export default function SearchPage() {
     return hasNext;
   }, [hasNext]);
 
-  // 글쓴이 label 만들기 (FreeBoard와 동일한 로직)
+  // 글쓴이 label 만들기
   const authorLabelMap = useMemo(() => {
     const m = new Map<string, string>();
-    const cohorts = COHORTS as readonly CohortLabel[];
-    const positions = POSITIONS as readonly PositionLabel[];
-
-    items.forEach((it, idx) => {
-      // authorId가 있으면 그 숫자 기반으로, 없으면 idx 기반으로 생성
-      const base = Number(/\d+/.exec(it.authorId ?? "")?.[0] ?? idx);
-      const cohort = cohorts[(base + 1) % cohorts.length];
-      const position = positions[base % positions.length];
-
-      // 목 태그 → "프론트엔드 11기" 라벨로 변환
-      const tags = profileToTagsMock(cohort, position);
-      m.set(it.authorId ?? String(it.author), tagsToAuthorLabel(tags));
-    });
-
+    for (const item of items) {
+      const maybeUser = item.user;
+      const tags = adaptUserTag(isRawUserTag(maybeUser) ? maybeUser : null);
+      if (tags.length > 0) {
+        const authorLabel = tagsToAuthorLabel(tags);
+        m.set(String(item.id), authorLabel);
+      } else {
+        m.set(String(item.id), item.author);
+      }
+    }
     return m;
   }, [items]);
-
+  const memoizedRenderAuthorLabel = useCallback(
+    (it: FreeBoardItem) => {
+      const label = authorLabelMap.get(String(it.id));
+      return label ?? it.author;
+    },
+    [authorLabelMap]
+  );
   // 검색 실행
   const performSearch = useCallback(
     async (
@@ -416,9 +422,7 @@ export default function SearchPage() {
           hasMore={hasMore}
           sentinelRef={sentinelRef}
           scrollRootRef={setRootEl}
-          renderAuthorLabel={(it) =>
-            authorLabelMap.get(it.authorId ?? String(it.author)) ?? it.author
-          }
+          renderAuthorLabel={memoizedRenderAuthorLabel}
         />
       </section>
     </div>
