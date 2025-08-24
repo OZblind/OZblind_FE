@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fmtNum } from "@src/utils/utils";
 import CommentItem from "./CommentItem";
 import { commentTree } from "@src/utils/commentTree";
@@ -18,6 +18,10 @@ import {
 
 type SortKey = "newest" | "oldest" | "likes";
 
+/* ------------------------------
+ * utils
+ * ------------------------------ */
+
 function hashId(id: string | number) {
   const s = String(id);
   let h = 0;
@@ -28,18 +32,86 @@ function classFor(id: string | number) {
   return THREAD_COLOR_CLASSES[hashId(id) % THREAD_COLOR_CLASSES.length];
 }
 
+/* ------------------------------
+ * Memoized CommentItem Wrapper
+ * - data, depth, rootId, branchStyle, submittingRootId, loading만 비교
+ * ------------------------------ */
+
+const MemoCommentItem = memo(
+  CommentItem,
+  (prev, next) =>
+    prev.data === next.data &&
+    prev.depth === next.depth &&
+    prev.rootId === next.rootId &&
+    prev.branchStyle === next.branchStyle &&
+    prev.submittingRootId === next.submittingRootId &&
+    prev.loading === next.loading
+);
+
+/* ------------------------------
+ * ThreadRow: 루트 스레드 1개 렌더 (메모화)
+ * ------------------------------ */
+type ThreadRowProps = {
+  c: CommentMeta;
+  submittingRootId: string | null;
+  loading: boolean;
+  onEdit: (id: CommentMeta["id"], content: string) => void;
+  onDelete: (id: CommentMeta["id"]) => void;
+  onAddReply: (rootId: CommentMeta["id"], content: string) => void;
+};
+const ThreadRow = memo(function ThreadRow({
+  c,
+  submittingRootId,
+  loading,
+  onEdit,
+  onDelete,
+  onAddReply,
+}: ThreadRowProps) {
+  const branchStyle = classFor(c.id); // 상수 테이블 참조 → 안정적
+  return (
+    <div className="relative pl-6 thread">
+      {/* 스레드 레일/노드 데코 */}
+      <span
+        aria-hidden="true"
+        className={`absolute left-[-2px] top-0 bottom-0 w-[4px] rounded-full opacity-70 thread-rail ${branchStyle.bg}`}
+      />
+      <span
+        aria-hidden="true"
+        className={`absolute left-0 -translate-x-1/2 thread-node rounded-full border-2 border-base-100 shadow ${branchStyle.bg}`}
+      />
+      <MemoCommentItem
+        data={c}
+        depth={0}
+        rootId={c.id}
+        branchStyle={branchStyle}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onAddReply={onAddReply}
+        submittingRootId={submittingRootId}
+        loading={loading}
+      />
+    </div>
+  );
+});
+
 export default function PostComment({ postId }: { postId: string | number }) {
   const [items, setItems] = useState<CommentMeta[]>([]);
+  const itemsRef = useRef(items);
   const [loading, setLoading] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("newest");
   const [submittingId, setSubmittingId] = useState<string | null>(null); // "top" | rootId | null
   const toast = useToastStore();
 
+  // ref에 최신 state 유지 (콜백에서 사용)
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
   // 공통 재조회
   const refresh = useRef<() => Promise<void>>(async () => {
     try {
       setLoading(true);
-      const data = await listCommentsByPost(postId); // 중앙 API
+      const data = await listCommentsByPost(postId);
       setItems(data);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
@@ -70,71 +142,83 @@ export default function PostComment({ postId }: { postId: string | number }) {
   }, [items, sortKey]);
 
   // 수정
-  const handleEdit = async (id: CommentMeta["id"], content: string) => {
-    const prev = items;
-    setItems((curr) =>
-      commentTree.update(curr, id, (c) => ({ ...c, content }))
-    );
-    try {
-      await updateComment(id, content);
-      await refresh.current();
-    } catch {
-      setItems(prev);
-      toast.push({ message: "수정 실패", type: "error" });
-    }
-  };
+  const handleEdit = useCallback(
+    async (id: CommentMeta["id"], content: string) => {
+      const prev = itemsRef.current;
+      // 구조적 공유: 변경 경로만 새 객체
+      setItems((curr) =>
+        commentTree.update(curr, id, (c) => ({ ...c, content }))
+      );
+      try {
+        await updateComment(id, content);
+        await refresh.current();
+      } catch {
+        setItems(prev);
+        toast.push({ message: "수정 실패", type: "error" });
+      }
+    },
+    [toast]
+  );
 
-  // 삭제
-  const handleDelete = async (id: CommentMeta["id"]) => {
-    const prev = items;
-    setItems((curr) => commentTree.remove(curr, id));
-    try {
-      await deleteComment(id);
-      await refresh.current();
-    } catch {
-      setItems(prev);
-      toast.push({ message: "삭제 실패", type: "error" });
-    }
-  };
+  const handleDelete = useCallback(
+    async (id: CommentMeta["id"]) => {
+      const prev = itemsRef.current;
+      setItems((curr) => commentTree.remove(curr, id));
+      try {
+        await deleteComment(id);
+        await refresh.current();
+      } catch {
+        setItems(prev);
+        toast.push({ message: "삭제 실패", type: "error" });
+      }
+    },
+    [toast]
+  );
 
   /** 대댓글 작성 (※ 루트 댓글 작성은 PostDetail의 상단 입력이 담당) */
-  const handleAddReply = async (rootId: CommentMeta["id"], content: string) => {
-    const tempId = `temp_${Date.now()}`;
-    const optimistic: CommentMeta = {
-      id: tempId,
-      author: "나",
-      authorId: "me",
-      authorName: "나",
-      content,
-      createdAt: new Date().toISOString(),
-      likes: 0,
-      dislikes: 0,
-      liked: false,
-      disliked: false,
-      hasReplies: false,
-      replies: [],
-    };
+  /** 낙관적 추가 기능. 임시댓글. 즉각적 반응감 */
+  const handleAddReply = useCallback(
+    async (rootId: CommentMeta["id"], content: string) => {
+      const tempId = `temp_${Date.now()}`;
+      const optimistic: CommentMeta = {
+        id: tempId,
+        author: "나",
+        authorId: "me",
+        authorName: "나",
+        content,
+        createdAt: new Date().toISOString(),
+        likes: 0,
+        dislikes: 0,
+        liked: false,
+        disliked: false,
+        hasReplies: false,
+        replies: [],
+      };
 
-    const prev = items;
-    setSubmittingId(String(rootId));
-    setItems((curr) => commentTree.addToRoot(curr, String(rootId), optimistic));
+      const prev = itemsRef.current;
+      setSubmittingId(String(rootId));
+      setItems((curr) =>
+        commentTree.addToRoot(curr, String(rootId), optimistic)
+      );
 
-    try {
-      await createReply({ postId, rootId, content });
-      await refresh.current(); // 최종 동기화
-    } catch (e: any) {
-      setItems(prev);
-      if (e?.response?.status === 401) {
-        toast.push({ message: "로그인이 필요합니다.", type: "warning" });
-      } else if (e?.response?.status === 403) {
-        toast.push({ message: "권한이 없습니다.", type: "warning" });
-      } else {
-        toast.push({ message: "등록 실패", type: "error" });
+      try {
+        await createReply({ postId, rootId, content });
+        await refresh.current(); // 최종 동기화
+      } catch (e: any) {
+        setItems(prev);
+        if (e?.response?.status === 401) {
+          toast.push({ message: "로그인이 필요합니다.", type: "warning" });
+        } else if (e?.response?.status === 403) {
+          toast.push({ message: "권한이 없습니다.", type: "warning" });
+        } else {
+          toast.push({ message: "등록 실패", type: "error" });
+        }
+      } finally {
+        setSubmittingId(null);
       }
-    } finally {
-      setSubmittingId(null);
-    }
-  };
+    },
+    [postId, toast]
+  );
 
   return (
     <section className="mt-8">
@@ -163,34 +247,17 @@ export default function PostComment({ postId }: { postId: string | number }) {
 
       {/* 스레드 렌더 */}
       <div className="space-y-8">
-        {sortedTopLevel.map((c) => {
-          const branchStyle = classFor(c.id);
-          return (
-            <div key={c.id} className="relative pl-6 thread">
-              {/* 스레드 레일/노드 데코 */}
-              <span
-                aria-hidden="true"
-                className={`absolute left-[-2px] top-0 bottom-0 w-[4px] rounded-full opacity-70 thread-rail ${branchStyle.bg}`}
-              />
-              <span
-                aria-hidden="true"
-                className={`absolute left-0 -translate-x-1/2 thread-node rounded-full border-2 border-base-100 shadow ${branchStyle.bg}`}
-              />
-
-              <CommentItem
-                data={c}
-                depth={0}
-                rootId={c.id}
-                branchStyle={branchStyle}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onAddReply={handleAddReply} // 대댓글만 이 경로로 작성
-                submittingRootId={submittingId} // (선택) 해당 스레드만 잠금/로더
-                loading={loading}
-              />
-            </div>
-          );
-        })}
+        {sortedTopLevel.map((c) => (
+          <ThreadRow
+            key={c.id}
+            c={c}
+            submittingRootId={submittingId}
+            loading={loading}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onAddReply={handleAddReply}
+          />
+        ))}
       </div>
     </section>
   );
