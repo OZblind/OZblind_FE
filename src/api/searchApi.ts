@@ -106,7 +106,7 @@ const callSearchApi = async (
         next?: string | null;
       }
     | PostResponse[]
-  >(`${ENDPOINTS.POSTS}/?${queryParams.toString()}`, {
+  >(`${ENDPOINTS.POST_DETAIL}/?${queryParams.toString()}`, {
     // POSTS로 변경
     signal,
     timeout,
