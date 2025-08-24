@@ -49,7 +49,6 @@ export default function PostDetailPage() {
         if (!alive) return;
         setData(res as ApiPostDetail);
       })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .catch((e: any) => {
         if (!alive) return;
         setErr(e?.message ?? "게시글을 불러오지 못했습니다.");
@@ -92,31 +91,45 @@ export default function PostDetailPage() {
   const postMeta: PostMeta | null = useMemo(() => {
     if (!data) return null;
 
-    // API → UI 매핑
-    const meta: any = {
+    // 1) board id -> slug(alias)
+    const alias =
+      (BOARD_ALIAS as Record<number, keyof typeof BOARD_DISPLAY_NAME>)[
+        data.board
+      ] ?? "free";
+
+    // 2) slug -> 화면 표기용 이름
+    const boardTitle = BOARD_DISPLAY_NAME[alias] ?? "게시판";
+
+    const commentsCount = Array.isArray(data.root_comments)
+      ? data.root_comments.length
+      : 0;
+
+    const x = extra ?? {};
+
+    // PostDetail(API) -> PostMeta(UI) 매핑
+    return {
       id: data.id,
       title: data.title,
-      content: data.content, // HTML 그대로
-      authorId: String(data.user ?? ""), // string 기대
-      boardName: BOARD_ALIAS[data.board] ?? "free",
+      content: data.content ?? "", // HTML 그대로
+      authorId: String(data.user ?? ""), // PostDetail.tsx가 string 기대
+      boardName: boardTitle,
+      boardSlug: alias,
       views: data.view_count ?? 0,
-      commentsCount: Array.isArray(data.root_comments)
-        ? data.root_comments.length
-        : 0,
+      commentsCount,
       reactions: {
         like: data.like_count ?? 0,
-        dislike: data.dislike_count ?? 0,
         bookmark: data.bookmark_count ?? 0,
       },
       createdAt: data.created_at,
-      formLink: extra.formLink,
-      endDate: extra.endDate,
-      repoUrl: extra.repoUrl,
-      // PostDetail → useAssignedTags 가 inlineUser로 재호출을 생략하게 하기 위해
-      user: (data as any).user ?? null,
-    };
 
-    return meta as PostMeta;
+      // 선택 필드들 (설문/깃헙 전용)
+      formLink: x.formLink,
+      endDate: x.endDate,
+      repoUrl: x.repoUrl,
+
+      // useAssignedTags가 inlineUser로 재호출을 생략하게 하기 위해
+      user: (data as any).user ?? null,
+    } as unknown as PostMeta;
   }, [data, extra]);
 
   if (loading) return <div className="p-4">불러오는 중...</div>;
