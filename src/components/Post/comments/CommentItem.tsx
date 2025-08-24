@@ -29,6 +29,7 @@ type CommentItemProps = {
   onAddReply: (rootId: CommentMeta["id"], content: string) => void;
   submittingRootId?: string | null;
   loading?: boolean;
+  mineIds: Set<string>;
 };
 
 export default function CommentItem({
@@ -41,6 +42,7 @@ export default function CommentItem({
   onAddReply,
   submittingRootId,
   loading,
+  mineIds,
 }: CommentItemProps) {
   const [expanded, setExpanded] = useState(depth === 0 && data.hasReplies);
   const [reacting, setReacting] = useState(false);
@@ -52,6 +54,9 @@ export default function CommentItem({
     allowAdmin: true,
     allowModerator: true,
   });
+
+  //  내가 방금 작성한 댓글이면 즉시 오너 취급
+  const canManageUI = canManage || mineIds.has(String(data.id));
 
   // === 1) 내 리액션 + 집계 상태 ===
   const initialMine =
@@ -182,7 +187,7 @@ export default function CommentItem({
 
         {/* 점 3개 드롭다운 */}
         {/* 작성자/관리자만 메뉴 노출 */}
-        {canManage && (
+        {canManageUI && (
           <div className="ml-auto dropdown dropdown-end">
             <button
               className="btn btn-ghost btn-xs"
@@ -342,6 +347,7 @@ export default function CommentItem({
               onAddReply={onAddReply}
               submittingRootId={submittingRootId}
               loading={loading}
+              mineIds={mineIds}
             />
           ))}
         </div>
