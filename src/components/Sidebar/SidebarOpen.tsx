@@ -1,6 +1,7 @@
 import { icons } from "@src/assets";
 import { useThemeIcon } from "@hooks/useThemeIcon";
 import { NotificationModal } from "@components/Notice";
+import { useNewFlagEvery30s } from "@hooks/useNewFlagEvery30s";
 import { useEffect, useMemo, useState } from "react";
 import ProfileSection from "./ProfileSection";
 import SmallProfileSection from "./SmallProfileSection";
@@ -9,6 +10,8 @@ import LogoutSection from "./LogoutSection";
 
 export function SidebarOpen({ onToggle }: { onToggle: () => void }) {
   const [noticeOpen, setNoticeOpen] = useState(false);
+  const hasNew = useNewFlagEvery30s();
+
   const [isSmall, setIsSmall] = useState(false);
   const themeIcon = useThemeIcon();
   const { menuIcon, notificationsIcon } = useMemo(() => {
@@ -46,6 +49,12 @@ export function SidebarOpen({ onToggle }: { onToggle: () => void }) {
               className="p-2 rounded-full hover:bg-base-300"
             >
               <img src={notificationsIcon} alt="notificationsIcon" />
+              {hasNew && (
+                <i
+                  className="absolute right-2 top-2 w-2 h-2 rounded-full bg-error"
+                  aria-hidden
+                />
+              )}
             </button>
             <button
               onClick={onToggle}
