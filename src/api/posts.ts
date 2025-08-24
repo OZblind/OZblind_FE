@@ -63,7 +63,7 @@ export async function fetchPosts(params?: {
     const { data } = await api.get<
       { results?: PostListItem[]; next?: string } | PostListItem[]
     >(`/api/posts/?${query.toString()}`);
-    return Array.isArray(data) ? data : (data?.results ?? []);
+    return Array.isArray(data) ? data : data?.results ?? [];
   } catch (e: unknown) {
     const err = e as AxiosError;
     if (err.response?.status === 404) {
@@ -150,4 +150,52 @@ export async function updatePost(payload: UpdatePostPayload) {
 
 export async function deletePost(id: number) {
   await api.delete(`/api/posts/${id}`);
+}
+
+// === Anti-duplicate view: 상세 호출 단일화 + 짧은 캐시(TTL) ==================
+// 동일 postId 동시 호출 결합
+const _detailInflight = new Map<string | number, Promise<PostDetail>>();
+
+// 짧은 메모리 캐시 (기본 30초)
+const _detailCache = new Map<
+  string | number,
+  { data: PostDetail; exp: number }
+>();
+
+/** (선택) 외부에서 상세 응답을 바로 캐시에 심고 싶을 때 사용 */
+export function primePostDetailCache(
+  id: string | number,
+  data: PostDetail,
+  ttlMs = 30_000
+) {
+  _detailCache.set(id, { data, exp: Date.now() + ttlMs });
+}
+
+/** 상세 조회를 최대 1회로 제한하고, TTL 내 재사용 */
+export async function fetchPostDetailCached(
+  id: string | number,
+  opts?: { ttlMs?: number; force?: boolean }
+): Promise<PostDetail> {
+  const ttlMs = opts?.ttlMs ?? 30_000;
+  const force = opts?.force ?? false;
+
+  const now = Date.now();
+  const cached = _detailCache.get(id);
+  if (!force && cached && cached.exp > now) {
+    return cached.data;
+  }
+
+  const inflight = _detailInflight.get(id);
+  if (inflight) return inflight;
+
+  // 이 파일에 이미 존재하는 fetchPostDetail을 그대로 사용합니다.
+  const p = (fetchPostDetail as (x: string | number) => Promise<PostDetail>)(id)
+    .then((data) => {
+      _detailCache.set(id, { data, exp: now + ttlMs });
+      return data;
+    })
+    .finally(() => _detailInflight.delete(id));
+
+  _detailInflight.set(id, p);
+  return p;
 }
