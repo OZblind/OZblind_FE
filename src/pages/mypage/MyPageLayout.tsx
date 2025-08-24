@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 import AssignedTagList from "@src/components/tags/AssignedTagList";
-import { profileToTagsMock } from "@src/mocks/tags.mock";
+import { useAssignedTags } from "@hooks/useAssignedTags";
 import profileImage from "@assets/images/profile.jpg";
 import { SettingsPage } from "@components/SettingModal/SettingsPage";
 import { ThemeInitializer } from "@components/SettingModal/ThemeInitializer";
@@ -38,13 +38,8 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
     setIsSettingsOpen(true);
   };
 
-  // 태그 생성 (팀원의 시스템 사용)
-  const tags = useMemo(() => {
-    return profileToTagsMock(
-      userProfile.cohort || "11기",
-      userProfile.department || "프론트"
-    );
-  }, [userProfile.cohort, userProfile.department]);
+  // 로그인 사용자 태그: /api/user/tag 우선 → /api/user/profile 폴백
+  const { tags, loading: tagLoading } = useAssignedTags("me");
 
   return (
     <div className={`bg-base-100`}>
@@ -115,11 +110,13 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
               )}
             </div>
 
-            {/* 🔥 기존 하드코딩된 태그를 팀원의 태그 시스템으로 교체 */}
-            <div className="flex flex-wrap items-center justify-center gap-1.5 mb-3">
-              <AssignedTagList tags={tags} />
+            {/* 사용자의 태그 배지 */}
+            <div className="flex flex-wrap items-center justify-center gap-1.5 mb-3 min-h-6">
+              {!tagLoading && <AssignedTagList tags={tags} />}
+              {tagLoading && (
+                <span className="h-5 w-14 rounded-full bg-base-300 animate-pulse" />
+              )}
             </div>
-
             {/* 키 인증 안내 */}
             {!userProfile.hasKey && (
               <div className="px-4 py-2 bg-warning text-warning-content text-sm rounded-lg font-medium">

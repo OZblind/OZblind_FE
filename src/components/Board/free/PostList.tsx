@@ -3,11 +3,13 @@ import EmptyState, {
   type EmptyStateProps,
 } from "@components/Board/common/EmptyState";
 import PostRow, { type FreeBoardItem, FREE_LIST_GRID } from "./PostRow";
-import PostCard from "./PostCard";
+// import PostCard from "./PostCard"; // 반응형 임시 삭제, UI 통일감 목적
 import { LastLoadedBar, BoardTopBar } from "../common";
 import { useRef, useState, type ReactNode } from "react";
 import SortRadioPopover from "@components/Board/common/sort/SortRadioPopover";
+import TagFilterPopover from "@components/Board/common/tagfilter/TagFilterPopover";
 import type { SortValue } from "@src/types/sort";
+import type { PositionValue } from "@components/Board/common/tagfilter/PositionRadio";
 import { ERROR_MESSAGES, LIST_MESSAGES, LOADING_MESSAGES } from "@constants/ui";
 
 export type PostListProps = {
@@ -39,6 +41,9 @@ export type PostListProps = {
   scrollRootRef?: (el: HTMLDivElement | null) => void;
 
   renderAuthorLabel?: (item: FreeBoardItem) => ReactNode;
+
+  sortValue?: SortValue;
+  onChangeSort?: (v: SortValue) => void;
 };
 
 export default function PostList({
@@ -57,11 +62,26 @@ export default function PostList({
   className,
   scrollRootRef,
   renderAuthorLabel,
+  sortValue,
+  onChangeSort,
 }: PostListProps) {
+  // ------ 정렬(UI) ------
   const sortBtnRef = useRef<HTMLButtonElement>(null);
   const [openSort, setOpenSort] = useState(false);
-  const [sort, setSort] = useState<SortValue>("latest"); // UI 전용
+  const [internalSort, setInternalSort] = useState<SortValue>("latest");
+  const sort: SortValue = sortValue ?? internalSort;
   const sortActive = sort !== "latest";
+  const handleSortChange = (v: SortValue) => {
+    setInternalSort(v);
+    onChangeSort?.(v);
+  };
+
+  // ------ 태그(UI) ------
+  const tagBtnRef = useRef<HTMLButtonElement>(null);
+  const [openTag, setOpenTag] = useState(false);
+  const [position, setPosition] = useState<PositionValue>("back");
+  const [cohort, setCohort] = useState<number>(11);
+  const tagActive = position !== "back" || cohort !== 11;
 
   const isEmpty = items.length === 0;
 
@@ -71,10 +91,12 @@ export default function PostList({
         <BoardTopBar
           boardName={topBar.boardName}
           onOpenSort={() => setOpenSort((v) => !v)}
-          onOpenTag={topBar.onOpenTag}
+          onOpenTag={() => setOpenTag((v) => !v)}
           onWrite={topBar.onWrite}
           sortButtonRef={sortBtnRef}
+          tagButtonRef={tagBtnRef}
           sortActive={sortActive}
+          tagActive={tagActive}
           className="mb-2 px-3 flex-none"
           meta={
             <LastLoadedBar
@@ -113,7 +135,8 @@ export default function PostList({
         {!isError && !(isLoading && isEmpty) && !isEmpty && (
           <>
             {/* 데스크톱(테이블) — 작성자 라인을 텍스트로 대체 */}
-            <div className="hidden md:block">
+            {/* 반응형 추가시 아래 div className="hidden md:block" 로 교체 */}
+            <div className="block">
               <div
                 className={`${FREE_LIST_GRID} gap-2 py-2 text-xs font-medium text-base-content/60 sticky top-0 z-10 bg-base-100 border-b border-base-300`}
               >
@@ -138,8 +161,8 @@ export default function PostList({
               </ul>
             </div>
 
-            {/* 모바일(카드) — 작성자 라인을 텍스트로 대체 */}
-            <div className="md:hidden">
+            {/* (통일감 위해 반응형 제거) 모바일(카드) — 작성자 라인을 텍스트로 대체 */}
+            {/* <div className="md:hidden">
               <ul className="space-y-2 max-[360px]:space-y-1.5">
                 {items.map((it) => (
                   <li key={String(it.id)}>
@@ -151,7 +174,7 @@ export default function PostList({
                   </li>
                 ))}
               </ul>
-            </div>
+            </div> */}
 
             {/* 센티넬 */}
             <div className="mt-2">
@@ -177,13 +200,32 @@ export default function PostList({
         )}
       </div>
 
-      {/* 정렬 팝오버 (UI) */}
+      {/* 정렬 팝오버 */}
       <SortRadioPopover
         open={openSort}
         anchorRef={sortBtnRef}
         value={sort}
-        onChange={(v) => setSort(v)}
+        onChange={handleSortChange}
         onRequestClose={() => setOpenSort(false)}
+      />
+
+      {/* 태그 팝오버 (UI) */}
+      <TagFilterPopover
+        open={openTag}
+        anchorRef={tagBtnRef}
+        position={position}
+        cohort={cohort}
+        onChangePosition={setPosition}
+        onChangeCohort={setCohort}
+        onReset={() => {
+          setPosition("back");
+          setCohort(11);
+        }}
+        onApply={() => {
+          // UI 전용: 여기서는 fetch 안 함
+          // TODO: 실제 연동 시 상위(PostListPage)에서 상태를 들고 있다가 refetch + lastLoadedAt 갱신하면 됨
+        }}
+        onRequestClose={() => setOpenTag(false)}
       />
     </section>
   );

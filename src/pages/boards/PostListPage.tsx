@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PostList from "@src/components/Board/free/PostList";
 import type { BoardSlug } from "@src/constants/boards";
@@ -7,13 +7,10 @@ import { useInfiniteScroll } from "@hooks/useInfiniteScroll";
 import { formatYyyyMmDdHms } from "@utils/date";
 import { useBoardPosts } from "@hooks/useBoardPosts";
 import { LIST_SETTINGS, ERROR_MESSAGES } from "@constants/ui";
-
-// ---------------------------------------------------------------------
-// (태그 라벨) 지금은 플레이스홀더 — 추후 DB/서버 태그로 교체 예정
-// TODO(tags): 아래 mock import는 나중에 제거하고, 배치 API(getAssignedTagsBulk 등)로 교체
 import { tagsToAuthorLabel } from "@utils/tagsToAuthorLabel";
-import { profileToTagsMock } from "@src/mocks/tags.mock";
-// ---------------------------------------------------------------------
+import { adaptUserTag } from "@src/features/tags/adapters";
+import type { RawUserTag } from "@api/tags";
+import type { SortValue } from "@src/types/sort";
 
 const BOARD_LABEL: Record<BoardSlug, string> = {
   free: "자유 게시판",
@@ -29,6 +26,14 @@ export default function PostListPage({ board }: { board: BoardSlug }) {
     formatYyyyMmDdHms(new Date())
   );
   const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
+  const [sort, setSort] = useState<SortValue>("latest");
+
+  // 게시판 변경 시 필터/스크롤 초기화
+  useEffect(() => {
+    setSort("latest");
+    setLastLoadedAt(formatYyyyMmDdHms(new Date()));
+    setRootEl(null);
+  }, [board]);
 
   const {
     data,
@@ -41,8 +46,7 @@ export default function PostListPage({ board }: { board: BoardSlug }) {
     refetch,
   } = useBoardPosts(board, {
     pageSize: LIST_SETTINGS.ITEMS_PER_PAGE,
-    sort: "latest", // TODO(sort): UI 정렬 상태와 연결 (또는 ordering 직접 지정)
-    // ordering: "-created_at",
+    sort,
     // search,                // TODO(filter): 검색어 연결
     // tags: [...],           // TODO(filter): 태그 필터 연결
   });
@@ -50,9 +54,26 @@ export default function PostListPage({ board }: { board: BoardSlug }) {
   // pages(flat) → PostListItem[]
   const items = useMemo(() => (data?.pages ?? []).flat(), [data]);
 
-  // API 응답 → UI 아이템(FreeBoardItem)으로 변환
   const uiItems = useMemo(() => items.map(mapToFreeItem), [items]);
 
+  // 작성자 태그 타입가드
+  const isRawUserTag = (u: unknown): u is RawUserTag =>
+    typeof u === "object" &&
+    u !== null &&
+    typeof (u as { id?: unknown }).id === "number" &&
+    (u as { tag_class?: unknown }).tag_class !== undefined &&
+    typeof (u as { tag_number?: unknown }).tag_number === "number";
+
+  // 작성자 라벨 맵: postId → "11기 · 프론트" 등
+  const authorLabelMap = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const p of items) {
+      const maybeUser = (p as { user?: unknown }).user;
+      const tags = adaptUserTag(isRawUserTag(maybeUser) ? maybeUser : null);
+      if (tags.length > 0) m.set(p.id, tagsToAuthorLabel(tags));
+    }
+    return m;
+  }, [items]);
   // 초기 로딩/Empty 깜빡임 방지
   const hasNoPages = uiItems.length === 0;
   const isInitialLoading = hasNoPages && isFetching;
@@ -69,28 +90,6 @@ export default function PostListPage({ board }: { board: BoardSlug }) {
       setLastLoadedAt(formatYyyyMmDdHms(new Date()));
     },
   });
-
-  // ---------------------------------------------------------------------
-  // [임시] 모든 글을 "프론트 11기"로 표시하는 플레이스홀더 라벨
-  // TODO: 실서비스 연결 시, 이 블록 전체를 배치 API(getAssignedTagsBulk)로 교체
-  // ---------------------------------------------------------------------
-  const PLACEHOLDER_LABEL = useMemo(
-    () => tagsToAuthorLabel(profileToTagsMock("11기", "프론트")),
-    []
-  );
-
-  const authorLabelMap = useMemo(() => {
-    const m = new Map<string, string>();
-    // 모든 아이템을 동일한 placeholder 라벨로 세팅
-    uiItems.forEach((it) => {
-      const key = it.authorId
-        ? String(it.authorId)
-        : `${board}:${it.id ?? "unknown"}`;
-      m.set(key, PLACEHOLDER_LABEL);
-    });
-    return m;
-  }, [uiItems, board, PLACEHOLDER_LABEL]);
-  // ---------------------------------------------------------------------
 
   const handleRefresh = useCallback(() => {
     setLastLoadedAt(formatYyyyMmDdHms(new Date()));
@@ -122,11 +121,12 @@ export default function PostListPage({ board }: { board: BoardSlug }) {
           scrollRootRef={setRootEl}
           empty={{ message: "등록된 게시글이 없습니다." }}
           className="py-2"
-          // 지금은 전부 "프론트 11기"를 표시(placeholder).
-          // TODO: 실서비스 연결 시, 아래 내부를 authorLabelMap.get(authorId) 기반으로 바꾸면 됨.
-          renderAuthorLabel={(it) => {
-            const key = it.authorId ? String(it.authorId) : `${board}:${it.id}`;
-            return authorLabelMap.get(key) ?? PLACEHOLDER_LABEL;
+          renderAuthorLabel={(it) => authorLabelMap.get(Number(it.id)) ?? ""}
+          sortValue={sort}
+          onChangeSort={(v) => {
+            setSort(v);
+            setLastLoadedAt(formatYyyyMmDdHms(new Date()));
+            rootEl?.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
           }}
         />
       </section>

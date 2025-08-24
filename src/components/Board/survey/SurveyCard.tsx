@@ -2,6 +2,7 @@ import clsx from "clsx";
 import AssignedTagList from "@components/tags/AssignedTagList";
 import type { Tag } from "@src/types/tag";
 import SurveyIcon from "@assets/images/survey.svg";
+import type { ReactNode } from "react";
 
 export type EmptyDescMode = "hide" | "placeholder" | "domain";
 
@@ -18,6 +19,8 @@ export type SurveyCardProps = {
   onClick?: (id: string) => void;
   className?: string;
 
+  /** 작성자 태그 배지를 주입할 선택 슬롯(옵션) */
+  tagSlot?: ReactNode;
   /** desc가 없을 때 동작 (기본: 숨김) */
   emptyDescMode?: EmptyDescMode;
   /** emptyDescMode === "placeholder"일 때 표시할 문구 */
@@ -53,6 +56,7 @@ export default function SurveyCard({
   desc,
   deadline,
   tags,
+  tagSlot,
   link,
   onClick,
   className,
@@ -82,10 +86,11 @@ export default function SurveyCard({
       </div>
 
       {/* 상단 칩(한 줄 고정) */}
-      <div className="pl-14">
+      <div className="pl-14 flex items-center gap-2">
         {tags?.length ? (
           <AssignedTagList tags={tags} className="flex-nowrap" />
         ) : null}
+        {tagSlot}
       </div>
 
       {/* 제목/설명 */}

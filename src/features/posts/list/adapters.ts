@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { PostListItem } from "@api/posts";
 import type { FreeBoardItem } from "@src/components/Board/free";
 import type {
@@ -5,7 +6,6 @@ import type {
   SurveyStatus,
 } from "@src/components/Board/survey";
 import type { Tag, TagCategory } from "@src/types/tag";
-import { profileToTagsMock } from "@src/mocks/tags.mock"; // TODO[API-TAGS]: 서버 태그 확정되면 제거
 
 export function toYYMMDD(dateStr: string) {
   const d = new Date(dateStr);
@@ -22,7 +22,6 @@ function guessCategory(label: string): Tag["category"] {
 }
 
 /** NOTE: 서버 태그 포맷이 확정되기 전까지 안전 변환 */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeTag(input: any): Tag {
   const label = String(input?.label ?? input?.name ?? "");
   const category = (input?.category ?? guessCategory(label)) as TagCategory;
@@ -34,7 +33,6 @@ function normalizeTag(input: any): Tag {
   return { id, label, category };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function mapTagsFromApi(raw: any, limit = 2): Tag[] {
   if (!raw) return [];
   const arr = Array.isArray(raw?.results) ? raw.results : raw;
@@ -48,7 +46,6 @@ export function mapTagsFromApi(raw: any, limit = 2): Tag[] {
       );
   }
   // 객체 배열
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return arr.slice(0, limit).map((t: any) => normalizeTag(t));
 }
 
@@ -59,7 +56,7 @@ export function mapToFreeItem(p: PostListItem): FreeBoardItem {
     title: p.title,
     author: typeof p.user === "string" ? p.user : "익명",
     dateText: toYYMMDD(p.created_at),
-    views: p.view_count ?? 0,
+    views: (p as any).view_count ?? (p as any).views ?? 0,
     likes: p.like_count ?? 0,
   };
 }
@@ -95,13 +92,12 @@ export function mapToSurveyCard(
   extra?: SurveyExtra
 ): SurveyCardProps {
   const desc = deriveDescFromItem(item);
-  // 서버 태그 변환(+ 임시 fallback)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const convertedTags = mapTagsFromApi((item as any).tags);
-  const tags =
-    convertedTags.length > 0
-      ? convertedTags
-      : profileToTagsMock("11기", "프론트"); // TODO[API-TAGS]: 서버 태그 안정화되면 fallback 제거
+
+  // 서버 태그 변환 (없으면 빈 배열 유지)
+  const convertedTags = mapTagsFromApi(
+    (item as unknown as { tags?: unknown }).tags
+  );
+  const tags = convertedTags;
 
   return {
     id: String(item.id),

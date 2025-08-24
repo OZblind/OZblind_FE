@@ -5,6 +5,9 @@ import { LastLoadedBar, BoardTopBar } from "../common";
 import { useRef, useState } from "react";
 import SortRadioPopover from "@components/Board/common/sort/SortRadioPopover";
 import type { SortValue } from "@src/types/sort";
+import TagFilterPopover from "@components/Board/common/tagfilter/TagFilterPopover";
+import type { PositionValue } from "@components/Board/common/tagfilter/PositionRadio";
+import { LIST_MESSAGES } from "@src/constants/ui";
 
 export type SurveyListProps = {
   items: SurveyCardProps[];
@@ -33,6 +36,9 @@ export type SurveyListProps = {
   className?: string;
 
   scrollRootRef?: (el: HTMLDivElement | null) => void;
+
+  sortValue?: SortValue;
+  onChangeSort?: (v: SortValue) => void;
 };
 
 export default function SurveyList({
@@ -46,26 +52,44 @@ export default function SurveyList({
   errorText,
   hasMore,
   sentinelRef,
-  noMoreText = "마지막 페이지입니다.",
+  noMoreText = LIST_MESSAGES.NO_MORE,
   empty,
   className,
   scrollRootRef,
+  sortValue,
+  onChangeSort,
 }: SurveyListProps) {
   const isEmpty = items.length === 0;
+
+  // ------ 정렬(UI) ------
   const sortBtnRef = useRef<HTMLButtonElement>(null);
   const [openSort, setOpenSort] = useState(false);
-  const [sort, setSort] = useState<SortValue>("latest"); // 기본값: 최신
+  const [internalSort, setInternalSort] = useState<SortValue>("latest");
+  const sort = sortValue ?? internalSort;
+  const handleSortChange = (v: SortValue) => {
+    setInternalSort(v);
+    onChangeSort?.(v);
+  };
+
+  // ------ 태그(UI) ------
+  const tagBtnRef = useRef<HTMLButtonElement>(null);
+  const [openTag, setOpenTag] = useState(false);
+  const [position, setPosition] = useState<PositionValue>("back");
+  const [cohort, setCohort] = useState<number>(11);
+  const tagActive = position !== "back" || cohort !== 11;
 
   return (
     <section className={`flex h-full flex-col ${className ?? ""}`}>
       {topBar && (
         <BoardTopBar
           boardName={topBar.boardName}
-          onOpenSort={() => setOpenSort((v) => !v)} // 로컬 토글
-          onOpenTag={topBar.onOpenTag}
+          onOpenSort={() => setOpenSort((v) => !v)}
+          onOpenTag={() => setOpenTag((v) => !v)}
           onWrite={topBar.onWrite}
           sortButtonRef={sortBtnRef}
           sortActive={sort !== "latest"}
+          tagButtonRef={tagBtnRef}
+          tagActive={tagActive}
           className="mb-2 px-3 flex-none"
           meta={
             <LastLoadedBar
@@ -133,8 +157,27 @@ export default function SurveyList({
         open={openSort}
         anchorRef={sortBtnRef}
         value={sort}
-        onChange={(v) => setSort(v)} // 지금은 상태만 변경
+        onChange={handleSortChange}
         onRequestClose={() => setOpenSort(false)}
+      />
+
+      {/* 태그 팝오버 추가 */}
+      <TagFilterPopover
+        open={openTag}
+        anchorRef={tagBtnRef}
+        position={position}
+        cohort={cohort}
+        onChangePosition={setPosition}
+        onChangeCohort={setCohort}
+        onReset={() => {
+          setPosition("back");
+          setCohort(11);
+        }}
+        onApply={() => {
+          // UI 전용: 실제 fetch/refetch는 상위 승격 시 연결
+          // (PostList에서 쓰던 패턴 그대로)
+        }}
+        onRequestClose={() => setOpenTag(false)}
       />
     </section>
   );

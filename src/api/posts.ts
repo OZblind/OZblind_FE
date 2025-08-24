@@ -2,6 +2,7 @@
 import api from "@api/client";
 import { BOARD_ID, type BoardSlug } from "@constants/boards";
 import { getBoardIdBySlug } from "./boardMap";
+import type { AxiosError } from "axios";
 
 /** ----- 타입 ----- */
 export type PostListItem = {
@@ -47,7 +48,7 @@ export async function fetchPosts(params?: {
   board?: BoardSlug; // 슬러그로 받되 내부에서 id로 변환
   search?: string;
   ordering?: "-created_at" | "created_at" | "-view_count" | "view_count";
-  page?: number;
+  page?: number; // DRF는 1-base, 0은 절대 보내지 않기
   page_size?: number;
 }) {
   const query = new URLSearchParams();
@@ -58,12 +59,22 @@ export async function fetchPosts(params?: {
   if (params?.page) query.set("page", String(params.page));
   if (params?.page_size) query.set("page_size", String(params.page_size));
 
-  // 프록시 제거: /api 접두어 필수
-  const { data } = await api.get<{ results?: PostListItem[] } | PostListItem[]>(
-    `/api/posts/?${query.toString()}`
-  );
-
-  return Array.isArray(data) ? data : (data?.results ?? []);
+  try {
+    const { data } = await api.get<
+      { results?: PostListItem[]; next?: string } | PostListItem[]
+    >(`/api/posts/?${query.toString()}`);
+    return Array.isArray(data) ? data : data?.results ?? [];
+  } catch (e: unknown) {
+    const err = e as AxiosError;
+    if (err.response?.status === 404) {
+      if (import.meta.env.DEV) {
+        console.info("[useInfiniteQuery] 더 불러올 데이터 없음 (404 수신)");
+      }
+      return [];
+    }
+    // 404가 아니면 그대로 throw
+    throw err;
+  }
 }
 
 export async function fetchPostDetail(id: number) {
@@ -139,4 +150,52 @@ export async function updatePost(payload: UpdatePostPayload) {
 
 export async function deletePost(id: number) {
   await api.delete(`/api/posts/${id}`);
+}
+
+// === Anti-duplicate view: 상세 호출 단일화 + 짧은 캐시(TTL) ==================
+// 동일 postId 동시 호출 결합
+const _detailInflight = new Map<string | number, Promise<PostDetail>>();
+
+// 짧은 메모리 캐시 (기본 30초)
+const _detailCache = new Map<
+  string | number,
+  { data: PostDetail; exp: number }
+>();
+
+/** (선택) 외부에서 상세 응답을 바로 캐시에 심고 싶을 때 사용 */
+export function primePostDetailCache(
+  id: string | number,
+  data: PostDetail,
+  ttlMs = 30_000
+) {
+  _detailCache.set(id, { data, exp: Date.now() + ttlMs });
+}
+
+/** 상세 조회를 최대 1회로 제한하고, TTL 내 재사용 */
+export async function fetchPostDetailCached(
+  id: string | number,
+  opts?: { ttlMs?: number; force?: boolean }
+): Promise<PostDetail> {
+  const ttlMs = opts?.ttlMs ?? 30_000;
+  const force = opts?.force ?? false;
+
+  const now = Date.now();
+  const cached = _detailCache.get(id);
+  if (!force && cached && cached.exp > now) {
+    return cached.data;
+  }
+
+  const inflight = _detailInflight.get(id);
+  if (inflight) return inflight;
+
+  // 이 파일에 이미 존재하는 fetchPostDetail을 그대로 사용합니다.
+  const p = (fetchPostDetail as (x: string | number) => Promise<PostDetail>)(id)
+    .then((data) => {
+      _detailCache.set(id, { data, exp: now + ttlMs });
+      return data;
+    })
+    .finally(() => _detailInflight.delete(id));
+
+  _detailInflight.set(id, p);
+  return p;
 }

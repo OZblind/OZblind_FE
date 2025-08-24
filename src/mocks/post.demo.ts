@@ -4,6 +4,7 @@ import type { PostMeta, CommentMeta } from "@src/types/post";
 export const demoPost: PostMeta = {
   id: "p1",
   boardName: "survey",
+  boardSlug: "survey",
   title: "제목입니다랍다랍다락",
   content:
     "이건 글입니다라달락\n하하호호 여긴 OO게시판 어떤 글을 써야 좋을까요○\n하하하↵\n와랄라랄라라 랄라↵\n샤랄랄라랄라 랄 ㅋㅋㅋㅋ",

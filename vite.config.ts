@@ -7,7 +7,8 @@ export default defineConfig({
   // server: {
   //   proxy: {
   //     "/api": {
-  //       target: "https://www.ozboard.shop/",
+  //       // target: "https://www.ozboard.shop/",
+  //       target: "http://localhost:8000/", // 로컬 도커 테스트용
   //       changeOrigin: true,
   //       secure: false,
   //       // ★ 백엔드가 프로젝트 urls.py에서 path('api/', ...)로 걸려있다면 rewrite 필요 없음
