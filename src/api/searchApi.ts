@@ -180,12 +180,24 @@ export const searchPreviewApi = async (
       throw error;
     }
 
-    if (axios.isAxiosError(error) && error.response?.status === 404) {
-      return { posts: [], totalCount: 0 };
+    // 404 에러 처리 개선
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 404) {
+        return { posts: [], totalCount: 0 };
+      }
+
+      // 기타 HTTP 에러도 검색 결과 없음으로 처리할 수 있는 경우들
+      if (error.response?.status === 400 || error.response?.status === 422) {
+        console.warn("검색 파라미터 오류, 빈 결과 반환:", error.response?.data);
+        return { posts: [], totalCount: 0 };
+      }
     }
 
     console.error("Search API Error:", {
+      error,
       message: error instanceof Error ? error.message : "Unknown error",
+      response: axios.isAxiosError(error) ? error.response?.data : null,
+      status: axios.isAxiosError(error) ? error.response?.status : null,
       query,
       category,
     });
@@ -255,7 +267,6 @@ export const searchFullResultsApi = async (
     const serverTotalCount = totalCount;
 
     // 현재 페이지에서 보여줄 게시글들
-    const startIndex = (page - 1) * pageSize;
     const paginatedPosts = filteredPosts.slice(0, pageSize);
 
     // 다음 페이지 존재 여부는 서버 기준으로 판단
@@ -273,11 +284,26 @@ export const searchFullResultsApi = async (
       throw error;
     }
 
-    if (axios.isAxiosError(error) && error.response?.status === 404) {
-      return { posts: [], totalCount: 0, currentPage: page, hasNext: false };
+    // 404 에러 처리 개선
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 404) {
+        return { posts: [], totalCount: 0, currentPage: page, hasNext: false };
+      }
+
+      // 기타 HTTP 에러도 검색 결과 없음으로 처리할 수 있는 경우들
+      if (error.response?.status === 400 || error.response?.status === 422) {
+        console.warn("검색 파라미터 오류, 빈 결과 반환:", error.response?.data);
+        return { posts: [], totalCount: 0, currentPage: page, hasNext: false };
+      }
     }
 
-    console.error("Full Search API Error:", error);
+    console.error("Full Search API Error:", {
+      error,
+      message: error instanceof Error ? error.message : "Unknown error",
+      response: axios.isAxiosError(error) ? error.response?.data : null,
+      status: axios.isAxiosError(error) ? error.response?.status : null,
+    });
+
     throw new Error("검색 중 오류가 발생했습니다.");
   }
 };
