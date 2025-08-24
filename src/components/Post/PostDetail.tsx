@@ -29,6 +29,7 @@ import LinkPreviewCard from "../Board/LinkPreviewCard";
 import { useNavigate } from "react-router-dom";
 import { urlForPost } from "@src/utils/urlForPost";
 import { createRootComment } from "@api/comments";
+import { toggleReaction } from "@src/api/reactions";
 
 const BOARD_LABEL: Record<string, string> = {
   free: "자유게시판",
@@ -40,8 +41,13 @@ const BOARD_LABEL: Record<string, string> = {
 
 // ================== Main ==================
 export default function PostDetail({ post }: { post: PostMeta }) {
-  const [like, setLike] = useState(false);
-  const [dislike, setDislike] = useState(false);
+  const [like, setLike] = useState(
+    (() => (post as any).viewerReaction === "like") as unknown as boolean
+  );
+  const [dislike, setDislike] = useState(
+    (() => (post as any).viewerReaction === "dislike") as unknown as boolean
+  );
+  const [reacting, setReacting] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const [commentDraft, setCommentDraft] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -59,19 +65,50 @@ export default function PostDetail({ post }: { post: PostMeta }) {
     [like, dislike, bookmarked, post.reactions]
   );
 
-  const toggleLike = () => {
-    if (like) setLike(false);
-    else {
-      setLike(true);
-      if (dislike) setDislike(false);
-    }
-  };
+  // 공통 토글 로직 (낙관적 업데이트 → 실패 시 롤백)
+  const doToggle = async (next: "like" | "dislike") => {
+    if (reacting) return;
+    setReacting(true);
+    const prev = { like, dislike };
 
-  const toggleDislike = () => {
-    if (dislike) setDislike(false);
-    else {
-      setDislike(true);
-      if (like) setLike(false);
+    // 낙관적 업데이트
+    if (next === "like") {
+      if (like) {
+        setLike(false); // 취소
+      } else {
+        setLike(true);
+        if (dislike) setDislike(false); // 반대값 해제
+      }
+    } else {
+      if (dislike) {
+        setDislike(false); // 취소
+      } else {
+        setDislike(true);
+        if (like) setLike(false); // 반대값 해제
+      }
+    }
+
+    try {
+      await toggleReaction({
+        target_type: "post",
+        target_id: post.id,
+        reaction: next,
+      });
+      // 성공 시: 그대로 두면 됨 (서버 카운트는 상위 쿼리에서 재검증/동기화되면 더 좋음)
+    } catch (e: any) {
+      // 실패 → 롤백
+      setLike(prev.like);
+      setDislike(prev.dislike);
+      const code = e?.response?.status;
+      if (code === 401) {
+        toast.push({ message: "로그인이 필요합니다.", type: "warning" });
+      } else if (code === 403) {
+        toast.push({ message: "권한이 없습니다.", type: "warning" });
+      } else {
+        toast.push({ message: "리액션 처리에 실패했어요.", type: "error" });
+      }
+    } finally {
+      setReacting(false);
     }
   };
 
@@ -228,7 +265,8 @@ export default function PostDetail({ post }: { post: PostMeta }) {
       <div className="mt-12 flex flex-wrap items-center gap-1">
         <button
           className={clsx("btn btn-ghost btn-sm", like && "text-primary")}
-          onClick={toggleLike}
+          onClick={() => doToggle("like")}
+          disabled={reacting}
           aria-pressed={!!like}
           type="button"
         >
@@ -237,7 +275,8 @@ export default function PostDetail({ post }: { post: PostMeta }) {
 
         <button
           className={clsx("btn btn-ghost btn-sm", dislike && "text-primary")}
-          onClick={toggleDislike}
+          onClick={() => doToggle("dislike")}
+          disabled={reacting}
           aria-pressed={!!dislike}
           type="button"
         >
