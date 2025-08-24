@@ -1,10 +1,10 @@
+// MyPageMain.tsx API 연결 버전
 import React, { useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { PATHS } from "@constants/paths";
 import { ANIMATION_TIMINGS, ANIMATION_KEYFRAMES } from "@constants/animations";
 import { LIST_SETTINGS, EMPTY_MESSAGES } from "@constants/ui";
-import { mockMyPageCards } from "@src/mocks/mypage.mock";
-import type { MyPageCardData } from "@src/types/mypage";
+import { useMyActivitySummary } from "@hooks/useMyPageData"; // API 훅 추가
 import { icons } from "@src/assets";
 import { useThemeIcon } from "@hooks/useThemeIcon";
 
@@ -96,7 +96,6 @@ const Card: React.FC<CardProps> = ({
           className="w-8 h-8 bg-primary rounded-full flex items-center justify-center hover:bg-primary-focus transition-colors duration-200 group relative overflow-hidden"
           aria-label={`${title} 전체보기`}
         >
-          {/* 플러스 아이콘 */}
           <div
             className="w-5 h-5 text-white flex items-center justify-center transition-transform duration-300"
             style={{
@@ -207,14 +206,13 @@ const MyPageMain: React.FC = () => {
   const navigate = useNavigate();
   const [isExpanding, setIsExpanding] = useState(false);
   const [clickedCard, setClickedCard] = useState<string | null>(null);
-
-  // setTimeout 대신 pendingPath로 안전한 네비게이션 관리
   const pendingPathRef = useRef<string | null>(null);
 
-  // 팀 훅 사용
+  // API 훅 사용 - mock 데이터 대신
+  const { data: cardData, isLoading, error, refetch } = useMyActivitySummary();
+
   const themeIcon = useThemeIcon();
 
-  // 테마에 따른 아이콘들을 useMemo로 메모이제이션
   const { writingIcon, chatIcon, bookmarkIcon } = useMemo(() => {
     const dark = themeIcon === "oz_dark";
     return {
@@ -226,7 +224,6 @@ const MyPageMain: React.FC = () => {
     };
   }, [themeIcon]);
 
-  // 테마에 따른 아이콘 경로 반환
   const getIconPath = (iconType: string) => {
     switch (iconType) {
       case "writing":
@@ -240,27 +237,95 @@ const MyPageMain: React.FC = () => {
     }
   };
 
-  const cardData: MyPageCardData[] = mockMyPageCards;
-
-  // setTimeout 제거: 애니메이션 이벤트 기반으로 네비게이션
   const handleCardClick = (path: string) => {
-    // 1. 클릭된 카드 표시
     setClickedCard(path);
-
-    // 2. 확장 애니메이션 시작
     setIsExpanding(true);
-
-    // 3. setTimeout 대신 pendingPath 설정
     pendingPathRef.current = `${PATHS.MYPAGE}/${path}`;
   };
 
-  // 오버레이 애니메이션 종료 시 네비게이션 (setTimeout 대신)
   const handleOverlayAnimationEnd = () => {
     if (pendingPathRef.current) {
       navigate(pendingPathRef.current);
       pendingPathRef.current = null;
     }
   };
+
+  const handleRetry = () => {
+    refetch();
+  };
+
+  // 로딩 상태
+  if (isLoading) {
+    return (
+      <div className="p-4 sm:p-6 relative overflow-hidden">
+        <div className="mb-6">
+          <h2 className="text-lg sm:text-xl font-semibold text-base-content mb-2">
+            활동
+          </h2>
+          <div className="w-12 h-0.5 bg-primary rounded-full"></div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          {/* 로딩 스켈레톤 */}
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="bg-base-300/40 rounded-lg p-4 flex-1 min-w-0 max-w-xs min-h-[350px] animate-pulse"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 bg-base-300 rounded"></div>
+                  <div className="w-16 h-4 bg-base-300 rounded"></div>
+                  <div className="w-8 h-4 bg-base-300 rounded"></div>
+                </div>
+                <div className="w-8 h-8 bg-base-300 rounded-full"></div>
+              </div>
+              <div className="space-y-3">
+                {[1, 2, 3].map((j) => (
+                  <div key={j} className="p-3 bg-base-200 rounded-lg">
+                    <div className="w-full h-3 bg-base-300 rounded mb-2"></div>
+                    <div className="w-3/4 h-3 bg-base-300 rounded"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // 에러 상태
+  if (error) {
+    return (
+      <div className="p-4 sm:p-6 relative overflow-hidden">
+        <div className="mb-6">
+          <h2 className="text-lg sm:text-xl font-semibold text-base-content mb-2">
+            활동
+          </h2>
+          <div className="w-12 h-0.5 bg-primary rounded-full"></div>
+        </div>
+
+        <div className="text-center py-12">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h3 className="text-lg font-medium text-base-content mb-2">
+            활동 정보를 불러오지 못했습니다
+          </h3>
+          <p className="text-neutral-content text-sm mb-6 max-w-md mx-auto">
+            {error instanceof Error
+              ? error.message
+              : "알 수 없는 오류가 발생했습니다"}
+          </p>
+          <button
+            onClick={handleRetry}
+            className="bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-md text-sm font-medium transition-colors"
+          >
+            다시 시도
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -281,7 +346,7 @@ const MyPageMain: React.FC = () => {
 
         {/* 카드 그리드 */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center relative">
-          {cardData.map((card, index) => (
+          {cardData?.map((card, index) => (
             <Card
               key={index}
               title={card.title}
@@ -295,6 +360,8 @@ const MyPageMain: React.FC = () => {
             />
           ))}
         </div>
+
+        {/* 확장 오버레이 */}
         {isExpanding && (
           <div
             className="absolute inset-0 bg-base-100 z-30"
@@ -307,7 +374,7 @@ const MyPageMain: React.FC = () => {
         )}
       </div>
 
-      {/* 공통 애니메이션 스타일 사용 */}
+      {/* 애니메이션 스타일 */}
       {React.createElement("style", {
         dangerouslySetInnerHTML: {
           __html: ANIMATION_KEYFRAMES.EXPAND_FROM_CENTER,
