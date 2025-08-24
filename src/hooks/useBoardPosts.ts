@@ -5,24 +5,45 @@ import { fetchPosts, type PostListItem } from "@api/posts";
 import type { BoardSlug } from "@src/constants/boards";
 import { LIST_SETTINGS } from "@src/constants/ui";
 import type { AxiosError } from "axios";
+import type { SortValue } from "@src/types/sort";
+
+type FetchParams = NonNullable<Parameters<typeof fetchPosts>[0]>;
+type Ordering = NonNullable<FetchParams["ordering"]>;
+
+// UI 정렬 → API ordering
+const SORT_TO_ORDERING: Record<SortValue, Ordering> = {
+  latest: "-created_at",
+  oldest: "created_at",
+  mostViewed: "-view_count",
+  leastViewed: "view_count",
+};
 
 export function useBoardPosts(
   board: BoardSlug,
   opts?: {
     pageSize?: number;
+    sort?: SortValue;
     search?: string;
   }
 ) {
   const pageSize = opts?.pageSize ?? LIST_SETTINGS.ITEMS_PER_PAGE;
+  const ordering: Ordering = opts?.sort
+    ? SORT_TO_ORDERING[opts.sort]
+    : "-created_at";
 
   return useInfiniteQuery<PostListItem[], unknown>({
-    queryKey: ["board-posts", board, { pageSize, search: opts?.search ?? "" }],
+    queryKey: [
+      "board-posts",
+      board,
+      { pageSize, ordering, search: opts?.search ?? "" },
+    ],
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
       fetchPosts({
         board,
         page: pageParam as number, // DRF 1-base
         page_size: pageSize,
+        ordering,
         search: opts?.search,
       }),
 

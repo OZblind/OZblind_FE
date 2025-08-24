@@ -11,7 +11,6 @@ import { tagsToAuthorLabel } from "@utils/tagsToAuthorLabel";
 import { adaptUserTag } from "@src/features/tags/adapters";
 import type { RawUserTag } from "@api/tags";
 import type { SortValue } from "@src/types/sort";
-import sortClientSide from "@src/utils/sortClientSide";
 
 const BOARD_LABEL: Record<BoardSlug, string> = {
   free: "자유 게시판",
@@ -40,6 +39,7 @@ export default function PostListPage({ board }: { board: BoardSlug }) {
     refetch,
   } = useBoardPosts(board, {
     pageSize: LIST_SETTINGS.ITEMS_PER_PAGE,
+    sort,
     // search,                // TODO(filter): 검색어 연결
     // tags: [...],           // TODO(filter): 태그 필터 연결
   });
@@ -47,17 +47,7 @@ export default function PostListPage({ board }: { board: BoardSlug }) {
   // pages(flat) → PostListItem[]
   const items = useMemo(() => (data?.pages ?? []).flat(), [data]);
 
-  const sortedRawItems = useMemo(() => {
-    return sortClientSide(items, sort, {
-      createdAt: (p) => Date.parse(p.created_at ?? 0) || 0,
-      viewCount: (p) => Number(p.view_count ?? 0),
-    });
-  }, [items, sort]);
-
-  const uiItems = useMemo(
-    () => sortedRawItems.map(mapToFreeItem),
-    [sortedRawItems]
-  );
+  const uiItems = useMemo(() => items.map(mapToFreeItem), [items]);
 
   // 작성자 태그 타입가드
   const isRawUserTag = (u: unknown): u is RawUserTag =>

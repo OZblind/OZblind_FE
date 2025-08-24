@@ -58,7 +58,7 @@ export function mapToFreeItem(p: PostListItem): FreeBoardItem {
     title: p.title,
     author: typeof p.user === "string" ? p.user : "익명",
     dateText: toYYMMDD(p.created_at),
-    views: p.view_count ?? 0,
+    views: (p as any).view_count ?? (p as any).views ?? 0,
     likes: p.like_count ?? 0,
   };
 }
