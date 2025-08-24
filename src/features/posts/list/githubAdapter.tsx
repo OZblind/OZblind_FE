@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { GithubListItem } from "@components/Board/github/GithubList";
 import type { PostListItem } from "@api/posts";
 
