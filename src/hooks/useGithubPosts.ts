@@ -14,30 +14,8 @@ import type { AxiosError } from "axios";
 // NOTE: 키 표시에만 사용 (API 파라미터는 github.ts에서 board id 사용)
 const GITHUB_BOARD_SLUG = "github" as const;
 
-// ---------------------------
-// TODO(sort): UI의 SortValue ↔ API ordering 매핑 표
-export type SortValue = "latest" | "oldest" | "mostViewed" | "leastViewed";
-function toOrdering(
-  v: SortValue | undefined
-): "-created_at" | "created_at" | "-view_count" | "view_count" | undefined {
-  switch (v) {
-    case "latest":
-      return "-created_at";
-    case "oldest":
-      return "created_at";
-    case "mostViewed":
-      return "-view_count";
-    case "leastViewed":
-      return "view_count";
-    default:
-      return undefined;
-  }
-}
-// ---------------------------
-
 export type UseGithubPostsOptions = {
   pageSize?: number; // default LIST_SETTINGS.ITEMS_PER_PAGE
-  sort?: SortValue; // default 'latest'
   search?: string;
   tagIds?: number[];
 };
@@ -51,7 +29,6 @@ async function fetchGithubPage(
   return fetchGithubListPage({
     page,
     page_size: opt?.pageSize ?? LIST_SETTINGS.ITEMS_PER_PAGE,
-    ordering: toOrdering(opt?.sort) ?? "-created_at",
     // search: opt?.search,
     // tags: opt?.tagIds,
   });
@@ -59,7 +36,6 @@ async function fetchGithubPage(
 
 export function useGithubPosts(opt?: UseGithubPostsOptions) {
   const pageSize = opt?.pageSize ?? LIST_SETTINGS.ITEMS_PER_PAGE;
-  const ordering = toOrdering(opt?.sort) ?? "-created_at";
 
   return useInfiniteQuery<GithubPostsPage, unknown>({
     // 옵션 포함해서 캐시 분리
@@ -68,7 +44,6 @@ export function useGithubPosts(opt?: UseGithubPostsOptions) {
       {
         board: GITHUB_BOARD_SLUG,
         pageSize,
-        ordering,
         search: opt?.search ?? "",
         tags: opt?.tagIds ?? [],
       },

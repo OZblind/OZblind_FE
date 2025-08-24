@@ -25,10 +25,14 @@ export function mapToGithubListItem(src: PostListItem): GithubListItem {
   // 목록 응답에 link가 없을 수 있음(상세로 보강)
   const repoLink = pickString(src, "link") ?? "";
 
-  return {
+  const item: any = {
     id: String((src as PostListItem).id),
     title,
     excerpt,
     repoLink,
   };
+  // 정렬용 메타(게시글 기준)
+  item.createdAtMs = Date.parse((src as any).created_at ?? 0) || 0;
+  item.viewCount = Number((src as any).view_count ?? (src as any).views ?? 0);
+  return item as GithubListItem;
 }

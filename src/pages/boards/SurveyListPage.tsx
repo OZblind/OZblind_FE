@@ -79,7 +79,6 @@ export default function SurveyListPage() {
           onItemClick={(id) => nav(urlForPost.postDetail("survey", id))}
           topBar={{
             boardName: "설문 게시판",
-            onOpenSort: () => {}, // TODO[UI→API-SORT]: 정렬 상태를 useSurveys 파라미터로 연결
             onOpenTag: () => {}, // TODO[UI→API-TAGS]: 태그 필터를 훅/서버에 연결
             onWrite: () => nav(urlForPost.postCreate("survey")),
           }}

@@ -4,11 +4,9 @@ import GithubList from "@components/Board/github/GithubList";
 import { useInfiniteScroll } from "@hooks/useInfiniteScroll";
 import { formatYyyyMmDdHms } from "@utils/date";
 import { urlForPost } from "@src/utils/urlForPost";
-import {
-  useGithubPosts,
-  useGithubListWithLinks,
-  type SortValue,
-} from "@hooks/useGithubPosts";
+import { useGithubPosts, useGithubListWithLinks } from "@hooks/useGithubPosts";
+import type { SortValue } from "@src/types/sort";
+import sortClientSide from "@src/utils/sortClientSide";
 
 export default function GithubListPage() {
   const nav = useNavigate();
@@ -17,21 +15,9 @@ export default function GithubListPage() {
   );
   const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
 
-  // ---------------------------
-  /*
-  // TODO(sort): 정렬 상태를 UI와 연결 (SortRadioPopover → setSort)
   const [sort, setSort] = useState<SortValue>("latest");
-  // TODO(filter): 태그 필터 상태 — TagPopover/TagPicker와 연결
-  const [tagIds, setTagIds] = useState<number[] | undefined>(undefined);
-  // TODO(search): 검색어 상태 — SearchInput과 연결
-  const [search, setSearch] = useState<string | undefined>(undefined);
-  */
-
-  // TODO: 현재 세터 미사용으로 인해 배포 오류 나는 것으로 예상, 임시로 아래와 같이 코드 사용
-  const [sort] = useState<SortValue>("latest");
   const [tagIds] = useState<number[] | undefined>(undefined);
   const [search] = useState<string | undefined>(undefined);
-  // ---------------------------
 
   const {
     data,
@@ -43,17 +29,27 @@ export default function GithubListPage() {
     error,
     refetch,
   } = useGithubPosts({
-    // ⚠️ 지금은 동작 동일. 이후 UI 연결 시 아래 3개만 채워주면 끝
-    sort, // TODO(sort): SortRadioPopover onChange → setSort
     tagIds, // TODO(tags): Tag UI onApply → setTagIds
     search, // TODO(search): Search onSubmit → setSearch
     // pageSize: 10,           // 필요 시 교체
   });
 
-  // ✅ 링크/OG까지 보강된 items + onRepoClick
+  // 링크/OG까지 보강된 items + onRepoClick
   const { items, onRepoClick } = useGithubListWithLinks(data);
 
-  const isInitialLoading = items.length === 0 && !!isFetching;
+  // 정렬
+  const sortedItems = useMemo(() => {
+    return sortClientSide(items, sort, {
+      createdAt: (it: any) =>
+        Number(it.createdAtMs ?? 0) ||
+        (it.created_at ? Date.parse(it.created_at) : 0) ||
+        Number(it.id ?? 0),
+      viewCount: (it: any) =>
+        Number(it.viewCount ?? it.view_count ?? it.views ?? 0),
+    });
+  }, [items, sort]);
+
+  const isInitialLoading = sortedItems.length === 0 && !!isFetching;
   const listIsLoading = isInitialLoading || isFetchingNextPage;
 
   const { sentinelRef } = useInfiniteScroll({
@@ -84,13 +80,11 @@ export default function GithubListPage() {
     <div className="self-stretch w-[800px] max-w-full p-4">
       <section className="w-full rounded-xl border border-base-content/30 p-3 pb-8 h-[calc(100vh-200px)] overflow-hidden">
         <GithubList
-          items={items}
+          items={sortedItems}
           onItemClick={(id) => nav(urlForPost.postDetail("github", id))}
           onRepoClick={onRepoClick}
           topBar={{
             boardName: "GitHub 게시판",
-            // TODO(sort): 팝오버 오픈 → 선택값 setSort → 훅 옵션 반영
-            onOpenSort: () => {},
             // TODO(tags): 태그 팝오버 → 선택값 setTagIds → 훅 옵션 반영
             onOpenTag: () => {},
             onWrite: () => nav(urlForPost.postCreate("github")),
@@ -105,6 +99,12 @@ export default function GithubListPage() {
           scrollRootRef={setRootEl}
           emptyText="등록된 GitHub 게시글이 없습니다."
           className="py-2"
+          sortValue={sort}
+          onChangeSort={(v) => {
+            setSort(v);
+            setLastLoadedAt(formatYyyyMmDdHms(new Date()));
+            rootEl?.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+          }}
         />
       </section>
     </div>

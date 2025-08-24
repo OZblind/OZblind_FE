@@ -37,6 +37,9 @@ export type GithubListProps = {
   className?: string;
 
   scrollRootRef?: (el: HTMLDivElement | null) => void;
+
+  sortValue?: SortValue;
+  onChangeSort?: (v: SortValue) => void;
 };
 
 export default function GithubList({
@@ -55,13 +58,20 @@ export default function GithubList({
   emptyText = "등록된 게시글이 없습니다.",
   className,
   scrollRootRef,
+  sortValue,
+  onChangeSort,
 }: GithubListProps) {
   const isEmpty = items.length === 0;
 
   // ------ 정렬(UI) ------
   const sortBtnRef = useRef<HTMLButtonElement>(null);
   const [openSort, setOpenSort] = useState(false);
-  const [sort, setSort] = useState<SortValue>("latest");
+  const [internalSort, setInternalSort] = useState<SortValue>("latest");
+  const sort = sortValue ?? internalSort;
+  const handleSortChange = (v: SortValue) => {
+    setInternalSort(v);
+    onChangeSort?.(v);
+  };
 
   // ------ 태그(UI) ------
   const tagBtnRef = useRef<HTMLButtonElement>(null);
@@ -155,7 +165,7 @@ export default function GithubList({
         open={openSort}
         anchorRef={sortBtnRef}
         value={sort}
-        onChange={(v) => setSort(v)}
+        onChange={handleSortChange}
         onRequestClose={() => setOpenSort(false)}
       />
 
