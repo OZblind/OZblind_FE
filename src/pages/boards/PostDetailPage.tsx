@@ -1,6 +1,10 @@
-import { useEffect, useState, useMemo } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { fetchPostDetail, type PostDetail as ApiPostDetail } from "@api/posts";
+import {
+  fetchPostDetailCached,
+  type PostDetail as ApiPostDetail,
+} from "@api/posts";
 import PostDetail from "@components/Post/PostDetail"; // 네가 준 컴포넌트
 import type { PostMeta } from "@src/types/post";
 import { fetchGithubExtra, fetchSurveyExtra } from "@src/api/posts.special";
@@ -25,15 +29,39 @@ export default function PostDetailPage() {
   const [err, setErr] = useState<string | null>(null);
   const [extra, setExtra] = useState<Extra>({});
 
+  // StrictMode/재렌더 가드: 같은 글에 대해 1회만 상세 호출
+  const didFetchFor = useRef<string | null>(null);
+
   useEffect(() => {
     if (!id) return;
+    const key = String(id); // 캐시 키 정규화(문자열 고정)
+
+    // 같은 postId로는 1회만
+    if (didFetchFor.current === key) return;
+    didFetchFor.current = key;
+
+    let alive = true;
     setLoading(true);
     setErr(null);
-    fetchPostDetail(Number(id))
-      .then((res) => setData(res))
+
+    fetchPostDetailCached(key)
+      .then((res) => {
+        if (!alive) return;
+        setData(res as ApiPostDetail);
+      })
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .catch((e: any) => setErr(e?.message ?? "게시글을 불러오지 못했습니다."))
-      .finally(() => setLoading(false));
+      .catch((e: any) => {
+        if (!alive) return;
+        setErr(e?.message ?? "게시글을 불러오지 못했습니다.");
+      })
+      .finally(() => {
+        if (!alive) return;
+        setLoading(false);
+      });
+
+    return () => {
+      alive = false;
+    };
   }, [id]);
 
   // 설문/깃헙 추가정보 GET
@@ -64,12 +92,12 @@ export default function PostDetailPage() {
   const postMeta: PostMeta | null = useMemo(() => {
     if (!data) return null;
 
-    // PostDetail(API) -> PostMeta(UI) 매핑
-    return {
+    // API → UI 매핑
+    const meta: any = {
       id: data.id,
       title: data.title,
       content: data.content, // HTML 그대로
-      authorId: String(data.user ?? ""), // PostDetail.tsx가 string 기대
+      authorId: String(data.user ?? ""), // string 기대
       boardName: BOARD_ALIAS[data.board] ?? "free",
       views: data.view_count ?? 0,
       commentsCount: Array.isArray(data.root_comments)
@@ -81,11 +109,14 @@ export default function PostDetailPage() {
         bookmark: data.bookmark_count ?? 0,
       },
       createdAt: data.created_at,
-      // 선택 필드들 (설문/깃헙 전용 카드가 있어도 빈 값이면 카드가 안 뜸)
       formLink: extra.formLink,
       endDate: extra.endDate,
       repoUrl: extra.repoUrl,
-    } as unknown as PostMeta;
+      // PostDetail → useAssignedTags 가 inlineUser로 재호출을 생략하게 하기 위해
+      user: (data as any).user ?? null,
+    };
+
+    return meta as PostMeta;
   }, [data, extra]);
 
   if (loading) return <div className="p-4">불러오는 중...</div>;
