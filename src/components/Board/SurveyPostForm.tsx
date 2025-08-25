@@ -172,7 +172,7 @@ export default function SurveyPostForm({ onCancel }: Props) {
         </Button>
         <Button
           variant="primary"
-          className="min-w-[100px]"
+          className="min-w-[100px] text-white"
           onClick={handleSubmit}
         >
           작성

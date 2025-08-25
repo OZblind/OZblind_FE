@@ -96,7 +96,7 @@ export default function SharedPostForm({ board, onCancel }: Props) {
         </Button>
         <Button
           variant="primary"
-          className="min-w-[100px]"
+          className="min-w-[100px] text-white"
           onClick={handleSubmit}
           disabled={submitting}
         >
