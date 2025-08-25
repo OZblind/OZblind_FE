@@ -1,4 +1,3 @@
-// router/AppRouter.tsx - 마이페이지 라우트 추가 버전
 import {
   Routes,
   Route,
@@ -8,18 +7,12 @@ import {
 } from "react-router-dom";
 import { PATHS } from "@constants/paths";
 
-import LandingPage from "@pages/landing/LandingPage"; // /auth (로비)
-import MainPage from "@pages/main/MainPage"; // /main
+import LandingPage from "@pages/landing/LandingPage";
+import MainPage from "@pages/main/MainPage";
 import Error403 from "@pages/error/403";
 import Error404 from "@pages/error/404";
 import Error500 from "@pages/error/500";
 
-import TestHub from "@pages/test/TestHub"; // /
-import TestPostWritePage from "@pages/test/TestPostWritePage"; // /test/write
-import TestSettingPage from "@pages/test/TestSettingPage"; // /test/setting
-import TestFreeBoardList from "@src/pages/test/BoardList/TestFreeBoardList"; // test/board/free-list
-
-// 마이페이지 관련 import 추가
 import MyPageLayout from "@pages/mypage/MyPageLayout";
 import MyPageMain from "@pages/mypage/MyPageMain";
 import MyPosts from "@pages/mypage/MyPosts";
@@ -31,154 +24,64 @@ import { useAuthStore } from "@store/authStore";
 import RootLayout from "@layouts/RootLayout";
 import { redirectWithIntent } from "./guards";
 
-// 임시+테스트용: 오즈키 인증 페이지 관련 import
-import { useState, useEffect, useCallback } from "react";
-import {
-  useGetCurrentUserQuery,
-  useActivateWithKeyMutation,
-} from "@hooks/useAuthQueries";
-import { useToastStore } from "@store/toastStore";
-import { resolvePostLoginPath } from "@utils/postLogin";
-import TestTagPage from "@src/pages/test/TestTagPage";
-import TestPostReadPage from "@src/pages/test/TestPostReadPage";
-import TestSurveyList from "@src/pages/test/BoardList/TestSurveyList";
-import TestJobBannerPage from "@src/pages/test/TestJobBanner";
+import { useEffect, useCallback, useState } from "react";
 
-import { isValidOzKeyLocal, resolveCohortNumber } from "@src/utils/auth/ozKey";
-import PostDetailPage from "@src/pages/boards/PostDetailPage";
-import PostListPage from "@src/pages/boards/PostListPage";
-import SurveyListPage from "@src/pages/boards/SurveyListPage";
-
-import TestGithubList from "@src/pages/test/BoardList/TestGithubList";
-import MainLayout from "@src/layouts/MainLayout";
-import WritePostPage from "@src/components/Board/WritePostPage";
-import GithubListPage from "@src/pages/boards/GithubListPage";
+import PostDetailPage from "@pages/boards/PostDetailPage";
+import PostListPage from "@pages/boards/PostListPage";
+import SurveyListPage from "@pages/boards/SurveyListPage";
+import MainLayout from "@layouts/MainLayout";
+import WritePostPage from "@components/Board/WritePostPage";
+import GithubListPage from "@pages/boards/GithubListPage";
+import { SettingsPage } from "@components/SettingModal/SettingsPage";
 
 /** 공개(보호 불필요) 경로 목록 */
 const PUBLIC_PATHS: ReadonlySet<string> = new Set([
-  PATHS.ROOT,
   PATHS.AUTH,
   PATHS.ERROR_403,
   PATHS.ERROR_404,
   PATHS.ERROR_500,
 ]);
 
-/** 임시: 오즈키 인증 페이지 (담당자 구현 전) — 실동작 가능한 DEV 버전 */
-function KeyVerifyPlaceholder() {
-  const [plainKey, setPlainKey] = useState("");
-  const { push } = useToastStore();
-  const navigate = useNavigate();
+/** /key-verify 에서 띄울 SettingsPage 래퍼 (열림 상태/테마 상태 보관) */
+function KeyVerifySettingsPage() {
+  const [open, setOpen] = useState(true);
+  const [theme, setTheme] = useState<"oz_dark" | "oz_light">(
+    (document?.documentElement?.getAttribute("data-theme") as
+      | "oz_dark"
+      | "oz_light") ?? "oz_light"
+  );
 
-  const activateMut = useActivateWithKeyMutation();
-  const currentUserQuery = useGetCurrentUserQuery(false); // 인증 후 리프레시용
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const idToken = sessionStorage.getItem("oz_pending_idt");
-    if (!idToken) {
-      push({
-        message: "인증 토큰이 없습니다. 다시 로그인 해주세요.",
-        type: "error",
-      });
-      navigate(PATHS.AUTH, { replace: true });
-      return;
-    }
-    const key = plainKey.trim();
-    if (!key) {
-      push({ message: "오즈키를 입력해 주세요.", type: "warning" });
-      return;
-    }
-
-    // ✅ 프론트 1차 검증(UX용): env의 키와 문자열 일치 확인
-    if (!isValidOzKeyLocal(key)) {
-      push({ message: "유효하지 않은 오즈키입니다.", type: "error" });
-      return;
-    }
-
-    // 코호트 번호 결정: 키에서 COHORT## 추출 → env fallback
-    let cohortNumber: number;
-    try {
-      cohortNumber = resolveCohortNumber(key);
-    } catch {
-      push({ message: "코호트 번호를 확인할 수 없습니다.", type: "error" });
-      return;
-    }
-
-    try {
-      await activateMut.mutateAsync({ idToken, cohortNumber, plainKey: key });
-
-      // 성공 → 임시 저장된 id_token 제거
-      sessionStorage.removeItem("oz_pending_idt");
-
-      // 프로필 새로고침 후 이동
-      await currentUserQuery.refetch();
-      push({ message: "오즈키 인증 완료!", type: "success" });
-      navigate(resolvePostLoginPath(true), { replace: true });
-    } catch (err: unknown) {
-      const msg =
-        typeof err === "object" && err && "message" in err
-          ? (err as { message?: string }).message ?? "인증 실패"
-          : "인증 실패";
-      push({ message: msg, type: "error" });
-    }
-  }
-
-  const disabled = activateMut.isPending;
+  // 테마 상태 → html[data-theme] 동기화 (선택사항)
+  useEffect(() => {
+    document?.documentElement?.setAttribute("data-theme", theme);
+  }, [theme]);
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4">
-      <form
-        onSubmit={onSubmit}
-        className="w_full max-w-md card bg-base-200 shadow-xl"
-      >
-        <div className="card-body">
-          <h1 className="card-title">오즈키 인증</h1>
-          <p className="text-sm opacity-80">
-            오즈키를 입력해 인증을 완료하세요.
-          </p>
-
-          <input
-            type="text"
-            value={plainKey}
-            onChange={(e) => setPlainKey(e.target.value)}
-            placeholder="예: OZ-TEST-KEY-2025-COHORT11"
-            className="input input-bordered w-full"
-            disabled={disabled}
-          />
-
-          <div className="card-actions justify-end mt-2">
-            <button
-              type="submit"
-              className={`btn btn-primary ${disabled ? "loading" : ""}`}
-              disabled={disabled}
-            >
-              {disabled ? "인증 중..." : "인증하기"}
-            </button>
-          </div>
-        </div>
-      </form>
+      <SettingsPage
+        isOpen={open}
+        setIsOpen={setOpen}
+        theme={theme}
+        setTheme={setTheme}
+      />
     </main>
   );
 }
 
 export default function AppRouter() {
-  // 앱 최초 1회 JWT/프로필 확인
   const { loading } = useAuthBootstrap();
 
-  // Zustand 셀렉터로 필요한 값만 구독 → 불필요 리렌더 줄이기
   const isAuthed = useAuthStore((s) => Boolean(s.tokens.accessToken));
   const isOzAuthenticated = useAuthStore((s) => s.isOzAuthenticated);
 
   const location = useLocation();
   const navigate = useNavigate();
 
-  // pending 상태 신호: 세션에 임시 저장된 id_token
   const pendingIdt =
     typeof window !== "undefined"
       ? sessionStorage.getItem("oz_pending_idt")
       : null;
 
-  // 같은 경로로 중복 이동 방지
   const goto = useCallback(
     (to: string) => {
       if (location.pathname !== to) navigate(to, { replace: true });
@@ -189,11 +92,9 @@ export default function AppRouter() {
   useEffect(() => {
     if (loading) return;
 
-    // A) AUTH에 있는데 로그인되면 → KEY_VERIFY 또는 MAIN
+    // A) /auth 에 있는데 로그인되면 → KEY_VERIFY 또는 MAIN
     if (location.pathname === PATHS.AUTH && isAuthed) {
-      const next = isOzAuthenticated
-        ? resolvePostLoginPath(true)
-        : PATHS.KEY_VERIFY;
+      const next = isOzAuthenticated ? PATHS.MAIN : PATHS.KEY_VERIFY;
       goto(next);
       return;
     }
@@ -203,7 +104,6 @@ export default function AppRouter() {
       PUBLIC_PATHS.has(location.pathname) ||
       (location.pathname === PATHS.KEY_VERIFY && Boolean(pendingIdt));
 
-    // B-1) 보호 라우트인데 로그인 없고, KEY_VERIFY도 아니면 → AUTH로
     if (!isAuthed && !isPublic) {
       const next = `${PATHS.AUTH}?next=${encodeURIComponent(
         location.pathname + location.search
@@ -212,7 +112,7 @@ export default function AppRouter() {
       return;
     }
 
-    // C) KEY_VERIFY 중 인증 완료되면 → MAIN
+    // C) /key-verify 에서 인증이 끝났다면 → /main
     if (
       location.pathname === PATHS.KEY_VERIFY &&
       isAuthed &&
@@ -226,44 +126,40 @@ export default function AppRouter() {
     isOzAuthenticated,
     location.pathname,
     location.search,
-    pendingIdt, // ✅ 의존성에 포함
+    pendingIdt,
     goto,
   ]);
 
-  // 훅 호출 이후에 조기 return (로딩 스켈레톤)
   if (loading) return <div className="p-6">Loading...</div>;
 
   return (
     <Routes>
-      {/* 전역 레이아웃(ToastContainer 포함) */}
       <Route element={<RootLayout />}>
-        {/* 테스트 라우트 */}
-        <Route path={PATHS.ROOT} element={<TestHub />} />
-        <Route path="/test/write" element={<TestPostWritePage />} />
-        <Route path="/test/tag" element={<TestTagPage />} />
-        <Route path="/test/post" element={<TestPostReadPage />} />
-        <Route path="/test/setting" element={<TestSettingPage />} />
-        <Route path="/test/board/free-list" element={<TestFreeBoardList />} />
-        <Route path="/test/board/survey-list" element={<TestSurveyList />} />
-        <Route path="/test/board/github-list" element={<TestGithubList />} />
-        <Route path="/test/jobbanner" element={<TestJobBannerPage />} />
+        {/* 루트 접근 시 상태 기반으로 분기 */}
+        <Route
+          path={PATHS.ROOT}
+          element={
+            isAuthed ? (
+              isOzAuthenticated ? (
+                <Navigate to={PATHS.MAIN} replace />
+              ) : (
+                <Navigate to={PATHS.KEY_VERIFY} replace />
+              )
+            ) : (
+              <Navigate to={PATHS.AUTH} replace />
+            )
+          }
+        />
 
-        {/* API 테스트 라우트 */}
-        <Route path="/boards/free" element={<PostListPage board="free" />} />
-        <Route path="/boards/jobs" element={<PostListPage board="jobs" />} />
-        <Route path="/boards/info" element={<PostListPage board="info" />} />
-        <Route path="/boards/survey" element={<SurveyListPage />} />
-        <Route path="/boards/github" element={<GithubListPage />} />
-
-        {/* 인증 로비(공개) */}
+        {/* 공개: /auth */}
         <Route path={PATHS.AUTH} element={<LandingPage />} />
 
-        {/* 보호: /key-verify (JWT + 미인증) */}
+        {/* 보호: /key-verify → SettingsPage로 교체 */}
         <Route
           path={PATHS.KEY_VERIFY}
           element={
             (isAuthed && isOzAuthenticated === false) || pendingIdt ? (
-              <KeyVerifyPlaceholder />
+              <KeyVerifySettingsPage />
             ) : isAuthed && isOzAuthenticated === true ? (
               <Navigate to={PATHS.MAIN} replace />
             ) : (
@@ -272,7 +168,7 @@ export default function AppRouter() {
           }
         />
 
-        {/* 메인 페이지 + 게시글 + 마이페이지 */}
+        {/* 메인 + 게시판 + 마이페이지 */}
         <Route element={<MainLayout />}>
           <Route path={PATHS.MAIN} element={<MainPage />} />
           <Route
@@ -292,7 +188,7 @@ export default function AppRouter() {
           <Route path={PATHS.POST_DETAIL} element={<PostDetailPage />} />
           <Route path={PATHS.POST_CREATE} element={<WritePostPage />} />
 
-          {/* 보호: 마이페이지 (JWT + 인증 완료) */}
+          {/* 보호: 마이페이지 */}
           <Route
             path={PATHS.MYPAGE}
             element={
@@ -305,7 +201,6 @@ export default function AppRouter() {
               )
             }
           >
-            {/* 마이페이지 중첩 라우팅 */}
             <Route index element={<MyPageMain />} />
             <Route path={PATHS.MYPAGE_POSTS} element={<MyPosts />} />
             <Route path={PATHS.MYPAGE_COMMENTS} element={<MyComments />} />
