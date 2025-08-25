@@ -32,6 +32,7 @@ import {
   BUTTON_TEXT,
   LIST_SETTINGS,
 } from "@src/constants/ui";
+import { PATHS } from "@constants/paths";
 
 interface BookmarkListItemProps {
   bookmark: BookmarkItem;
@@ -43,7 +44,7 @@ interface BookmarkListItemProps {
   getBookmarkIconPath: () => string;
 }
 
-const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
+function BookmarkListItem({
   bookmark,
   onPostClick,
   index = 0,
@@ -51,21 +52,21 @@ const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
   onSelectionChange,
   isExiting = false,
   getBookmarkIconPath,
-}) => {
+}: BookmarkListItemProps) {
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
     onSelectionChange(bookmark.id, e.target.checked);
   };
 
   const handleRowClick = () => {
-    if (!isExiting) {
+    if (!isExiting && onPostClick) {
       onPostClick?.();
     }
   };
 
   return (
     <div
-      className={`flex items-center py-4 px-2 border-b border-base-300 hover:bg-base-200 cursor-pointer transition-all duration-500 transform opacity-0 translate-x-8 animate-slide-in ${
+      className={`flex items-center py-4 px-3 cursor-pointer transition-all duration-500 transform opacity-0 translate-x-8 animate-slide-in ${
         isSelected ? "bg-primary/10" : ""
       }`}
       style={{
@@ -117,9 +118,9 @@ const BookmarkListItem: React.FC<BookmarkListItemProps> = ({
       </div>
     </div>
   );
-};
+}
 
-const MyBookmarks: React.FC = () => {
+function MyBookmarks(): JSX.Element {
   const navigate = useNavigate();
   const [isExiting, setIsExiting] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -130,12 +131,12 @@ const MyBookmarks: React.FC = () => {
   // 페이지네이션 상태
   const [currentPage, setCurrentPage] = useState(1);
 
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 팀 훅 사용
+  // 테마 훅
   const themeIcon = useThemeIcon();
 
-  // 테마에 따른 북마크 아이콘을 useMemo로 메모이제이션
+  // 테마별 아이콘
   const bookmarkIcon = useMemo(() => {
     const dark = themeIcon === "oz_dark";
     return dark ? icons.mypageBookmark?.light : icons.mypageBookmark?.dark;
@@ -171,7 +172,6 @@ const MyBookmarks: React.FC = () => {
     refetchBookmarks
   );
 
-  // posts 변수 (기존 코드와 호환성을 위해 bookmarksData.data를 bookmarks로 정의)
   const bookmarks = bookmarksData?.data || [];
   const allBookmarksCount = bookmarksData?.pagination?.totalItems || 0;
 
@@ -203,8 +203,8 @@ const MyBookmarks: React.FC = () => {
   }, []);
 
   const handlePostClick = (postId: number) => {
-    console.log(`게시글 ${postId}로 이동`);
-    navigate(`/post/${postId}`);
+    if (!postId) return;
+    navigate(PATHS.POST_DETAIL.replace(":id", String(postId)));
   };
 
   const onPageChangeWithSelectionReset = (page: number) => {
@@ -254,7 +254,8 @@ const MyBookmarks: React.FC = () => {
           type: "success",
           durationMs: 3000,
         });
-        setSelectedIds(new Set()); // 선택된 항목 초기화
+        setSelectedIds(new Set());
+        refetchBookmarks();
       },
       onError: (err: Error) => {
         useToastStore.getState().push({
@@ -403,18 +404,24 @@ const MyBookmarks: React.FC = () => {
               )}
 
               {bookmarks.length > 0 ? (
-                bookmarks.map((bookmark, index) => (
-                  <BookmarkListItem
-                    key={bookmark.id}
-                    bookmark={bookmark}
-                    onPostClick={() => handlePostClick(bookmark.postId)}
-                    index={index}
-                    isSelected={selectedIds.has(bookmark.id)}
-                    onSelectionChange={handleSelectionChange}
-                    isExiting={isExiting}
-                    getBookmarkIconPath={getBookmarkIconPath}
-                  />
-                ))
+                <div className="space-y-3">
+                  {bookmarks.map((bookmark, index) => (
+                    <div
+                      key={bookmark.id}
+                      className="bg-base-200 rounded-lg border border-base-300/20 hover:bg-base-100 transition-colors"
+                    >
+                      <BookmarkListItem
+                        bookmark={bookmark}
+                        onPostClick={() => handlePostClick(bookmark.postId)}
+                        index={index}
+                        isSelected={selectedIds.has(bookmark.id)}
+                        onSelectionChange={handleSelectionChange}
+                        isExiting={isExiting}
+                        getBookmarkIconPath={getBookmarkIconPath}
+                      />
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <div className="text-center py-12">
                   <div className="text-neutral-content text-4xl mb-4">
@@ -462,6 +469,6 @@ const MyBookmarks: React.FC = () => {
       <SlideInStyles />
     </>
   );
-};
+}
 
 export default MyBookmarks;

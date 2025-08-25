@@ -9,14 +9,11 @@ import type {
   DeleteResponse,
   DeleteRequest,
 } from "@src/types/mypage";
-
-// 내 태그 조회 API
 export interface UserTag {
   tag_class: string;
   tag_number: number;
 }
 
-// MyPage 전용 댓글 타입 (CommentMeta와 구분)
 export interface MyPageCommentItem {
   id: number;
   postId: number;
@@ -37,6 +34,30 @@ export interface MyPageCommentsResponse {
   };
 }
 
+// 게시판 id -> 이름
+function getBoardName(boardId: number): string {
+  const map: Record<number, string> = {
+    1: "자유",
+    2: "취업",
+    3: "정보",
+    4: "설문",
+    5: "GitHub",
+  };
+  return map[boardId] || "일반";
+}
+
+// 게시글 상세 1건 조회(제목/보드/작성일 보강용)
+async function fetchPostDetail(
+  postId: number
+): Promise<{ title: string; board: number; created_at: string }> {
+  const res = await api.get(`/api/posts/${postId}/`, { withCredentials: true });
+  return {
+    title: res.data?.title ?? "",
+    board: res.data?.board ?? 0,
+    created_at: res.data?.created_at ?? "",
+  };
+}
+
 export const getMyProfile = async (): Promise<UserTag> => {
   try {
     const res = await api.get<UserTag>("/api/user/tag", {
@@ -49,19 +70,7 @@ export const getMyProfile = async (): Promise<UserTag> => {
   }
 };
 
-// 보드 이름 변환
-function getBoardName(boardId: number): string {
-  const map: Record<number, string> = {
-    1: "자유",
-    2: "취업",
-    3: "정보",
-    4: "설문",
-    5: "GitHub",
-  };
-  return map[boardId] || "일반";
-}
-
-// 내가 쓴 글 목록 (이것만 실제 API 사용)
+// 내가 쓴 글 목록
 export const getMyPosts = async (
   page: number = 1,
   pageSize: number = 20
@@ -82,30 +91,34 @@ export const getMyPosts = async (
       withCredentials: true,
     });
 
+    const data: PostItem[] = (res.data?.results ?? []).map(
+      (post: {
+        id: number;
+        board: number;
+        title: string;
+        created_at: string;
+        view_count: number;
+        comment_count?: number;
+      }): PostItem => ({
+        id: post.id,
+        category: getBoardName(post.board),
+        title: post.title,
+        date: post.created_at,
+        views: post.view_count,
+        comments: post.comment_count ?? 0,
+      })
+    );
+
+    const total = res.data?.count ?? 0;
+
     return {
       success: true,
-      data: res.data.results.map(
-        (post: {
-          id: number;
-          board: number;
-          title: string;
-          created_at: string;
-          view_count: number;
-          comment_count?: number;
-        }): PostItem => ({
-          id: post.id,
-          category: getBoardName(post.board),
-          title: post.title,
-          date: post.created_at,
-          views: post.view_count,
-          comments: post.comment_count || 0,
-        })
-      ),
+      data,
       pagination: {
         currentPage: page,
-        totalPages: Math.ceil(res.data.count / pageSize),
+        totalPages: Math.max(1, Math.ceil(total / pageSize)),
         itemsPerPage: pageSize,
-        totalItems: res.data.count,
+        totalItems: total,
       },
     };
   } catch (error) {
@@ -114,92 +127,223 @@ export const getMyPosts = async (
   }
 };
 
-// 댓글 조회 - 임시로 빈 데이터 반환
+// 내 댓글 목록: GET /api/comments/me
 export const getMyComments = async (
   page: number = 1,
   pageSize: number = 20
 ): Promise<MyPageCommentsResponse> => {
-  // 백엔드 API 구현 대기 중
-  return {
-    success: true,
-    data: [],
-    pagination: {
-      currentPage: 1,
-      totalPages: 1,
-      itemsPerPage: 0,
-      totalItems: 0,
-    },
-  };
+  try {
+    const res = await api.get("/api/comments/me", { withCredentials: true });
+    // 명세 예시가 단건이지만 실제로는 배열일 수 있으므로 안전 처리
+    const payload = res.data;
+
+    const raw: Array<{
+      id: number;
+      post: number;
+      content: string;
+      created_at?: string;
+      updated_at?: string;
+    }> = Array.isArray(payload) ? payload : payload ? [payload] : [];
+
+    const uniquePostIds = [
+      ...new Set(raw.map((c) => c.post).filter(Boolean)),
+    ] as number[];
+
+    const detailMap = new Map<
+      number,
+      { title: string; board: number; created_at: string }
+    >();
+
+    await Promise.all(
+      uniquePostIds.map(async (pid) => {
+        try {
+          const d = await fetchPostDetail(pid);
+          detailMap.set(pid, d);
+        } catch {
+          detailMap.set(pid, { title: "", board: 0, created_at: "" });
+        }
+      })
+    );
+
+    const allItems: MyPageCommentItem[] = raw.map((c) => {
+      const d = detailMap.get(c.post);
+      return {
+        id: c.id,
+        postId: c.post,
+        postTitle: d?.title ?? "(제목 없음)",
+        postCategory: getBoardName(d?.board ?? 0),
+        commentContent: c.content,
+        date: c.created_at ?? d?.created_at ?? "",
+      };
+    });
+
+    // 클라 페이지네이션
+    const start = (page - 1) * pageSize;
+    const pageItems = allItems.slice(start, start + pageSize);
+    const totalItems = allItems.length;
+
+    return {
+      success: true,
+      data: pageItems,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.max(1, Math.ceil(totalItems / pageSize)),
+        itemsPerPage: pageSize,
+        totalItems,
+      },
+    };
+  } catch (error) {
+    console.error("작성댓글 조회 실패:", error);
+    return {
+      success: false,
+      data: [],
+      pagination: {
+        currentPage: 1,
+        totalPages: 1,
+        itemsPerPage: 0,
+        totalItems: 0,
+      },
+    };
+  }
 };
 
-// 북마크 목록 조회 - 임시로 빈 데이터 반환
+/* =========================
+ * Bookmarks (북마크)
+ * ========================= */
+
+// 내 북마크 목록: GET /api/bookmarks/me/
+// 응답: [{ post: { postId, title } }]
 export const getMyBookmarks = async (
   page: number = 1,
   pageSize: number = 20
 ): Promise<BookmarksResponse> => {
-  // 백엔드 API 구현 대기 중
-  return {
-    success: true,
-    data: [],
-    pagination: {
-      currentPage: 1,
-      totalPages: 1,
-      itemsPerPage: 0,
-      totalItems: 0,
-    },
-  };
+  try {
+    const res = await api.get("/api/bookmarks/me/", { withCredentials: true });
+    const raw: Array<{ post: { postId: number; title: string } }> =
+      res.data ?? [];
+
+    const uniquePostIds = [
+      ...new Set(raw.map((x) => x.post?.postId).filter(Boolean)),
+    ] as number[];
+
+    const detailMap = new Map<
+      number,
+      { title: string; board: number; created_at: string }
+    >();
+
+    await Promise.all(
+      uniquePostIds.map(async (pid) => {
+        try {
+          const d = await fetchPostDetail(pid);
+          detailMap.set(pid, d);
+        } catch {
+          detailMap.set(pid, { title: "", board: 0, created_at: "" });
+        }
+      })
+    );
+
+    // UI에서 쓰는 BookmarkItem으로 매핑
+    // 주의: 삭제 API가 DELETE /api/bookmarks/{post_id}/ 이므로
+    //       여기서 id를 postId로 맞춰둠 (체크박스/삭제 연동 쉬움)
+    const allItems: BookmarkItem[] = raw.map((b) => {
+      const pid = b.post?.postId ?? 0;
+      const d = detailMap.get(pid);
+      return {
+        id: pid, // ← 삭제에 post_id 필요해서 id=postId로 설정
+        postId: pid,
+        title: d?.title || b.post?.title || "(제목 없음)",
+        category: getBoardName(d?.board ?? 0),
+        date: d?.created_at ?? "", // 원글 작성일
+        bookmarkedDate: "", // 명세에 북마크일시가 없어 빈값
+      };
+    });
+
+    // 클라 페이지네이션
+    const start = (page - 1) * pageSize;
+    const pageItems = allItems.slice(start, start + pageSize);
+    const totalItems = allItems.length;
+
+    return {
+      success: true,
+      data: pageItems,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.max(1, Math.ceil(totalItems / pageSize)),
+        itemsPerPage: pageSize,
+        totalItems,
+      },
+    };
+  } catch (error) {
+    console.error("북마크 조회 실패:", error);
+    return {
+      success: false,
+      data: [],
+      pagination: {
+        currentPage: 1,
+        totalPages: 1,
+        itemsPerPage: 0,
+        totalItems: 0,
+      },
+    };
+  }
 };
 
-// 활동 요약 - 작성글 미리보기 데이터 포함
 export const getMyActivitySummary = async (): Promise<MyPageCardData[]> => {
   try {
-    // 작성글 실제 데이터 조회 (미리보기용 3개)
-    let postsResult: PostsResponse | null = null;
-    try {
-      postsResult = await getMyPosts(1, 3);
-    } catch (error) {
-      console.warn("작성글 데이터 조회 실패:", error);
-    }
+    const [postsResult, commentsResult, bookmarksResult] = await Promise.all([
+      getMyPosts(1, 3).catch(() => null),
+      getMyComments(1, 3).catch(() => null),
+      getMyBookmarks(1, 3).catch(() => null),
+    ]);
 
     return [
       {
         title: "작성글",
-        count: postsResult?.pagination?.totalItems || 0,
+        count: postsResult?.pagination?.totalItems ?? 0,
         icon: "posts",
         path: "posts",
         items:
           postsResult?.data?.map((post) => ({
             id: post.id,
+            postId: post.id,
             title: post.title,
             date: post.date,
             category: post.category,
-          })) || [],
+          })) ?? [],
       },
       {
         title: "작성댓글",
-        count: 0,
+        count: commentsResult?.pagination?.totalItems ?? 0,
         icon: "comments",
         path: "comments",
-        items: [],
+        items:
+          commentsResult?.data?.map((c) => ({
+            id: c.id,
+            postId: c.postId,
+            title: c.postTitle,
+            date: c.date,
+            category: c.postCategory,
+          })) ?? [],
       },
       {
         title: "북마크",
-        count: 0,
+        count: bookmarksResult?.pagination?.totalItems ?? 0,
         icon: "bookmarks",
         path: "bookmarks",
-        items: [],
+        items:
+          bookmarksResult?.data?.map((b) => ({
+            id: b.id,
+            postId: b.postId,
+            title: b.title,
+            date: b.date,
+            category: b.category,
+          })) ?? [],
       },
     ];
   } catch (error) {
     console.error("활동 요약 조회 실패:", error);
     return [
-      {
-        title: "작성글",
-        count: 0,
-        icon: "posts",
-        path: "posts",
-        items: [],
-      },
+      { title: "작성글", count: 0, icon: "posts", path: "posts", items: [] },
       {
         title: "작성댓글",
         count: 0,
@@ -218,27 +362,40 @@ export const getMyActivitySummary = async (): Promise<MyPageCardData[]> => {
   }
 };
 
-// 북마크 삭제 - 현재 API 없음
+/* =========================
+ * Delete APIs
+ * ========================= */
+
+// 북마크 삭제: DELETE /api/bookmarks/{post_id}/
 export const deleteBookmarks = async (
   bookmarkIds: number[]
 ): Promise<DeleteResponse> => {
-  console.warn("북마크 삭제 API가 아직 구현되지 않음");
-
-  return {
-    success: false,
-    deletedCount: 0,
-    message: "북마크 삭제 기능이 준비 중입니다.",
-  };
+  try {
+    await Promise.all(
+      bookmarkIds.map((postId) =>
+        api.delete(`/api/bookmarks/${postId}/`, { withCredentials: true })
+      )
+    );
+    return {
+      success: true,
+      deletedCount: bookmarkIds.length,
+      message:
+        bookmarkIds.length === 1
+          ? "북마크가 삭제되었습니다."
+          : `${bookmarkIds.length}개의 북마크가 삭제되었습니다.`,
+    };
+  } catch (error) {
+    console.error("북마크 삭제 실패:", error);
+    throw error;
+  }
 };
 
-// 댓글 삭제 (팀원의 deleteComment 함수 사용)
+// 댓글 삭제: 기존 팀원 deleteComment 사용
 export const deleteComments = async (
   commentIds: number[]
 ): Promise<DeleteResponse> => {
   try {
-    const deletePromises = commentIds.map((id) => deleteComment(id));
-    await Promise.all(deletePromises);
-
+    await Promise.all(commentIds.map((id) => deleteComment(id)));
     return {
       success: true,
       deletedCount: commentIds.length,
@@ -253,16 +410,16 @@ export const deleteComments = async (
   }
 };
 
-// 게시글 삭제 (개별 삭제만 지원)
+// 게시글 삭제: DELETE /api/posts/{id}/
 export const deletePosts = async (
   postIds: number[]
 ): Promise<DeleteResponse> => {
   try {
-    const deletePromises = postIds.map((id) =>
-      api.delete(`/api/posts/${id}/`, { withCredentials: true })
+    await Promise.all(
+      postIds.map((id) =>
+        api.delete(`/api/posts/${id}/`, { withCredentials: true })
+      )
     );
-
-    await Promise.all(deletePromises);
 
     return {
       success: true,

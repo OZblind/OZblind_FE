@@ -30,6 +30,7 @@ import {
   BUTTON_TEXT,
   LIST_SETTINGS,
 } from "@src/constants/ui";
+import { PATHS } from "@constants/paths";
 
 interface CommentListItemProps {
   comment: MyPageCommentItem;
@@ -47,7 +48,8 @@ const CommentListItem: React.FC<CommentListItemProps> = ({
   getCommentIconPath,
 }) => {
   const handleRowClick = () => {
-    if (!isExiting) {
+    if (isExiting || !comment.postId) return;
+    {
       onPostClick?.();
     }
   };
@@ -172,11 +174,8 @@ const MyComments: React.FC = () => {
 
   // 댓글 클릭 시 해당 게시글로 이동 (404 해결)
   const handlePostClick = (postId: number) => {
-    if (postId > 0) {
-      navigate(`/post/${postId}`);
-    } else {
-      console.warn("유효하지 않은 postId:", postId);
-    }
+    if (!postId) return;
+    navigate(PATHS.POST_DETAIL.replace(":id", String(postId))); // "/posts/:id"
   };
 
   return (

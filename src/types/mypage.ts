@@ -33,6 +33,7 @@ export interface PostItem {
 // 마이페이지 카드 아이템 타입
 export interface MyPageCardItem {
   id: number;
+  postId?: number;
   title: string;
   date: string;
   category?: string;
