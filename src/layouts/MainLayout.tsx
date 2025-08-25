@@ -1,4 +1,4 @@
-import { Link, Outlet } from "react-router-dom";
+import { Link } from "react-router-dom";
 import Sidebar from "@components/Sidebar/Sidebar";
 import { useEffect, useMemo, useRef, useState } from "react";
 import NavUnifiedSearch from "@src/components/navigation/NavUnifiedSearch";
@@ -7,63 +7,12 @@ import { logos } from "@src/assets";
 import { PATHS } from "@src/constants/paths";
 import AdBanner from "@src/components/AdBanner/AdBanner";
 import AdYoutube from "@src/components/AdBanner/AdYoutube";
-import ScrollToTopButton from "@components/commons/ScrollToTop/ScrollToTopButton";
 import ScrollRootProvider from "@components/commons/ScrollToTop/ScrollRootProvider";
-import { useScrollRoot } from "@components/commons/ScrollToTop/useScrollRoot";
-
-// Outlet 스크롤 잠금/해제 헬퍼(내부 스크롤 루트가 활성일 때 바깥 스크롤 방지)
-function LockOutletScrollWhenChildRoot({
-  elRef,
-}: {
-  elRef: React.RefObject<HTMLDivElement | null>;
-}) {
-  const { root } = useScrollRoot();
-  useEffect(() => {
-    const el = elRef.current;
-    if (!el) return;
-    const shouldLock = root && el !== root; // 내부(PostList 등)가 루트인 경우
-    const prev = el.style.overflowY;
-    el.style.overflowY = shouldLock ? "hidden" : "auto";
-    return () => {
-      el.style.overflowY = prev || "auto";
-    };
-  }, [root, elRef]);
-  return null;
-}
-
-// 맨 위로 가기 기본 루트 보장 헬퍼
-function EnsureDefaultScrollRoot({
-  elRef,
-}: {
-  elRef: React.RefObject<HTMLDivElement | null>;
-}) {
-  const { root, setRoot } = useScrollRoot();
-  useEffect(() => {
-    // root가 비어 있을 때만 기본 루트로 설정 (PostList가 있으면 그쪽이 덮어씀)
-    if (!root && elRef.current) {
-      setRoot(elRef.current);
-    }
-  }, [root, setRoot, elRef]);
-  return null;
-}
-
-// Outlet에 맨 위로 가기 버튼 붙임
-function OutletWithScrollToTop() {
-  const { root } = useScrollRoot();
-  return (
-    <div className="relative w-full">
-      <Outlet />
-      {/* root는 페이지가 등록한 내부 스크롤 엘리먼트 */}
-      <div className="sticky bottom-6 w-full pointer-events-none z-[200]">
-        <div className="flex justify-end">
-          <div className="pointer-events-auto translate-x-2">
-            <ScrollToTopButton position="inline" root={root} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+import {
+  EnsureDefaultScrollRoot,
+  LockOutletScrollWhenChildRoot,
+  OutletWithScrollToTop,
+} from "@components/commons/ScrollToTop";
 
 export default function MainLayout() {
   const [showAd, setShowAd] = useState(false);
@@ -110,7 +59,6 @@ export default function MainLayout() {
             className="flex justify-center overflow-y-auto overflow-x-visible scrollbar-hide p-2"
           >
             <ScrollRootProvider>
-              {/* root가 비면 Outlet 스크롤 div를 기본 루트로 설정 */}
               <EnsureDefaultScrollRoot elRef={outletScrollRef} />
               <LockOutletScrollWhenChildRoot elRef={outletScrollRef} />
               <OutletWithScrollToTop />
