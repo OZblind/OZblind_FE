@@ -96,7 +96,7 @@ export default function MainPage() {
       <HotBoard />
       <div className="w-[800px] pb-8">
         <p className="py-2 text-base-content/50">최신글</p>
-        <div className="border border-base-300 py-2 rounded-md h-[320px] overflow-hidden">
+        <div className="border border-base-300 py-2 rounded-md min-h-[240px] h-[calc(100vh-600px)] overflow-hidden">
           <PostList
             items={items}
             onItemClick={(id) => navigate(`/posts/${id}`)}
