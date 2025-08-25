@@ -51,11 +51,6 @@ function KeyVerifySettingsPage() {
       | "oz_light") ?? "oz_light"
   );
 
-  // 테마 상태 → html[data-theme] 동기화 (선택사항)
-  useEffect(() => {
-    document?.documentElement?.setAttribute("data-theme", theme);
-  }, [theme]);
-
   return (
     <main className="min-h-screen flex items-center justify-center px-4">
       <SettingsPage
