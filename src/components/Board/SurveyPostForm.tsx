@@ -3,8 +3,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@components/ui/Button";
 import ToastEditor from "@components/Board/editor/ToastEditor";
 import LinkPreviewCard from "./LinkPreviewCard";
-import { createSurveyPost } from "@src/api/posts.special";
-import { updatePost } from "@src/api/posts";
+import { createSurveyPost, editSurveyPost } from "@src/api/posts.special";
 import { useNavigate } from "react-router-dom";
 import { useToastStore } from "@src/store/toastStore";
 
@@ -123,11 +122,10 @@ export default function SurveyPostForm({
           return;
         }
         // 수정: 일반 PATCH (form_link, end_date 포함)
-        await updatePost({
-          id: postId,
+        await editSurveyPost(postId, {
           title: t,
           content: c,
-          form_link: link,
+          link,
           end_date: end_date_iso,
         });
 
