@@ -89,7 +89,11 @@ export default function NotificationModal({ open, onClose }: Props) {
         />
         <div className="flex-1 min-h-0 overflow-y-auto p-2 md:p-3">
           {/* 모달 열렸고 인증일 때만 목록 쿼리 활성화 */}
-          <NoticeList deleteMode={deleteMode} enabled={enabled} />
+          <NoticeList
+            deleteMode={deleteMode}
+            enabled={enabled}
+            onItemNavigate={handleClose}
+          />
         </div>
       </section>
     </div>

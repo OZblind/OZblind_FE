@@ -4,9 +4,11 @@ import { useNotificationList } from "@src/hooks/useNotifications";
 export default function NoticeList({
   deleteMode,
   enabled = true,
+  onItemNavigate,
 }: {
   deleteMode: boolean;
   enabled?: boolean;
+  onItemNavigate?: () => void;
 }) {
   const { items, isLoading, isError, markOne, deleteOne, refetch } =
     useNotificationList({ enabled });
@@ -49,6 +51,7 @@ export default function NoticeList({
             deleteMode={deleteMode}
             onDelete={() => deleteOne.mutate(Number(n.id))}
             onMarkRead={() => markOne.mutate(Number(n.id))}
+            onNavigate={onItemNavigate}
           />
         </li>
       ))}

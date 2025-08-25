@@ -10,11 +10,13 @@ export default function NoticeCard({
   deleteMode,
   onDelete,
   onMarkRead,
+  onNavigate,
 }: {
   n: Notification;
   deleteMode: boolean;
   onDelete: () => void;
   onMarkRead: () => void;
+  onNavigate?: () => void;
 }) {
   const { isDark } = useTheme();
   const navigate = useNavigate();
@@ -26,11 +28,15 @@ export default function NoticeCard({
   const clickable = !deleteMode; // 삭제모드 아닐 때만 인터랙션
 
   const busyRef = useRef(false);
+
   const handleClick = () => {
     if (!clickable || busyRef.current) return;
     busyRef.current = true;
     if (!n.read) onMarkRead();
-    if (path) navigate(path);
+    if (path) {
+      onNavigate?.(); // 모달 닫고
+      navigate(path); // 라우팅하기
+    }
     setTimeout(() => {
       busyRef.current = false;
     }, 350);
