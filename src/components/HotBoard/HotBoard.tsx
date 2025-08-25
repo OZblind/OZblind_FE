@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { HotPost } from "@src/types/hotPost";
 import HotPostCard from "./HotPostCard";
-import { fetchHotPosts } from "@api/hotPosts";
+import { fetchHotPosts, patchHotPosts } from "@api/hotPosts";
 
 export default function HotBoard({ csrfToken }: { csrfToken: string }) {
   const [posts, setPosts] = useState<HotPost[]>([]);
@@ -9,10 +9,25 @@ export default function HotBoard({ csrfToken }: { csrfToken: string }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchHotPosts(csrfToken)
-      .then(setPosts)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+    async function loadHotPosts() {
+      try {
+        setLoading(true);
+        await patchHotPosts(csrfToken);
+
+        const hotPosts = await fetchHotPosts(csrfToken);
+        setPosts(hotPosts);
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError(String(err)); // Error 객체가 아니면 문자열로 변환
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadHotPosts();
   }, [csrfToken]);
 
   if (loading) return <p>로딩 중...</p>;
