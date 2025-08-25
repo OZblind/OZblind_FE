@@ -9,6 +9,7 @@ import type {
   DeleteResponse,
 } from "@src/types/mypage";
 import { isAxiosError } from "axios";
+import { formatYyMmDd } from "@src/utils/utils";
 
 export interface UserTag {
   tag_class: string;
@@ -76,56 +77,40 @@ export const getMyPosts = async (
   page: number = 1,
   pageSize: number = 20
 ): Promise<PostsResponse> => {
-  try {
-    const userTagResponse = await api.get<UserTag>("/api/user/tag", {
-      withCredentials: true,
-    });
-    const { tag_class, tag_number } = userTagResponse.data;
+  const res = await api.get("/api/posts/", {
+    params: { page, page_size: pageSize },
+    withCredentials: true,
+  });
 
-    const res = await api.get("/api/posts/", {
-      params: {
-        page,
-        page_size: pageSize,
-        user_tag_class: tag_class,
-        user_tag_number: tag_number,
-      },
-      withCredentials: true,
-    });
+  const data: PostItem[] = (res.data?.results ?? []).map(
+    (post: {
+      id: number;
+      board: number;
+      title: string;
+      created_at: string;
+      view_count: number;
+      comment_count?: number;
+    }): PostItem => ({
+      id: post.id,
+      category: getBoardName(post.board),
+      title: post.title,
+      // 여기서 날짜 변환
+      date: formatYyMmDd(new Date(post.created_at)),
+      views: post.view_count,
+      comments: post.comment_count ?? 0,
+    })
+  );
 
-    const data: PostItem[] = (res.data?.results ?? []).map(
-      (post: {
-        id: number;
-        board: number;
-        title: string;
-        created_at: string;
-        view_count: number;
-        comment_count?: number;
-      }): PostItem => ({
-        id: post.id,
-        category: getBoardName(post.board),
-        title: post.title,
-        date: post.created_at,
-        views: post.view_count,
-        comments: post.comment_count ?? 0,
-      })
-    );
-
-    const total = res.data?.count ?? 0;
-
-    return {
-      success: true,
-      data,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.max(1, Math.ceil(total / pageSize)),
-        itemsPerPage: pageSize,
-        totalItems: total,
-      },
-    };
-  } catch (error) {
-    console.error("게시글 조회 실패:", error);
-    throw error;
-  }
+  return {
+    success: true,
+    data,
+    pagination: {
+      currentPage: page,
+      totalPages: Math.max(1, Math.ceil((res.data?.count ?? 0) / pageSize)),
+      itemsPerPage: pageSize,
+      totalItems: res.data?.count ?? 0,
+    },
+  };
 };
 
 // 내 댓글 목록: GET /api/comments/me

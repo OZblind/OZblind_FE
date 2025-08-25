@@ -32,8 +32,8 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [theme, setTheme] = useState<"oz_dark" | "oz_light">("oz_dark");
   const [isHovered, setIsHovered] = useState(false);
-  const { tags, loading: tagLoading } = useAssignedTags("me");
-
+  const { tags, loading: tagLoading, valid } = useAssignedTags("me");
+  const hasKey = valid || Boolean(userProfile.hasKey);
   const handleProfileClick = () => setIsSettingsOpen(true);
 
   return (
@@ -95,7 +95,7 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
                 </div>
               </button>
 
-              {userProfile.hasKey && (
+              {hasKey && (
                 <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-success rounded-full flex items-center justify-center">
                   <span className="text-success-content text-xs">✓</span>
                 </div>
@@ -109,7 +109,7 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
               )}
             </div>
 
-            {!userProfile.hasKey && (
+            {!hasKey && !tagLoading && (
               <div className="px-4 py-2 bg-warning text-warning-content text-sm rounded-lg font-medium">
                 키 인증이 필요합니다
               </div>

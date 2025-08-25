@@ -23,6 +23,9 @@ import {
   useMyPageError,
 } from "@src/hooks/useMyPageData";
 import type { PostItem } from "@src/types/mypage";
+import { formatYyMmDd } from "@src/utils/utils";
+
+date: formatYyMmDd(new Date(post.created_at)),
 
 interface PostListItemProps {
   post: PostItem;
