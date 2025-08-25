@@ -4,7 +4,7 @@ import { Button } from "@components/ui/Button";
 import ToastEditor from "@components/Board/editor/ToastEditor";
 import { RepoPreviewCard } from "./RepoPreviewCard";
 import { useNavigate } from "react-router-dom";
-import { createGithubPost } from "@src/api/posts.special";
+import { createGithubPost, editGithubPost } from "@src/api/posts.special";
 import { updatePost } from "@src/api/posts";
 import { useToastStore } from "@src/store/toastStore";
 
@@ -62,6 +62,25 @@ export default function GitRepoPostForm({
     const c = content ?? "";
     const r = repoLink.trim();
 
+    if (isEdit) {
+      if (!postId) {
+        toast.push({
+          message: "수정 대상 글 ID가 없습니다.",
+          type: "error",
+          durationMs: 3000,
+        });
+        return;
+      }
+      await editGithubPost(postId, { title: t, content: c, link: r });
+      toast.push({
+        message: "게시글이 수정되었습니다.",
+        type: "success",
+        durationMs: 3000,
+      });
+      onSubmitted?.(postId);
+      requestAnimationFrame(() => navigate(`/posts/${postId}`));
+      return;
+    }
     if (!t) {
       toast.push({
         message: "제목을 입력하세요.",
@@ -106,7 +125,7 @@ export default function GitRepoPostForm({
           });
           return;
         }
-        // 🔁 수정: 일반 posts PATCH 사용 (repo_url 포함)
+        // 수정: 일반 posts PATCH 사용 (repo_url 포함)
         await updatePost({
           id: postId,
           title: t,
@@ -122,7 +141,7 @@ export default function GitRepoPostForm({
         onSubmitted?.(postId);
         requestAnimationFrame(() => navigate(`/posts/${postId}`));
       } else {
-        // 🆕 작성: 기존 특수 엔드포인트 사용
+        // 작성: 기존 특수 엔드포인트 사용
         const res = await createGithubPost({ title: t, content: c, link: r });
         const newId = (res as any)?.id ?? (res as any)?.post_id;
         toast.push({
