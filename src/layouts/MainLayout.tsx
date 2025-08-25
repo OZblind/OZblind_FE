@@ -11,6 +11,26 @@ import ScrollToTopButton from "@components/commons/ScrollToTop/ScrollToTopButton
 import ScrollRootProvider from "@components/commons/ScrollToTop/ScrollRootProvider";
 import { useScrollRoot } from "@components/commons/ScrollToTop/useScrollRoot";
 
+// Outlet 스크롤 잠금/해제 헬퍼(내부 스크롤 루트가 활성일 때 바깥 스크롤 방지)
+function LockOutletScrollWhenChildRoot({
+  elRef,
+}: {
+  elRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const { root } = useScrollRoot();
+  useEffect(() => {
+    const el = elRef.current;
+    if (!el) return;
+    const shouldLock = root && el !== root; // 내부(PostList 등)가 루트인 경우
+    const prev = el.style.overflowY;
+    el.style.overflowY = shouldLock ? "hidden" : "auto";
+    return () => {
+      el.style.overflowY = prev || "auto";
+    };
+  }, [root, elRef]);
+  return null;
+}
+
 // 맨 위로 가기 기본 루트 보장 헬퍼
 function EnsureDefaultScrollRoot({
   elRef,
@@ -92,6 +112,7 @@ export default function MainLayout() {
             <ScrollRootProvider>
               {/* root가 비면 Outlet 스크롤 div를 기본 루트로 설정 */}
               <EnsureDefaultScrollRoot elRef={outletScrollRef} />
+              <LockOutletScrollWhenChildRoot elRef={outletScrollRef} />
               <OutletWithScrollToTop />
             </ScrollRootProvider>
           </div>
