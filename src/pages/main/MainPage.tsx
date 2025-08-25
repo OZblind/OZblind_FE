@@ -7,8 +7,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getLatestPosts } from "../../api/latestPost";
 import type { Post } from "../../types/latestPost";
 import { LIST_SETTINGS } from "@src/constants/ui";
+import { useNavigate } from "react-router-dom";
 
 export default function MainPage() {
+  const navigate = useNavigate();
   const [items, setItems] = useState<FreeBoardItem[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -97,7 +99,7 @@ export default function MainPage() {
         <div className="border border-base-300 py-2 rounded-md h-[320px] overflow-hidden">
           <PostList
             items={items}
-            onItemClick={(id) => console.log("go detail:", id)}
+            onItemClick={(id) => navigate(`/posts/${id}`)}
             lastLoadedAt={lastLoadedAt}
             onRefresh={handleRefresh}
             isLoading={busy}
