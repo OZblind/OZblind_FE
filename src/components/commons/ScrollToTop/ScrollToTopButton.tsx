@@ -12,12 +12,15 @@ type Props = {
   threshold?: number;
   /** 오른쪽/아래 여백 커스텀 하고 싶으면 className으로 조절 */
   className?: string;
+  /** "fixed": 화면 우하단, "inline": 부모에서 위치 제어(예: sticky) */
+  position?: "fixed" | "inline";
 };
 
 export default function ScrollToTopButton({
   root,
   threshold = 300,
   className,
+  position = "fixed",
 }: Props) {
   const themeIcon = useThemeIcon(); // "oz_dark" | "oz_light"
   const [visible, setVisible] = useState(false);
@@ -73,12 +76,12 @@ export default function ScrollToTopButton({
       aria-label="맨 위로 가기"
       onClick={handleClick}
       className={clsx(
-        "fixed z-50 right-6 bottom-6 rounded-full shadow-xl border",
+        position === "fixed" ? "fixed right-6 bottom-6" : "relative", // inline 모드에서는 부모가 위치를 책임짐
+        "z-50 rounded-full shadow-xl border",
         "bg-base-100 border-base-content/20 hover:border-base-content/40",
         "transition-opacity duration-300 ease-out",
         "focus:outline-none focus:ring-2 focus:ring-primary/50",
         "p-3",
-        // 보이기/숨기기
         visible ? "opacity-100" : "opacity-0 pointer-events-none",
         className
       )}
@@ -86,7 +89,7 @@ export default function ScrollToTopButton({
       <img
         src={iconSrc}
         alt="맨 위로"
-        className="w-6 h-6 md:w-7 md:h-7 select-none"
+        className="w-6 h-6 md:w-7 md:h-7"
         draggable={false}
       />
     </button>
