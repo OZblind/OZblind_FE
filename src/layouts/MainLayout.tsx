@@ -1,12 +1,18 @@
-import { Link, Outlet } from "react-router-dom";
+import { Link } from "react-router-dom";
 import Sidebar from "@components/Sidebar/Sidebar";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import NavUnifiedSearch from "@src/components/navigation/NavUnifiedSearch";
 import { useThemeIcon } from "@src/hooks/useThemeIcon";
 import { logos } from "@src/assets";
 import { PATHS } from "@src/constants/paths";
 import AdBanner from "@src/components/AdBanner/AdBanner";
 import AdYoutube from "@src/components/AdBanner/AdYoutube";
+import ScrollRootProvider from "@components/commons/ScrollToTop/ScrollRootProvider";
+import {
+  EnsureDefaultScrollRoot,
+  LockOutletScrollWhenChildRoot,
+  OutletWithScrollToTop,
+} from "@components/commons/ScrollToTop";
 
 export default function MainLayout() {
   const [showAd, setShowAd] = useState(false);
@@ -18,6 +24,8 @@ export default function MainLayout() {
       logo: dark ? logos.symbol.dark : logos.symbol.light,
     };
   }, [themeIcon]);
+
+  const outletScrollRef = useRef<HTMLDivElement | null>(null);
 
   // 브라우저 창 너비를 감지해 광고 배너를 노출할지 결정
   useEffect(() => {
@@ -46,8 +54,15 @@ export default function MainLayout() {
             </Link>
             <NavUnifiedSearch className="w-full" placeholder="통합검색" />
           </div>
-          <div className="flex justify-center overflow-y-auto overflow-x-visible scrollbar-hide p-2">
-            <Outlet />
+          <div
+            ref={outletScrollRef}
+            className="flex justify-center overflow-y-auto overflow-x-visible scrollbar-hide p-2"
+          >
+            <ScrollRootProvider>
+              <EnsureDefaultScrollRoot elRef={outletScrollRef} />
+              <LockOutletScrollWhenChildRoot elRef={outletScrollRef} />
+              <OutletWithScrollToTop />
+            </ScrollRootProvider>
           </div>
         </div>
       </div>
