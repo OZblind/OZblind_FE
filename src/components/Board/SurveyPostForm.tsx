@@ -42,6 +42,7 @@ export default function SurveyPostForm({
 
   const [title, setTitle] = useState(initial?.title ?? "");
   const [content, setContent] = useState(initial?.content ?? "");
+  const [editorInitial, setEditorInitial] = useState(initial?.content ?? "");
   const [formLink, setFormLink] = useState(initial?.formLink ?? "");
   const [endDate, setEndDate] = useState(toInputDate(initial?.endDate) ?? ""); // YYYY-MM-DD
   const [provider, setProvider] = useState<string>(""); // placeholder 상태
@@ -54,7 +55,10 @@ export default function SurveyPostForm({
   // initial이 나중에 주입되는 경우 동기화
   useEffect(() => {
     if (typeof initial?.title === "string") setTitle(initial.title);
-    if (typeof initial?.content === "string") setContent(initial.content);
+    if (typeof initial?.content === "string") {
+      setContent(initial.content);
+      setEditorInitial(initial.content);
+    }
     if (typeof initial?.formLink === "string") setFormLink(initial.formLink);
     if (typeof initial?.endDate === "string")
       setEndDate(toInputDate(initial.endDate));
@@ -258,14 +262,7 @@ export default function SurveyPostForm({
 
       {/* 에디터 (이미지는 에디터 내부 업로더 사용) */}
       <div className="flex-1">
-        <ToastEditor
-          // @ts-expect-error 구현에 따라 initialValue 제공
-          initialValue={content}
-          onChange={setContent}
-          key={`${isEdit ? postId : "create"}:${initial?.title ?? ""}:${
-            initial?.content ?? ""
-          }:${initial?.formLink ?? ""}:${initial?.endDate ?? ""}`}
-        />
+        <ToastEditor initial={editorInitial} onChange={setContent} />
       </div>
 
       {/* 버튼 */}
