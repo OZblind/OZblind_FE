@@ -31,6 +31,7 @@ import SurveyListPage from "@pages/boards/SurveyListPage";
 import MainLayout from "@layouts/MainLayout";
 import WritePostPage from "@components/Board/WritePostPage";
 import GithubListPage from "@pages/boards/GithubListPage";
+import PostEditPage from "@src/pages/boards/PostEditPage";
 import { SettingsPage } from "@components/SettingModal/SettingsPage";
 
 /** 공개(보호 불필요) 경로 목록 */
