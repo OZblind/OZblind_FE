@@ -37,7 +37,11 @@ export default function NoticeHeader({
   };
 
   return (
-    <header className="relative z-10 h-12 px-3 md:px-4 border-b border-base-300 flex items-center justify-between">
+    <header
+      className="relative z-10 flex-none h-12 px-3 md:px-4
+                    border-b border-base-300 bg-base-200 md:rounded-t-2xl
+                    flex items-center justify-between"
+    >
       <h2 id="notice-title" className="text-base md:text-lg font-semibold">
         알림
       </h2>

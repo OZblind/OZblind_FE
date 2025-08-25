@@ -10,11 +10,13 @@ export default function NoticeCard({
   deleteMode,
   onDelete,
   onMarkRead,
+  onNavigate,
 }: {
   n: Notification;
   deleteMode: boolean;
   onDelete: () => void;
   onMarkRead: () => void;
+  onNavigate?: () => void;
 }) {
   const { isDark } = useTheme();
   const navigate = useNavigate();
@@ -26,11 +28,15 @@ export default function NoticeCard({
   const clickable = !deleteMode; // 삭제모드 아닐 때만 인터랙션
 
   const busyRef = useRef(false);
+
   const handleClick = () => {
     if (!clickable || busyRef.current) return;
     busyRef.current = true;
     if (!n.read) onMarkRead();
-    if (path) navigate(path);
+    if (path) {
+      onNavigate?.(); // 모달 닫고
+      navigate(path); // 라우팅하기
+    }
     setTimeout(() => {
       busyRef.current = false;
     }, 350);
@@ -100,11 +106,16 @@ export default function NoticeCard({
         <button
           type="button"
           aria-label="알림 삭제"
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
           onClick={(e) => {
             e.stopPropagation();
+            e.preventDefault();
             onDelete();
           }}
-          className="absolute right-2 top-2 w-6 h-6 rounded-full flex items-center justify-center opacity-90 hover:opacity-100 z-[1]"
+          className="absolute right-2 top-2 w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center z-20 pointer-events-auto opacity-90 hover:opacity-100"
         >
           <span className="text-base text-primary-content leading-none">×</span>
         </button>

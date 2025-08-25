@@ -1,9 +1,20 @@
 import NoticeCard from "./NoticeCard";
 import { useNotificationList } from "@src/hooks/useNotifications";
 
-export default function NoticeList({ deleteMode }: { deleteMode: boolean }) {
-  const { items, isLoading, isError, markOne, deleteOne } =
-    useNotificationList();
+export default function NoticeList({
+  deleteMode,
+  enabled = true,
+  onItemNavigate,
+}: {
+  deleteMode: boolean;
+  enabled?: boolean;
+  onItemNavigate?: () => void;
+}) {
+  const { items, isLoading, isError, markOne, deleteOne, refetch } =
+    useNotificationList({ enabled });
+
+  // 비활성화 상태면 렌더 안 함
+  if (!enabled) return null;
 
   if (isLoading) {
     return (
@@ -14,8 +25,11 @@ export default function NoticeList({ deleteMode }: { deleteMode: boolean }) {
   }
   if (isError) {
     return (
-      <div className="py-20 text-center text-sm text-error">
+      <div className="py-20 text-center text-sm text-error flex flex-col items-center gap-2">
         알림을 불러오지 못했어요.
+        <button className="btn btn-xs" onClick={() => refetch()}>
+          다시 시도
+        </button>
       </div>
     );
   }
@@ -37,6 +51,7 @@ export default function NoticeList({ deleteMode }: { deleteMode: boolean }) {
             deleteMode={deleteMode}
             onDelete={() => deleteOne.mutate(Number(n.id))}
             onMarkRead={() => markOne.mutate(Number(n.id))}
+            onNavigate={onItemNavigate}
           />
         </li>
       ))}
