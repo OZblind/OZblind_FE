@@ -48,7 +48,8 @@ export async function loginWithGoogle(
 export async function activateWithKey(params: {
   idToken: string;
   cohortNumber: number;
-  plainKey: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  plainKey: any;
 }): Promise<ActivateResponse> {
   const { idToken, cohortNumber, plainKey } = params;
 
