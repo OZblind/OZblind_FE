@@ -29,14 +29,16 @@ export default function MainPage() {
 
     try {
       const posts: Post[] = await getLatestPosts(pageToLoad);
-
       if (!mountedRef.current) return;
 
       const newItems: FreeBoardItem[] = posts.map((post) => ({
         id: post.id,
         no: post.id,
         title: post.title,
-        author: `${post.user.tag_class}#${post.user.tag_number}`,
+        author:
+          post.user && typeof post.user === "object"
+            ? `${post.user.tag_class} ${post.user.tag_number}기`
+            : "익명",
         dateText: formatYyMmDd(new Date(post.created_at)),
         views: post.view_count,
         likes: post.like_count,
