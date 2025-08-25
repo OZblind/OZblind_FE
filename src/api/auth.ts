@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import api, { tokenStore } from "./client";
 
 // 서버 응답 타입들
@@ -48,7 +49,6 @@ export async function loginWithGoogle(
 export async function activateWithKey(params: {
   idToken: string;
   cohortNumber: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   plainKey: any;
 }): Promise<ActivateResponse> {
   const { idToken, cohortNumber, plainKey } = params;

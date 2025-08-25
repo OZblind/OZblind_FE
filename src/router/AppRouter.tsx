@@ -25,13 +25,13 @@ import RootLayout from "@layouts/RootLayout";
 import { redirectWithIntent } from "./guards";
 
 import { useEffect, useCallback, useState } from "react";
-
 import PostDetailPage from "@pages/boards/PostDetailPage";
 import PostListPage from "@pages/boards/PostListPage";
 import SurveyListPage from "@pages/boards/SurveyListPage";
 import MainLayout from "@layouts/MainLayout";
 import WritePostPage from "@components/Board/WritePostPage";
 import GithubListPage from "@pages/boards/GithubListPage";
+import PostEditPage from "@src/pages/boards/PostEditPage";
 import { SettingsPage } from "@components/SettingModal/SettingsPage";
 
 /** 공개(보호 불필요) 경로 목록 */
@@ -182,7 +182,8 @@ export default function AppRouter() {
           <Route path={PATHS.GITHUB_BOARD} element={<GithubListPage />} />
           <Route path={PATHS.POST_DETAIL} element={<PostDetailPage />} />
           <Route path={PATHS.POST_CREATE} element={<WritePostPage />} />
-
+          <Route path={PATHS.POST_EDIT} element={<PostEditPage />} />
+          
           {/* 보호: 마이페이지 */}
           <Route
             path={PATHS.MYPAGE}
