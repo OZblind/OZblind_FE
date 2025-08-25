@@ -14,6 +14,13 @@ export default function HotPostCard({ post }: { post: HotPost }) {
       thumbUp: dark ? icons.thumbUp.dark : icons.thumbUp.light,
     };
   }, [themeIcon]);
+  const BOARD_NAME_MAP: Record<number, string> = {
+    1: "자유",
+    2: "취업",
+    3: "정보",
+    4: "설문",
+    5: "GitHub",
+  };
 
   return (
     <button
@@ -25,7 +32,7 @@ export default function HotPostCard({ post }: { post: HotPost }) {
       <div className="flex flex-col justify-between p-2 flex-1 items-start text-left">
         <div>
           <p className={`text-sm mt-1 ${CARD_TEXT[post.board]}`}>
-            {post.board} 게시판
+            {BOARD_NAME_MAP[post.board]} 게시판
           </p>
           <h3 className="text-lg font-semibold py-0.5 line-clamp-2">
             {post.title}
