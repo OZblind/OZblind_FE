@@ -77,7 +77,7 @@ export default function ScrollToTopButton({
       onClick={handleClick}
       className={clsx(
         position === "fixed" ? "fixed right-6 bottom-6" : "relative", // inline 모드에서는 부모가 위치를 책임짐
-        "z-50 rounded-full shadow-xl border",
+        "z-[1000] rounded-full shadow-xl border",
         "bg-base-100 border-base-content/20 hover:border-base-content/40",
         "transition-opacity duration-300 ease-out",
         "focus:outline-none focus:ring-2 focus:ring-primary/50",

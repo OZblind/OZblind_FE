@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SurveyList } from "@components/Board/survey";
 import { useInfiniteScroll } from "@hooks/useInfiniteScroll";
@@ -10,6 +10,7 @@ import sortClientSide from "@src/utils/sortClientSide";
 import type { PositionValue } from "@src/types/tag";
 import { posToTagClass } from "@utils/tagRules";
 import type { SortableSurveyCard } from "@src/hooks/useSurveys";
+import { useScrollRoot } from "@components/commons/ScrollToTop/useScrollRoot";
 
 export default function SurveyListPage() {
   const nav = useNavigate();
@@ -82,6 +83,13 @@ export default function SurveyListPage() {
     isError && error && typeof error === "object" && "message" in error
       ? (error as { message?: string }).message
       : "설문 목록을 불러오는 중 문제가 발생했습니다.";
+
+  const { setRoot } = useScrollRoot();
+
+  useEffect(() => {
+    setRoot(rootEl);
+    return () => setRoot(null);
+  }, [rootEl, setRoot]);
 
   return (
     <div className="self-stretch w-[800px] max-w-full p-4">

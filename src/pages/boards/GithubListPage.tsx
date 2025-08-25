@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import GithubList from "@components/Board/github/GithubList";
 import { useInfiniteScroll } from "@hooks/useInfiniteScroll";
@@ -8,6 +8,7 @@ import { useGithubPosts, useGithubListWithLinks } from "@hooks/useGithubPosts";
 import type { SortValue } from "@src/types/sort";
 import type { PositionValue } from "@src/types/tag";
 import { posToTagClass } from "@utils/tagRules";
+import { useScrollRoot } from "@components/commons/ScrollToTop/useScrollRoot";
 
 export default function GithubListPage() {
   const nav = useNavigate();
@@ -74,6 +75,13 @@ export default function GithubListPage() {
     }
     return "GitHub 게시판 목록을 불러오는 중 문제가 발생했습니다.";
   }, [isError, error]);
+
+  const { setRoot } = useScrollRoot();
+
+  useEffect(() => {
+    setRoot(rootEl);
+    return () => setRoot(null);
+  }, [rootEl, setRoot]);
 
   return (
     <div className="self-stretch w-[800px] max-w-full p-4">

@@ -7,6 +7,26 @@ import { logos } from "@src/assets";
 import { PATHS } from "@src/constants/paths";
 import AdBanner from "@src/components/AdBanner/AdBanner";
 import AdYoutube from "@src/components/AdBanner/AdYoutube";
+import ScrollToTopButton from "@components/commons/ScrollToTop/ScrollToTopButton";
+import ScrollRootProvider from "@components/commons/ScrollToTop/ScrollRootProvider";
+import { useScrollRoot } from "@components/commons/ScrollToTop/useScrollRoot";
+
+function OutletWithScrollToTop() {
+  const { root } = useScrollRoot();
+  return (
+    <div className="relative w-full">
+      <Outlet />
+      {/* 레이아웃 안쪽 우하단 고정(sticky). root는 페이지가 등록한 내부 스크롤 엘리먼트 */}
+      <div className="sticky bottom-6 w-full pointer-events-none z-[200]">
+        <div className="flex justify-end">
+          <div className="pointer-events-auto translate-x-2">
+            <ScrollToTopButton position="inline" root={root} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function MainLayout() {
   const [showAd, setShowAd] = useState(false);
@@ -47,7 +67,9 @@ export default function MainLayout() {
             <NavUnifiedSearch className="w-full" placeholder="통합검색" />
           </div>
           <div className="flex justify-center overflow-y-auto overflow-x-visible scrollbar-hide p-2">
-            <Outlet />
+            <ScrollRootProvider>
+              <OutletWithScrollToTop />
+            </ScrollRootProvider>
           </div>
         </div>
       </div>

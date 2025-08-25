@@ -11,6 +11,7 @@ import TagFilterPopover from "@components/Board/common/tagfilter/TagFilterPopove
 import type { SortValue } from "@src/types/sort";
 import type { PositionValue } from "@src/types/tag";
 import { ERROR_MESSAGES, LIST_MESSAGES, LOADING_MESSAGES } from "@constants/ui";
+import { useScrollRoot } from "@components/commons/ScrollToTop/useScrollRoot";
 
 export type PostListProps = {
   items: FreeBoardItem[];
@@ -72,6 +73,13 @@ export default function PostList({
   tagApplied,
   onApplyTag,
 }: PostListProps) {
+  const { setRoot } = useScrollRoot();
+
+  const attachRef = (el: HTMLDivElement | null) => {
+    scrollRootRef?.(el);
+    setRoot(el);
+  };
+
   // ------ 정렬(UI) ------
   const sortBtnRef = useRef<HTMLButtonElement>(null);
   const [openSort, setOpenSort] = useState(false);
@@ -126,8 +134,8 @@ export default function PostList({
 
       {/* 본문 스크롤 컨테이너 */}
       <div
-        ref={scrollRootRef}
-        className="w-full px-3 flex-1 min-h-0 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]"
+        ref={attachRef}
+        className="w-full px-3 flex-1 min-h-0 h-full overflow-y-auto overscroll-contain [scrollbar-gutter:stable]"
       >
         {isError && (
           <div className="w-full py-10 text-center text-sm text-red-500">
