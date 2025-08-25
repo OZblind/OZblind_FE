@@ -1,11 +1,11 @@
 import ScrollSentinel from "@components/commons/InfiniteScroll/ScrollSentinel";
 import { LastLoadedBar, BoardTopBar } from "@components/Board/common";
 import GithubCard, { type GithubCardProps } from "./GithubCard";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import SortRadioPopover from "@components/Board/common/sort/SortRadioPopover";
 import type { SortValue } from "@src/types/sort";
 import TagFilterPopover from "@components/Board/common/tagfilter/TagFilterPopover";
-import type { PositionValue } from "@components/Board/common/tagfilter/PositionRadio";
+import type { PositionValue } from "@src/types/tag";
 import { LIST_MESSAGES } from "@src/constants/ui";
 
 export type GithubListItem = GithubCardProps;
@@ -40,6 +40,10 @@ export type GithubListProps = {
 
   sortValue?: SortValue;
   onChangeSort?: (v: SortValue) => void;
+
+  tagValue?: { pos: PositionValue; cohort: number };
+  tagApplied?: boolean;
+  onApplyTag?: (next: { pos: PositionValue; cohort: number } | null) => void;
 };
 
 export default function GithubList({
@@ -60,6 +64,9 @@ export default function GithubList({
   scrollRootRef,
   sortValue,
   onChangeSort,
+  tagValue,
+  tagApplied,
+  onApplyTag,
 }: GithubListProps) {
   const isEmpty = items.length === 0;
 
@@ -78,7 +85,13 @@ export default function GithubList({
   const [openTag, setOpenTag] = useState(false);
   const [position, setPosition] = useState<PositionValue>("back");
   const [cohort, setCohort] = useState<number>(11);
-  const tagActive = position !== "back" || cohort !== 11;
+  const tagActive = !!tagApplied;
+
+  useEffect(() => {
+    if (!tagValue) return;
+    if (position !== tagValue.pos) setPosition(tagValue.pos);
+    if (cohort !== tagValue.cohort) setCohort(tagValue.cohort);
+  }, [tagValue?.pos, tagValue?.cohort]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <section className={`flex h-full flex-col ${className ?? ""}`}>
@@ -181,8 +194,9 @@ export default function GithubList({
           setPosition("back");
           setCohort(11);
         }}
-        onApply={() => {
-          // UI 전용: 실제 refetch/lastLoadedAt 갱신은 상위로 승격할 때 연결
+        onApply={(next) => {
+          onApplyTag?.(next);
+          setOpenTag(false);
         }}
         onRequestClose={() => setOpenTag(false)}
       />
