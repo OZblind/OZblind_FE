@@ -1,14 +1,29 @@
-import { useState } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect, useState } from "react";
 import { Button } from "@components/ui/Button";
 import ToastEditor from "@components/Board/editor/ToastEditor";
 import LinkPreviewCard from "./LinkPreviewCard";
-import { createSurveyPost } from "@src/api/posts.special";
+import { createSurveyPost, editSurveyPost } from "@src/api/posts.special";
 import { useNavigate } from "react-router-dom";
 import { useToastStore } from "@src/store/toastStore";
 import ConfirmModal from "../commons/ConfirmModal/ConfirmModal";
 
 interface Props {
+  /** 기본값: "create" */
+  mode?: "create" | "edit";
+  /** 수정 대상 글 ID (mode="edit"에서 필요) */
+  postId?: number;
+  /** 수정 초기값 */
+  initial?: {
+    title?: string;
+    content?: string;
+    formLink?: string;
+    /** ISO 또는 YYYY-MM-DD 모두 허용 */
+    endDate?: string;
+  };
   onCancel: () => void;
+  /** 저장 성공 후 콜백 (선택) */
+  onSubmitted?: (id?: number) => void;
 }
 
 const PROVIDERS = [
@@ -17,68 +32,159 @@ const PROVIDERS = [
   { value: "moaform", label: "모아폼", url: "https://moaform.com" },
 ];
 
-export default function SurveyPostForm({ onCancel }: Props) {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [formLink, setFormLink] = useState("");
-  const [endDate, setEndDate] = useState("");
+export default function SurveyPostForm({
+  mode = "create",
+  postId,
+  initial,
+  onCancel,
+  onSubmitted,
+}: Props) {
+  const isEdit = mode === "edit";
+
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [content, setContent] = useState(initial?.content ?? "");
+  const [editorInitial, setEditorInitial] = useState(initial?.content ?? "");
+  const [formLink, setFormLink] = useState(initial?.formLink ?? "");
+  const [endDate, setEndDate] = useState(toInputDate(initial?.endDate) ?? ""); // YYYY-MM-DD
   const [provider, setProvider] = useState<string>(""); // placeholder 상태
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
   const navigate = useNavigate();
   const toast = useToastStore();
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const urlPattern = /^(https?:\/\/)[^\s$.?#].[^\s]*$/i;
+  // initial이 나중에 주입되는 경우 동기화
+  useEffect(() => {
+    if (typeof initial?.title === "string") setTitle(initial.title);
+    if (typeof initial?.content === "string") {
+      setContent(initial.content);
+      setEditorInitial(initial.content);
+    }
+    if (typeof initial?.formLink === "string") setFormLink(initial.formLink);
+    if (typeof initial?.endDate === "string")
+      setEndDate(toInputDate(initial.endDate));
+  }, [initial?.title, initial?.content, initial?.formLink, initial?.endDate]);
 
   const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const next = e.target.value;
     setProvider(next);
     const found = PROVIDERS.find((p) => p.value === next);
     if (found) {
-      // 선택 즉시 새 창 열기
       window.open(found.url, "_blank", "noopener,noreferrer");
-      // 다시 placeholder로 되돌려 중복 선택 시도 가능하게
       setTimeout(() => setProvider(""), 0);
     }
   };
 
   const handleSubmit = async () => {
-    if (!title.trim()) return alert("제목을 입력하세요.");
-    if (!content.trim()) return alert("내용을 입력하세요.");
-    if (!formLink.trim()) return alert("작성한 설문 링크를 입력하세요.");
-    if (!endDate) return alert("설문 종료일을 선택하세요.");
+    const t = title.trim();
+    const c = content ?? "";
+    const link = formLink.trim();
+    const end = endDate?.trim();
 
-    // Date → ISO (KST 기준 하루 끝으로 보낼 예시)
-    const end_date_iso = new Date(`${endDate}T23:59:59+09:00`).toISOString();
+    if (!t)
+      return toast.push({
+        message: "제목을 입력하세요.",
+        type: "warning",
+        durationMs: 2500,
+      });
+    if (!c.trim())
+      return toast.push({
+        message: "내용을 입력하세요.",
+        type: "warning",
+        durationMs: 2500,
+      });
+    if (!link)
+      return toast.push({
+        message: "작성한 설문 링크를 입력하세요.",
+        type: "warning",
+        durationMs: 2500,
+      });
+    if (!isValidUrl(link))
+      return toast.push({
+        message: "유효한 URL 형식이 아닙니다.",
+        type: "warning",
+        durationMs: 2500,
+      });
+    if (!end)
+      return toast.push({
+        message: "설문 종료일을 선택하세요.",
+        type: "warning",
+        durationMs: 2500,
+      });
 
-    // 실제 API 연동
-    const res = await createSurveyPost({
-      title,
-      content,
-      end_date: end_date_iso,
-      link: formLink,
-      //image,
-    });
-    requestAnimationFrame(() => navigate(`/posts/${res.post_id}`));
+    // 종료일을 KST 하루 끝(23:59:59)으로 ISO 변환
+    const end_date_iso = new Date(`${end}T23:59:59+09:00`).toISOString();
 
-    console.log({ title, content, formLink, endDate });
-    toast.push({
-      message: "설문 게시글이 등록되었습니다.",
-      type: "success",
-    });
-    onCancel();
+    setSubmitting(true);
+    try {
+      if (isEdit) {
+        if (!postId) {
+          toast.push({
+            message: "수정 대상 글 ID가 없습니다.",
+            type: "error",
+            durationMs: 3000,
+          });
+          return;
+        }
+        // 수정: 일반 PATCH (form_link, end_date 포함)
+        await editSurveyPost(postId, {
+          title: t,
+          content: c,
+          link,
+          end_date: end_date_iso,
+        });
+
+        toast.push({
+          message: "설문 게시글이 수정되었습니다.",
+          type: "success",
+          durationMs: 3000,
+        });
+        onSubmitted?.(postId);
+        requestAnimationFrame(() => navigate(`/posts/${postId}`));
+      } else {
+        // 🆕 작성: 특수 엔드포인트
+        const res = await createSurveyPost({
+          title: t,
+          content: c,
+          end_date: end_date_iso,
+          link,
+        });
+
+        const newId = (res as any)?.id ?? (res as any)?.post_id;
+        toast.push({
+          message: "설문 게시글이 등록되었습니다.",
+          type: "success",
+          durationMs: 3000,
+        });
+
+        if (newId) {
+          onSubmitted?.(newId);
+          requestAnimationFrame(() => navigate(`/posts/${newId}`));
+        } else {
+          onSubmitted?.();
+          onCancel();
+        }
+      }
+    } catch (e: any) {
+      toast.push({
+        message:
+          e?.response?.data?.detail ||
+          e?.message ||
+          (isEdit ? "수정에 실패했습니다." : "등록에 실패했습니다."),
+        type: "error",
+        durationMs: 3000,
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  // 유효성 검사
+  // 링크 입력 변화 + 유효성 검사
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setFormLink(value);
-
-    if (value && !urlPattern.test(value)) {
-      setError("유효한 URL 형식이 아닙니다.");
-    } else {
-      setError("");
-    }
+    setError(value && !isValidUrl(value) ? "유효한 URL 형식이 아닙니다." : "");
   };
 
   return (
@@ -94,11 +200,11 @@ export default function SurveyPostForm({ onCancel }: Props) {
           onChange={(e) => setTitle(e.target.value)}
         />
       </div>
+
       {/* 설문지 작성 / 링크 / 마감일 */}
       <div className="flex flex-wrap gap-4">
         <div className="flex flex-col gap-1 shrink-0">
           <label className="font-semibold text-white">설문 생성</label>
-          {/* 설문지 제공자 드롭다운 (선택 즉시 새 창) */}
           <select
             aria-label="설문 폼 선택"
             className="border border-gray-300 rounded p-2 bg-white shrink-0"
@@ -156,9 +262,9 @@ export default function SurveyPostForm({ onCancel }: Props) {
         endDate={endDate}
       />
 
-      {/* 에디터 */}
+      {/* 에디터 (이미지는 에디터 내부 업로더 사용) */}
       <div className="flex-1">
-        <ToastEditor onChange={setContent} />
+        <ToastEditor initial={editorInitial} onChange={setContent} />
       </div>
 
       {/* 버튼 */}
@@ -174,8 +280,15 @@ export default function SurveyPostForm({ onCancel }: Props) {
           variant="primary"
           className="min-w-[100px] text-white"
           onClick={handleSubmit}
+          disabled={submitting}
         >
-          작성
+          {submitting
+            ? isEdit
+              ? "수정 중..."
+              : "작성 중..."
+            : isEdit
+            ? "수정"
+            : "작성"}
         </Button>
       </div>
       <ConfirmModal
@@ -190,4 +303,25 @@ export default function SurveyPostForm({ onCancel }: Props) {
       />
     </div>
   );
+}
+
+/** YYYY-MM-DD 또는 ISO를 date input 값(YYYY-MM-DD)으로 정규화 */
+function toInputDate(src?: string): string {
+  if (!src) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(src)) return src;
+  const d = new Date(src);
+  if (Number.isNaN(d.getTime())) return "";
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function isValidUrl(v: string): boolean {
+  try {
+    const u = new URL(v);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
 }

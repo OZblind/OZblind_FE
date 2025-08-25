@@ -1,28 +1,23 @@
+import { parseYMDToLocalDate } from "@src/utils/date";
 import clsx from "clsx";
 import { ExternalLink, Calendar } from "lucide-react";
 
 type Props = {
   url: string;
-  title?: string; // ← 여기로 설문 제목을 넣어주세요
-  endDate?: string; // YYYY-MM-DD (input[type="date"])
+  title?: string; // 설문 제목
+  endDate?: string; // YYYY-MM-DD
   className?: string;
 };
 
-// YYYY-MM-DD → 로컬 타임존 기준 날짜 객체 (자정 지정 가능)
-function parseYMDToLocalDate(ymd: string, endOfDay = false): Date | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd);
-  if (!m) return null;
-  const y = Number(m[1]);
-  const mo = Number(m[2]) - 1;
-  const d = Number(m[3]);
-  return endOfDay
-    ? new Date(y, mo, d, 23, 59, 59, 999) // ← 당일 23:59:59.999
-    : new Date(y, mo, d, 0, 0, 0, 0);
+// http/https만 허용해 간단히 검증
+function isSafeUrl(u: string): boolean {
+  const s = u.trim();
+  return /^https?:\/\/[^\s/$.?#].[^\s]*$/i.test(s);
 }
 
-// URL이 안전한지 확인하는 함수 (http/https만 허용)
-function isSafeUrl(url: string): boolean {
-  return /^https?:\/\/[^\s$.?#].[^\s]*$/i.test(url);
+// 화면 표시용: 프로토콜 제거
+function toDisplayText(u: string) {
+  return u.replace(/^https?:\/\//i, "");
 }
 
 export default function LinkPreviewCard({
@@ -31,12 +26,15 @@ export default function LinkPreviewCard({
   endDate,
   className,
 }: Props) {
-  if (!url) return null;
+  const rawUrl = (url ?? "").trim();
+  if (!rawUrl) return null;
 
-  // 오늘 시각과 마감일(당일 자정 끝) 비교
   const now = new Date();
   const end = endDate ? parseYMDToLocalDate(endDate, true) : null;
-  const isExpired = Boolean(end && now > end); // 당일까지는 유효
+  const isExpired = Boolean(end && now > end);
+
+  const safe = isSafeUrl(rawUrl);
+  const displayText = toDisplayText(rawUrl);
 
   return (
     <div
@@ -53,32 +51,22 @@ export default function LinkPreviewCard({
         <ExternalLink className="w-4 h-4 opacity-70" aria-hidden />
       </p>
 
-      {isSafeUrl(url) ? (
+      {safe ? (
         <a
-          href={url}
+          href={rawUrl}
           target="_blank"
           rel="noopener noreferrer"
+          aria-disabled={isExpired}
           className={clsx(
             "underline break-all",
             isExpired ? "text-gray-400 pointer-events-none" : "text-blue-600"
           )}
         >
-          {url}
+          {displayText}
         </a>
       ) : (
         <span className="text-red-500">유효하지 않은 링크입니다.</span>
       )}
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={clsx(
-          "underline break-all",
-          isExpired ? "text-gray-400 pointer-events-none" : "text-blue-600"
-        )}
-      >
-        {url}
-      </a>
 
       {endDate && (
         <p className="mt-2 flex items-center gap-1 text-sm">

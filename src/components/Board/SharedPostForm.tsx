@@ -1,27 +1,61 @@
-import { useState } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect, useState } from "react";
 import ToastEditor from "@components/Board/editor/ToastEditor";
 import { Button } from "@components/ui/Button";
 import type { BoardSlug } from "@src/constants/boards";
-import { createPost } from "@src/api/posts";
+import { createPost, updatePost } from "@src/api/posts";
 import { useToastStore } from "@src/store/toastStore";
 import { useNavigate } from "react-router-dom";
 import ConfirmModal from "../commons/ConfirmModal/ConfirmModal";
 // import { createPost } from "@/api/post";
 
 interface Props {
-  board: string; // "free" | "job" | "info"
+  /** "free" | "job" | "info" (기존 문자열도 호환) */
+  board: BoardSlug | string;
+  /** 기본값: "create" */
+  mode?: "create" | "edit";
+  /** mode="edit"일 때 필요한 대상 글 ID */
+  postId?: number;
+  /** 수정 모드에서 초기값 */
+  initial?: {
+    title?: string;
+    content?: string;
+  };
   onCancel: () => void;
+  /** 저장 성공 후 콜백(선택) */
+  onSubmitted?: (id?: number) => void;
 }
 
-export default function SharedPostForm({ board, onCancel }: Props) {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+export default function SharedPostForm({
+  board,
+  mode = "create",
+  postId,
+  initial,
+  onCancel,
+  onSubmitted,
+}: Props) {
+  const isEdit = mode === "edit";
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [content, setContent] = useState(initial?.content ?? "");
+  const [editorInitial, setEditorInitial] = useState(initial?.content ?? "");
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const [showConfirm, setShowConfirm] = useState(false);
 
+  // initial 값이 변경될 수 있는 경우(예: 상세 로드 후 주입) 반영
+  useEffect(() => {
+    if (typeof initial?.title === "string") setTitle(initial.title);
+    if (typeof initial?.content === "string") {
+      setContent(initial.content);
+      setEditorInitial(initial.content);
+    }
+  }, [initial?.title, initial?.content]);
+
   const handleSubmit = async () => {
-    if (!title.trim() || !content.trim()) {
+    const nextTitle = title.trim();
+    const nextContent = content ?? "";
+
+    if (!nextTitle || !nextContent.trim()) {
       useToastStore.getState().push({
         message: "제목/내용을 입력하세요.",
         type: "warning",
@@ -29,37 +63,61 @@ export default function SharedPostForm({ board, onCancel }: Props) {
       });
       return;
     }
+
     setSubmitting(true);
     try {
-      const res = await createPost({
-        board: board as BoardSlug,
-        title,
-        content,
-      });
+      if (isEdit) {
+        if (!postId) {
+          useToastStore.getState().push({
+            message: "수정 대상 글 ID가 없습니다.",
+            type: "error",
+            durationMs: 3000,
+          });
+          return;
+        }
+        await updatePost({
+          id: postId,
+          title: nextTitle,
+          content: nextContent,
+        });
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const newId = (res as any)?.id ?? (res as any)?.post_id; // 둘 중 하나만 내려오는 경우 대비
-      if (newId) {
+        useToastStore.getState().push({
+          message: "게시글이 수정되었습니다.",
+          type: "success",
+          durationMs: 3000,
+        });
+
+        onSubmitted?.(postId);
+        requestAnimationFrame(() => navigate(`/posts/${postId}`));
+      } else {
+        const res = await createPost({
+          board: board as BoardSlug,
+          title: nextTitle,
+          content: nextContent,
+        });
+
+        const newId = (res as any)?.id ?? (res as any)?.post_id; // 백 규약 이중 대비
         useToastStore.getState().push({
           message: "게시글이 등록되었습니다.",
           type: "success",
           durationMs: 3000,
         });
-        requestAnimationFrame(() => navigate(`/posts/${newId}`));
-        return;
-      }
 
-      // 혹시 id가 없다면: 리스트 새로고침 or 폼 초기화
-      useToastStore.getState().push({
-        message: "게시글이 등록되었습니다.",
-        type: "success",
-        durationMs: 3000,
-      });
-      onCancel(); // 이전 화면으로
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (newId) {
+          onSubmitted?.(newId);
+          requestAnimationFrame(() => navigate(`/posts/${newId}`));
+        } else {
+          onSubmitted?.();
+          onCancel(); // id가 없다면 이전 화면으로
+        }
+      }
     } catch (e: any) {
       useToastStore.getState().push({
-        message: e?.message ?? "게시글이 등록에 실패했습니다.",
+        message:
+          e?.message ??
+          (isEdit
+            ? "게시글 수정에 실패했습니다."
+            : "게시글 등록에 실패했습니다."),
         type: "error",
         durationMs: 3000,
       });
@@ -82,7 +140,11 @@ export default function SharedPostForm({ board, onCancel }: Props) {
       </div>
 
       <div className="flex-1">
-        <ToastEditor onChange={setContent} />
+        <ToastEditor
+          // ToastEditor가 초기값 prop을 지원하면 활성화
+          initial={editorInitial}
+          onChange={setContent}
+        />
       </div>
 
       <div className="flex justify-end gap-4 mt-2">
@@ -100,7 +162,13 @@ export default function SharedPostForm({ board, onCancel }: Props) {
           onClick={handleSubmit}
           disabled={submitting}
         >
-          {submitting ? "작성 중..." : "작성"}
+          {submitting
+            ? isEdit
+              ? "수정 중..."
+              : "작성 중..."
+            : isEdit
+            ? "수정"
+            : "작성"}
         </Button>
       </div>
       <ConfirmModal

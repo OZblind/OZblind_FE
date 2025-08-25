@@ -1,52 +1,188 @@
-import { useState } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect, useState } from "react";
 import { Button } from "@components/ui/Button";
 import ToastEditor from "@components/Board/editor/ToastEditor";
 import { RepoPreviewCard } from "./RepoPreviewCard";
 import { useNavigate } from "react-router-dom";
-import { createGithubPost } from "@src/api/posts.special";
+import { createGithubPost, editGithubPost } from "@src/api/posts.special";
+import { updatePost } from "@src/api/posts";
 import { useToastStore } from "@src/store/toastStore";
 import ConfirmModal from "../commons/ConfirmModal/ConfirmModal";
 
 interface Props {
+  /** 기본값: "create" */
+  mode?: "create" | "edit";
+  /** 수정 대상 글 ID (mode="edit"에서 필요) */
+  postId?: number;
+  /** 수정 초기값 */
+  initial?: {
+    title?: string;
+    content?: string;
+    repoUrl?: string; // 백엔드로는 repo_url로 전달
+  };
   onCancel: () => void;
+  /** 저장 성공 후 콜백 (선택) */
+  onSubmitted?: (id?: number) => void;
 }
 
-export default function GitRepoPostForm({ onCancel }: Props) {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [repoLink, setRepoLink] = useState("");
+export default function GitRepoPostForm({
+  mode = "create",
+  postId,
+  initial,
+  onCancel,
+  onSubmitted,
+}: Props) {
+  const isEdit = mode === "edit";
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [content, setContent] = useState(initial?.content ?? "");
+  const [editorInitial, setEditorInitial] = useState(initial?.content ?? "");
+  const [repoLink, setRepoLink] = useState(initial?.repoUrl ?? "");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
   const navigate = useNavigate();
   const toast = useToastStore();
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const urlPattern = /^(https?:\/\/)[^\s$.?#].[^\s]*$/i;
+  // initial이 동적으로 주입될 수 있으니 동기화
+  useEffect(() => {
+    if (typeof initial?.title === "string") setTitle(initial.title);
+    if (typeof initial?.content === "string") {
+      setContent(initial.content);
+      setEditorInitial(initial.content);
+    }
+    if (typeof initial?.repoUrl === "string") setRepoLink(initial.repoUrl);
+  }, [initial?.title, initial?.content, initial?.repoUrl]);
 
-  const handleSubmit = async () => {
-    if (!title.trim()) return alert("제목을 입력하세요.");
-    if (!content.trim()) return alert("내용을 입력하세요.");
-    if (!repoLink.trim()) return alert("작성한 레포 주소를 입력하세요.");
-
-    // 실제 API 연동
-    const res = await createGithubPost({ title, content, link: repoLink });
-    requestAnimationFrame(() => navigate(`/posts/${res.post_id}`));
-    toast.push({
-      message: "설문 게시글이 등록되었습니다.",
-      type: "success",
-    });
-    onCancel();
+  const isValidUrl = (v: string) => {
+    try {
+      const u = new URL(v);
+      return u.protocol === "http:" || u.protocol === "https:";
+    } catch {
+      return false;
+    }
   };
 
-  // 유효성 검사
+  const handleSubmit = async () => {
+    const t = title.trim();
+    const c = content ?? "";
+    const r = repoLink.trim();
+
+    if (isEdit) {
+      if (!postId) {
+        toast.push({
+          message: "수정 대상 글 ID가 없습니다.",
+          type: "error",
+          durationMs: 3000,
+        });
+        return;
+      }
+      await editGithubPost(postId, { title: t, content: c, link: r });
+      toast.push({
+        message: "게시글이 수정되었습니다.",
+        type: "success",
+        durationMs: 3000,
+      });
+      onSubmitted?.(postId);
+      requestAnimationFrame(() => navigate(`/posts/${postId}`));
+      return;
+    }
+    if (!t) {
+      toast.push({
+        message: "제목을 입력하세요.",
+        type: "warning",
+        durationMs: 2500,
+      });
+      return;
+    }
+    if (!c.trim()) {
+      toast.push({
+        message: "내용을 입력하세요.",
+        type: "warning",
+        durationMs: 2500,
+      });
+      return;
+    }
+    if (!r) {
+      toast.push({
+        message: "레포지토리 주소를 입력하세요.",
+        type: "warning",
+        durationMs: 2500,
+      });
+      return;
+    }
+    if (!isValidUrl(r)) {
+      toast.push({
+        message: "유효한 URL 형식이 아닙니다.",
+        type: "warning",
+        durationMs: 2500,
+      });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      if (isEdit) {
+        if (!postId) {
+          toast.push({
+            message: "수정 대상 글 ID가 없습니다.",
+            type: "error",
+            durationMs: 3000,
+          });
+          return;
+        }
+        // 수정: 일반 posts PATCH 사용 (repo_url 포함)
+        await updatePost({
+          id: postId,
+          title: t,
+          content: c,
+          repo_url: r || undefined,
+        });
+
+        toast.push({
+          message: "게시글이 수정되었습니다.",
+          type: "success",
+          durationMs: 3000,
+        });
+        onSubmitted?.(postId);
+        requestAnimationFrame(() => navigate(`/posts/${postId}`));
+      } else {
+        // 작성: 기존 특수 엔드포인트 사용
+        const res = await createGithubPost({ title: t, content: c, link: r });
+        const newId = (res as any)?.id ?? (res as any)?.post_id;
+        toast.push({
+          message: "깃허브 게시글이 등록되었습니다.",
+          type: "success",
+          durationMs: 3000,
+        });
+
+        if (newId) {
+          onSubmitted?.(newId);
+          requestAnimationFrame(() => navigate(`/posts/${newId}`));
+        } else {
+          onSubmitted?.();
+          onCancel();
+        }
+      }
+    } catch (e: any) {
+      toast.push({
+        message:
+          e?.response?.data?.detail ||
+          e?.message ||
+          (isEdit ? "수정에 실패했습니다." : "등록에 실패했습니다."),
+        type: "error",
+        durationMs: 3000,
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // URL 입력 변화
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setRepoLink(value);
-
-    if (value && !urlPattern.test(value)) {
-      setError("유효한 URL 형식이 아닙니다.");
-    } else {
-      setError("");
-    }
+    setError(value && !isValidUrl(value) ? "유효한 URL 형식이 아닙니다." : "");
   };
 
   return (
@@ -79,11 +215,13 @@ export default function GitRepoPostForm({ onCancel }: Props) {
       </div>
 
       {/* 레포 프리뷰 카드 */}
-      {repoLink && <RepoPreviewCard repoLink={repoLink} />}
+      {repoLink && isValidUrl(repoLink) && (
+        <RepoPreviewCard repoLink={repoLink} />
+      )}
 
-      {/* 에디터 */}
+      {/* 에디터 (이미지는 에디터 내부 업로더 사용) */}
       <div className="flex-1">
-        <ToastEditor onChange={setContent} />
+        <ToastEditor initial={editorInitial} onChange={setContent} />
       </div>
 
       {/* 버튼 */}
@@ -99,8 +237,15 @@ export default function GitRepoPostForm({ onCancel }: Props) {
           variant="primary"
           className="min-w-[100px] text-white"
           onClick={handleSubmit}
+          disabled={submitting}
         >
-          작성
+          {submitting
+            ? isEdit
+              ? "수정 중..."
+              : "작성 중..."
+            : isEdit
+            ? "수정"
+            : "작성"}
         </Button>
       </div>
       <ConfirmModal
