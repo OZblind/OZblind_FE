@@ -53,6 +53,7 @@ import TestGithubList from "@src/pages/test/BoardList/TestGithubList";
 import MainLayout from "@src/layouts/MainLayout";
 import WritePostPage from "@src/components/Board/WritePostPage";
 import GithubListPage from "@src/pages/boards/GithubListPage";
+import PostEditPage from "@src/pages/boards/PostEditPage";
 
 /** 공개(보호 불필요) 경로 목록 */
 const PUBLIC_PATHS: ReadonlySet<string> = new Set([
@@ -291,7 +292,7 @@ export default function AppRouter() {
           <Route path={PATHS.GITHUB_BOARD} element={<GithubListPage />} />
           <Route path={PATHS.POST_DETAIL} element={<PostDetailPage />} />
           <Route path={PATHS.POST_CREATE} element={<WritePostPage />} />
-
+          <Route path={PATHS.POST_EDIT} element={<PostEditPage />} />
           {/* 보호: 마이페이지 (JWT + 인증 완료) */}
           <Route
             path={PATHS.MYPAGE}

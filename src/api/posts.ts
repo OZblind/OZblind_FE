@@ -41,9 +41,14 @@ export type CreatePostPayload = {
   image?: string | File | Blob | null;
 };
 
-export type UpdatePostPayload = Partial<Omit<CreatePostPayload, "board">> & {
-  id: number;
-};
+export type UpdatePostPayload = Partial<
+  Omit<CreatePostPayload, "board"> & {
+    // ✨ 설문/깃허브 전용(백엔드 규약에 맞춰 키 이름 조정)
+    form_link?: string;
+    end_date?: string; // ISO date string
+    repo_url?: string;
+  }
+> & { id: number };
 
 /** ----- API 함수 ----- */
 export async function fetchPosts(params?: {
