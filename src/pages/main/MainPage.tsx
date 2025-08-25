@@ -39,7 +39,11 @@ export default function MainPage() {
         title: post.title,
         author:
           post.user && typeof post.user === "object"
-            ? `${post.user.tag_class} ${post.user.tag_number}기`
+            ? post.user.tag_class === "FE"
+              ? `프론트 ${post.user.tag_number}기`
+              : post.user.tag_class === "BE"
+              ? `백엔드 ${post.user.tag_number}기`
+              : `${post.user.tag_class} ${post.user.tag_number}기` // 다른 태그는 그대로
             : "익명",
         dateText: formatYyMmDd(new Date(post.created_at)),
         views: post.view_count,
