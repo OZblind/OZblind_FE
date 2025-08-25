@@ -1,6 +1,5 @@
-// constants/paths.ts
 export const PATHS = {
-  ROOT: "/", // 현재(25.08.10) 테스트 허브
+  ROOT: "/", // 루트 엔트리: 인증/오즈 인증 상태 분기
   AUTH: "/auth", // 로비(랜딩)+로그인,회원가입 페이지
   MAIN: "/main",
   KEY_VERIFY: "/key-verify",
