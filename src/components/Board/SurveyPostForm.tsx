@@ -5,6 +5,7 @@ import LinkPreviewCard from "./LinkPreviewCard";
 import { createSurveyPost } from "@src/api/posts.special";
 import { useNavigate } from "react-router-dom";
 import { useToastStore } from "@src/store/toastStore";
+import ConfirmModal from "../commons/ConfirmModal/ConfirmModal";
 
 interface Props {
   onCancel: () => void;
@@ -25,6 +26,7 @@ export default function SurveyPostForm({ onCancel }: Props) {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const toast = useToastStore();
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const urlPattern = /^(https?:\/\/)[^\s$.?#].[^\s]*$/i;
 
@@ -164,7 +166,7 @@ export default function SurveyPostForm({ onCancel }: Props) {
         <Button
           variant="secondary"
           className="min-w-[100px]"
-          onClick={onCancel}
+          onClick={() => setShowConfirm(true)}
         >
           취소
         </Button>
@@ -176,6 +178,16 @@ export default function SurveyPostForm({ onCancel }: Props) {
           작성
         </Button>
       </div>
+      <ConfirmModal
+        isOpen={showConfirm}
+        title="게시글 작성을 취소하시겠어요?"
+        description="지금까지 작성한 정보는 전부 삭제됩니다."
+        onCancel={() => setShowConfirm(false)}
+        onConfirm={() => {
+          onCancel();
+          setShowConfirm(false);
+        }}
+      />
     </div>
   );
 }
