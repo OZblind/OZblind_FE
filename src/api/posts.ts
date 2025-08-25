@@ -20,7 +20,9 @@ export type PostDetail = {
   id: number;
   title: string;
   content: string; // HTML/Markdown 그대로
-  user: number | string;
+  user?: { id: string | number } | null;
+  user_id?: string | number;
+  author_id?: string | number;
   board: number;
   image?: string | null;
   view_count: number;
@@ -39,9 +41,14 @@ export type CreatePostPayload = {
   image?: string | File | Blob | null;
 };
 
-export type UpdatePostPayload = Partial<Omit<CreatePostPayload, "board">> & {
-  id: number;
-};
+export type UpdatePostPayload = Partial<
+  Omit<CreatePostPayload, "board"> & {
+    // ✨ 설문/깃허브 전용(백엔드 규약에 맞춰 키 이름 조정)
+    form_link?: string;
+    end_date?: string; // ISO date string
+    repo_url?: string;
+  }
+> & { id: number };
 
 /** ----- API 함수 ----- */
 export async function fetchPosts(params?: {
@@ -50,6 +57,8 @@ export async function fetchPosts(params?: {
   ordering?: "-created_at" | "created_at" | "-view_count" | "view_count";
   page?: number; // DRF는 1-base, 0은 절대 보내지 않기
   page_size?: number;
+  user_tag_class?: "FE" | "BE";
+  user_tag_number?: number;
 }) {
   const query = new URLSearchParams();
 
@@ -58,6 +67,12 @@ export async function fetchPosts(params?: {
   if (params?.ordering) query.set("ordering", params.ordering);
   if (params?.page) query.set("page", String(params.page));
   if (params?.page_size) query.set("page_size", String(params.page_size));
+  if (params?.user_tag_class) {
+    query.set("user_tag_class", params.user_tag_class);
+  }
+  if (typeof params?.user_tag_number === "number") {
+    query.set("user_tag_number", String(params.user_tag_number));
+  }
 
   try {
     const { data } = await api.get<
@@ -66,9 +81,13 @@ export async function fetchPosts(params?: {
     return Array.isArray(data) ? data : data?.results ?? [];
   } catch (e: unknown) {
     const err = e as AxiosError;
-    if (err.response?.status === 404) {
+    if (err.response?.status === 404 || err.response?.status === 500) {
       if (import.meta.env.DEV) {
-        console.info("[useInfiniteQuery] 더 불러올 데이터 없음 (404 수신)");
+        console.info(
+          "[useInfiniteQuery] 불러올 데이터 없음 (",
+          err.response?.status,
+          " 수신)"
+        );
       }
       return [];
     }
@@ -79,7 +98,7 @@ export async function fetchPosts(params?: {
 
 export async function fetchPostDetail(id: number) {
   // api 접두어
-  const { data } = await api.get<PostDetail>(`/api/posts/${id}`);
+  const { data } = await api.get<PostDetail>(`/api/posts/${id}/`);
   return data; // (상세 진입 시 서버가 조회수+1 처리한다고 가정)
 }
 
@@ -109,7 +128,7 @@ export async function createPost(payload: CreatePostPayload) {
     });
     return data;
   } else {
-    // ✅ JSON 전송
+    // JSON 전송
     const body: Record<string, unknown> = {
       board: boardId,
       title,
@@ -138,65 +157,41 @@ export async function updatePost(payload: UpdatePostPayload) {
       form.append("content", String(rest.content));
     if (rest.image) form.append("image", rest.image as File | Blob);
 
-    const { data } = await api.patch<PostDetail>(`/api/posts/${id}`, form, {
+    const { data } = await api.patch<PostDetail>(`/api/posts/${id}/`, form, {
       headers: { "Content-Type": "multipart/form-data" },
     });
     return data;
   } else {
-    const { data } = await api.patch<PostDetail>(`/api/posts/${id}`, rest);
+    const { data } = await api.patch<PostDetail>(`/api/posts/${id}/`, rest);
     return data;
   }
 }
 
 export async function deletePost(id: number) {
-  await api.delete(`/api/posts/${id}`);
+  await api.delete(`/api/posts/${id}/`);
 }
 
+// ===== 단일호출(singleflight)만: 동시 중복 호출 합치기(캐시 없음) =====
 type Key = string;
 const keyOf = (id: string | number): Key => String(id);
 
-// === Anti-duplicate view: 상세 호출 단일화 + 짧은 캐시(TTL) ==================
-// 동일 postId 동시 호출 결합
-const _detailInflight = new Map<Key, Promise<PostDetail>>();
+const _inflight = new Map<Key, Promise<PostDetail>>();
 
-// 짧은 메모리 캐시 (기본 30초)
-const _detailCache = new Map<Key, { data: PostDetail; exp: number }>();
-
-/** (선택) 외부에서 상세 응답을 바로 캐시에 심고 싶을 때 사용 */
-export function primePostDetailCache(
-  id: string | number,
-  data: PostDetail,
-  ttlMs = 30_000
-) {
-  const key = keyOf(id);
-  _detailCache.set(key, { data, exp: Date.now() + ttlMs });
-}
-
-/** 상세 조회를 최대 1회로 제한하고, TTL 내 재사용 */
-export async function fetchPostDetailCached(
-  id: string | number,
-  opts?: { ttlMs?: number; force?: boolean }
+/** 동일 postId로 동시에 들어오는 요청을 1번으로 합칩니다. (끝나면 inflight 제거) */
+export async function fetchPostDetailSingleflight(
+  id: string | number
 ): Promise<PostDetail> {
   const key = keyOf(id);
-  const ttlMs = opts?.ttlMs ?? 30_000;
-  const force = opts?.force ?? false;
 
-  const now = Date.now();
-  const cached = _detailCache.get(key);
-  if (!force && cached && cached.exp > now) {
-    return cached.data;
-  }
+  const p = _inflight.get(key);
+  if (p) return p;
 
-  const inflight = _detailInflight.get(key);
-  if (inflight) return inflight;
+  const run = (fetchPostDetail as (x: string | number) => Promise<PostDetail>)(
+    id
+  ).finally(() => {
+    _inflight.delete(key);
+  });
 
-  const p = (fetchPostDetail as (x: string | number) => Promise<PostDetail>)(id)
-    .then((data) => {
-      _detailCache.set(key, { data, exp: now + ttlMs });
-      return data;
-    })
-    .finally(() => _detailInflight.delete(key));
-
-  _detailInflight.set(key, p);
-  return p;
+  _inflight.set(key, run);
+  return run;
 }

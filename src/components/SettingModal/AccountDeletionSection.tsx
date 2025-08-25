@@ -1,6 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { deleteAccount } from "@api/deleteAccount";
 import { tokenStore } from "@api/client";
+import { useToastStore } from "@store/toastStore";
+import { PATHS } from "@constants/paths";
+import { useLogoutMutation } from "@hooks/useAuthQueries";
+import type { AxiosError } from "axios"; // ✅ 추가
 
 interface AccountDeletionSectionProps {
   onSuccess?: () => void;
@@ -9,40 +14,54 @@ interface AccountDeletionSectionProps {
 export function AccountDeletionSection({
   onSuccess,
 }: AccountDeletionSectionProps) {
+  const navigate = useNavigate();
+  const logoutMut = useLogoutMutation();
   const [inputValue, setInputValue] = useState("");
   const [isWarningVisible, setIsWarningVisible] = useState(false);
   const [isConfirmVisible, setIsConfirmVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
 
   const isValid = inputValue === "회원 탈퇴";
 
   const handleDelete = async () => {
     if (!isValid) return;
 
-    const idToken = tokenStore.access;
-    if (!idToken) {
-      setError("로그인 후에만 회원 탈퇴가 가능합니다.");
+    const access = tokenStore.access;
+
+    if (!access) {
+      setError("오즈키 인증을 완료한 후 탈퇴가 가능합니다.");
       return;
     }
 
     setLoading(true);
     setError(null);
-    setMessage(null);
 
     try {
-      const result = await deleteAccount();
-      setMessage(result.message);
+      await deleteAccount();
+
       setIsConfirmVisible(false);
-      tokenStore.clear(); // 탈퇴 성공 시 토큰 초기화
+      tokenStore.clear();
       if (onSuccess) onSuccess();
+
+      await logoutMut.mutateAsync();
+
+      useToastStore.getState().push({
+        message: "회원 탈퇴에 성공했어요.",
+        type: "success",
+        durationMs: 4000,
+      });
+
+      navigate(PATHS.ROOT, { replace: true });
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("회원 탈퇴 중 알 수 없는 오류가 발생했습니다.");
+      let msg = "회원 탈퇴 중 알 수 없는 오류가 발생했습니다.";
+      if ((err as AxiosError)?.response?.data) {
+        const data = (err as AxiosError<{ error?: string }>).response?.data;
+        msg = data?.error ?? msg;
+      } else if (err instanceof Error) {
+        msg = err.message;
       }
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -54,7 +73,6 @@ export function AccountDeletionSection({
       setIsConfirmVisible(false);
       setInputValue("");
       setError(null);
-      setMessage(null);
     } else {
       setIsWarningVisible(true);
     }
@@ -114,7 +132,6 @@ export function AccountDeletionSection({
             {loading ? "탈퇴 처리 중..." : "회원 탈퇴"}
           </button>
           {error && <p className="text-red-600 mt-2">{error}</p>}
-          {message && <p className="text-green-600 mt-2">{message}</p>}
         </div>
       )}
     </>

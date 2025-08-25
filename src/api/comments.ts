@@ -1,24 +1,32 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { api } from "@api/client";
 import type { CommentMeta } from "@src/types/post";
-import { fetchRandomNickname } from "@src/api/nickname"; // 랜덤 닉네임 API
-import { fetchPostDetailCached } from "./posts";
+import { fetchRandomNickname } from "@src/api/nickname";
+import { fetchPostDetailSingleflight } from "./posts";
 
-/** ------------------------------
- * 닉네임 태그(본문 내 임베딩) 유틸
- * ------------------------------ */
+/** 닉네임 태그 유틸 */
 export const DELETED_PLACEHOLDER = "작성자에 의해 삭제된 댓글입니다.";
-
-// 본문 앞에 붙일 닉네임 (본문과 구별)
 const NICK_OPEN = "[[NICK]]";
 const NICK_CLOSE = "[[/NICK]]";
 
-/** 본문에 닉네임을 헤더로 임베딩 */
+export function normalizeDate(input: unknown): string {
+  if (input == null) return new Date().toISOString();
+  if (typeof input === "number") return new Date(input).toISOString();
+  let s = String(input).trim();
+
+  // 공백 구분인 "YYYY-MM-DD HH:mm:ss" 형태면 T로 치환
+  if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}/.test(s) && !s.includes("T")) {
+    s = s.replace(" ", "T");
+  }
+
+  const t = Date.parse(s);
+  return Number.isNaN(t) ? new Date().toISOString() : new Date(t).toISOString();
+}
+
 function embedNickHeader(nick: string, body: string) {
   return `${NICK_OPEN}${nick}${NICK_CLOSE}${body ?? ""}`;
 }
 
-/** 본문에서 헤더(닉네임) 분리 */
 function extractNickHeader(body: string | undefined): {
   nick?: string;
   content: string;
@@ -26,45 +34,34 @@ function extractNickHeader(body: string | undefined): {
   const text = String(body ?? "");
   if (text.startsWith(NICK_OPEN)) {
     const end = text.indexOf(NICK_CLOSE, NICK_OPEN.length);
-    if (end > -1) {
-      const nick = text.slice(NICK_OPEN.length, end);
-      const content = text.slice(end + NICK_CLOSE.length);
-      return { nick, content };
-    }
+    if (end > -1)
+      return {
+        nick: text.slice(NICK_OPEN.length, end),
+        content: text.slice(end + NICK_CLOSE.length),
+      };
   }
   return { content: text };
 }
-
-/** 삭제 문구 판별(닉 헤더 제거 후 비교) */
 function isDeletedContent(body: string | undefined) {
   const { content } = extractNickHeader(body);
   return content.trim() === DELETED_PLACEHOLDER;
 }
 
-/** ------------------------------
- * 서버 응답 → 클라이언트 모델 변환
- * ------------------------------ */
+/** 서버 응답 → 클라이언트 모델 변환 */
 export function toClientFromPostDetail(c: any): CommentMeta {
-  // 자기 자신이 자식에 섞여온 경우 제거
   const rawReplies: any[] = Array.isArray(c.thread_comments)
     ? c.thread_comments
     : [];
-  const cleanedReplies = rawReplies.filter(
-    (r) => String(r?.id) !== String(c?.id)
-  );
-
-  // 닉 헤더 파싱
+  const cleaned = rawReplies.filter((r) => String(r?.id) !== String(c?.id));
   const { nick, content } = extractNickHeader(c.content);
-
-  const replies = cleanedReplies.map(toClientFromPostDetail);
+  const replies = cleaned.map(toClientFromPostDetail);
   return {
     id: String(c.id),
-    // 닉 헤더가 있으면 닉네임을 작성자에 사용, 없으면 기존 값 대신 '익명'으로 마스킹
     author: nick ?? "익명",
-    authorId: String(c.user ?? ""), // 필요하면 그대로 유지
+    authorId: String(c.user ?? ""),
     authorName: nick ?? "익명",
     content,
-    createdAt: c.created_at,
+    createdAt: normalizeDate(c.created_at ?? c.createdAt),
     likes: c.like_count ?? 0,
     dislikes: c.dislike_count ?? 0,
     liked: false,
@@ -74,105 +71,123 @@ export function toClientFromPostDetail(c: any): CommentMeta {
   };
 }
 
-/** ------------------------------
- * 가시성 필터
- * - 대댓글: 삭제문구면 숨김
- * - 루트  : (자식 먼저 필터) 자식 0 + 삭제문구면 숨김
- * ------------------------------ */
+/** 삭제 가시성 필터 */
 export function filterDeletedThread(
   nodes: CommentMeta[],
   isRoot = true
 ): CommentMeta[] {
   const out: CommentMeta[] = [];
   for (const n of nodes) {
-    const filteredChildren = filterDeletedThread(n.replies ?? [], false);
-    // 닉 헤더 제거된 content로 삭제문구 판정
-    const deleted = isDeletedContent(n.content);
-    const hide =
-      (!isRoot && deleted) ||
-      (isRoot && deleted && filteredChildren.length === 0);
-
-    if (!hide) {
-      out.push({
-        ...n,
-        replies: filteredChildren,
-        hasReplies: filteredChildren.length > 0,
-      });
-    }
+    const kids = filterDeletedThread(n.replies ?? [], false);
+    const del = isDeletedContent(n.content);
+    const hide = (!isRoot && del) || (isRoot && del && kids.length === 0);
+    if (!hide) out.push({ ...n, replies: kids, hasReplies: kids.length > 0 });
   }
   return out;
 }
 
-/** ------------------------------
- * 목록: GET /api/posts/:postId/
- *  - 응답을 트리로 변환하고, 가시성 필터 적용
- * ------------------------------ */
+/** 목록: 동시중복만 합쳐 1회 호출 (캐시 없음) */
 export async function listCommentsByPost(
   postId: string | number
 ): Promise<CommentMeta[]> {
-  // 동일 postId에 대해 네트워크 최대 1회 + 짧은 TTL 재사용
-  // (PostDetail, 태그, 댓글이 동시에 호출돼도 추가 조회수 증가 없음)
-  const post: any = await fetchPostDetailCached(postId);
+  const post: any = await fetchPostDetailSingleflight(postId);
   const roots = Array.isArray(post?.root_comments) ? post.root_comments : [];
-
-  // 자기 자신 섞임 제거는 toClientFromPostDetail에서 처리
   const tree = roots.map(toClientFromPostDetail);
-
-  // 삭제 가시성 규칙 적용
   return filterDeletedThread(tree, true);
 }
 
-/** ------------------------------
- * 작성/수정/삭제
- * ------------------------------ */
-
-/** (루트) 댓글 작성: DB 저장 전 닉 헤더를 본문 앞에 붙여 보냄 */
+/** 루트 댓글 작성 — 서버만 호출 (UI 즉시 반영은 PostComment의 낙관적 추가가 담당) */
 export async function createRootComment(
   postId: string | number,
   content: string
-): Promise<void> {
+): Promise<CommentMeta> {
   let nick = "익명";
   try {
     nick = (await fetchRandomNickname()) || "익명";
   } catch {
-    // 닉네임 API 실패 시 익명
+    /* empty */
   }
   const payload = { post: postId, content: embedNickHeader(nick, content) };
-  await api.post(`/api/comments/`, payload, { withCredentials: true });
+  const res = await api.post(`/api/comments/`, payload, {
+    withCredentials: true,
+  });
+
+  // DRF 기본: 201 + 생성된 객체 반환
+  const created = res?.data;
+  if (created && created.id != null) {
+    // 서버 포맷 -> UI 포맷
+    return toClientFromPostDetail(created);
+  }
+
+  // 혹시 응답이 비어있다면(드물지만) 최소한의 정보로 생성
+  return {
+    id: `temp_${Date.now()}`, // 임시
+    author: nick,
+    authorId: String(created?.user ?? ""),
+    authorName: nick,
+    content,
+    createdAt: new Date().toISOString(),
+    likes: 0,
+    dislikes: 0,
+    liked: false,
+    disliked: false,
+    hasReplies: false,
+    replies: [],
+  };
 }
 
-/** (대댓글) 작성: 동일하게 닉 헤더 임베딩 */
+/** 대댓글 작성 — 서버만 호출 (UI 즉시 반영은 PostComment의 낙관적 추가가 담당) */
 export async function createReply(opts: {
   postId: string | number;
   rootId: string | number;
   content: string;
-}): Promise<void> {
+}): Promise<CommentMeta> {
   let nick = "익명";
   try {
     nick = (await fetchRandomNickname()) || "익명";
   } catch {
-    // ignore
+    /* empty */
   }
+
   const payload = {
     post: opts.postId,
-    root: opts.rootId,
+    root:
+      typeof opts.rootId === "string" ? parseInt(opts.rootId, 10) : opts.rootId,
     content: embedNickHeader(nick, opts.content),
   };
-  await api.post(`/api/comments/`, payload, { withCredentials: true });
+
+  const res = await api.post(`/api/comments/`, payload, {
+    withCredentials: true,
+  });
+  const created = res?.data;
+  if (created && created.id != null) {
+    return toClientFromPostDetail(created);
+  }
+
+  // 폴백 (응답이 비었을 때)
+  return {
+    id: `temp_${Date.now()}`,
+    author: nick,
+    authorId: String(created?.user ?? ""),
+    authorName: nick,
+    content: opts.content,
+    createdAt: new Date().toISOString(),
+    likes: 0,
+    dislikes: 0,
+    liked: false,
+    disliked: false,
+    hasReplies: false,
+    replies: [],
+  };
 }
 
-/** 수정
- *  - 일단은 ‘닉 헤더 없이’ 저장되면 다음 로드에서 '익명'이 될 수 있음.
- */
+/** 수정 */
 export async function updateComment(
   id: string | number,
   content: string,
   opts?: { nick?: string }
 ): Promise<void> {
-  // 1) 우선 호출부가 닉을 주면 그걸 사용
   let nick = opts?.nick;
-
-  // 2) 없으면 내 댓글 목록에서 해당 id를 찾아 기존 본문에서 닉 추출 (작성자만 수정 가능하므로 항상 조회 가능)
   if (!nick) {
     try {
       const { data } = await api.get(`/api/comments/me`, {
@@ -181,23 +196,14 @@ export async function updateComment(
       const mine = Array.isArray(data)
         ? data.find((c: any) => String(c.id) === String(id))
         : undefined;
-      if (mine) {
-        const parsed = extractNickHeader(mine.content);
-        if (parsed.nick) nick = parsed.nick;
-      }
+      if (mine) nick = extractNickHeader(mine.content).nick;
     } catch {
-      // 무시: 닉을 못 구해도 계속 진행 (익명 처리됨)
+      /* empty */
     }
   }
-
-  // 3) 닉이 있으면 헤더 임베딩 후 PATCH, 없으면 본문만 PATCH
-  const payload = {
-    content: nick ? embedNickHeader(nick, content) : content,
-  };
+  const payload = { content: nick ? embedNickHeader(nick, content) : content };
   await api.patch(`/api/comments/${id}`, payload, { withCredentials: true });
 }
-
-/** 삭제 (백엔드가 soft/hard 결정) */
 export async function deleteComment(id: string | number): Promise<void> {
   await api.delete(`/api/comments/${id}`, { withCredentials: true });
 }

@@ -14,10 +14,14 @@ export default function NoticeHeader({
   deleteMode,
   onToggleDeleteMode,
   onRequestClose,
+  onMarkAllRead,
+  onDeleteAll,
 }: {
   deleteMode: boolean;
   onToggleDeleteMode: () => void;
   onRequestClose: () => void;
+  onMarkAllRead: () => void;
+  onDeleteAll: () => void;
 }) {
   const { isDark } = useTheme();
   const icon = deleteMode
@@ -33,7 +37,11 @@ export default function NoticeHeader({
   };
 
   return (
-    <header className="relative z-10 h-12 px-3 md:px-4 border-b border-base-300 flex items-center justify-between">
+    <header
+      className="relative z-10 flex-none h-12 px-3 md:px-4
+                    border-b border-base-300 bg-base-200 md:rounded-t-2xl
+                    flex items-center justify-between"
+    >
       <h2 id="notice-title" className="text-base md:text-lg font-semibold">
         알림
       </h2>
@@ -53,7 +61,23 @@ export default function NoticeHeader({
           <span className="sr-only">{tip}</span>
         </button>
 
-        {deleteMode ? <DeleteAllButton /> : <MarkAllReadButton />}
+        {deleteMode ? (
+          <button
+            type="button"
+            className="btn btn-error btn-xs text-white"
+            onClick={onDeleteAll}
+          >
+            모두 삭제
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs"
+            onClick={onMarkAllRead}
+          >
+            모두 읽음
+          </button>
+        )}
 
         {/* 모바일 full-height 닫기 */}
         <button
@@ -66,29 +90,5 @@ export default function NoticeHeader({
         </button>
       </div>
     </header>
-  );
-}
-
-function MarkAllReadButton() {
-  return (
-    <button
-      type="button"
-      className="btn btn-ghost btn-xs"
-      aria-label="모두 읽음 처리"
-    >
-      모두 읽음
-    </button>
-  );
-}
-
-function DeleteAllButton() {
-  return (
-    <button
-      type="button"
-      className="btn btn-error btn-xs text-white"
-      aria-label="모두 삭제"
-    >
-      모두 삭제
-    </button>
   );
 }

@@ -1,6 +1,7 @@
+// src/hooks/useSurveys.ts
 import React from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { fetchPosts } from "@api/posts";
+import { fetchPosts, type PostListItem } from "@api/posts";
 import type { SurveyCardProps } from "@components/Board/survey/SurveyCard";
 import {
   mapToSurveyCard,
@@ -10,49 +11,59 @@ import { fetchSurveyExtra } from "@src/api/posts.special";
 import { LIST_SETTINGS } from "@src/constants/ui";
 import type { AxiosError } from "axios";
 import AssignedTagList from "@components/tags/AssignedTagList";
-import { adaptUserTag } from "@src/features/tags/adapters";
-import type { RawUserTag } from "@api/tags";
-import type { SortValue } from "@src/types/sort";
+import { adaptUserTag, isRawUserTag } from "@src/features/tags/adapters";
+import type { TagFilter } from "@src/types/tag";
 
-const SORT_TO_ORDERING: Record<
-  SortValue,
-  "-created_at" | "created_at" | "-view_count" | "view_count"
-> = {
-  latest: "-created_at",
-  oldest: "created_at",
-  mostViewed: "-view_count",
-  leastViewed: "view_count",
+export type UseSurveysOpts = {
+  pageSize?: number;
+  tags?: TagFilter; // { tagClass?: "FE"|"BE"; cohort?: number }
+};
+
+// 정렬용 메타를 포함한 카드 타입 (추가 필드: createdAtMs, responseCount)
+export type SortableSurveyCard = SurveyCardProps & {
+  createdAtMs: number;
+  responseCount: number;
 };
 
 export const SURVEYS_KEY = ["surveys"] as const;
-const PAGE_SIZE = LIST_SETTINGS.ITEMS_PER_PAGE;
+const DEFAULT_PAGE_SIZE = LIST_SETTINGS.ITEMS_PER_PAGE;
 
-type Page = { items: SurveyCardProps[]; hasMore: boolean; page: number };
+type Page = { items: SortableSurveyCard[]; hasMore: boolean; page: number };
 
-/** 작성자 태그 원본 타입 가드 */
-const isRawUserTag = (u: unknown): u is RawUserTag =>
-  typeof u === "object" &&
-  u !== null &&
-  typeof (u as { id?: unknown }).id === "number" &&
-  (u as { tag_class?: unknown }).tag_class !== undefined &&
-  typeof (u as { tag_number?: unknown }).tag_number === "number";
+// 안전하게 숫자 속성 뽑아오는 유틸
+function pickNumber(obj: unknown, keys: string[], fallback: number): number {
+  for (const k of keys) {
+    if (
+      obj &&
+      typeof obj === "object" &&
+      k in (obj as Record<string, unknown>)
+    ) {
+      const v = (obj as Record<string, unknown>)[k];
+      const n = typeof v === "number" ? v : Number(v);
+      if (!Number.isNaN(n)) return n;
+    }
+  }
+  return fallback;
+}
 
-export function useSurveys(sort: SortValue = "latest") {
+export function useSurveys(opts: UseSurveysOpts = {}) {
+  const pageSize = opts.pageSize ?? DEFAULT_PAGE_SIZE;
+  const tags = opts.tags;
+
   return useInfiniteQuery<Page, unknown>({
-    // 페이지 크기 등이 바뀌면 캐시 키 분리되도록 포함
-    queryKey: [
-      ...SURVEYS_KEY,
-      { pageSize: PAGE_SIZE, ordering: SORT_TO_ORDERING[sort] },
-    ],
+    queryKey: [...SURVEYS_KEY, { pageSize, tags }],
     initialPageParam: 1,
 
     queryFn: async ({ pageParam }) => {
-      // 1) 기본 목록
-      const list = await fetchPosts({
+      // 1) 목록 호출 (최신순 고정)
+      const list: PostListItem[] = await fetchPosts({
         board: "survey",
-        ordering: SORT_TO_ORDERING[sort],
+        ordering: "-created_at",
         page: pageParam as number, // DRF 1-base
-        page_size: PAGE_SIZE,
+        page_size: pageSize,
+        user_tag_class: tags?.tagClass,
+        user_tag_number:
+          typeof tags?.cohort === "number" ? tags!.cohort : undefined,
       });
 
       // 2) 부가정보 병렬 요청 (빈 목록이면 생략)
@@ -66,50 +77,53 @@ export function useSurveys(sort: SortValue = "latest") {
                     const ex = await fetchSurveyExtra(p.id);
                     return [p.id, ex] as [number, SurveyExtra];
                   } catch {
-                    return [p.id, {}] as [number, SurveyExtra];
+                    return [p.id, {} as SurveyExtra] as [number, SurveyExtra];
                   }
                 })
               )
             );
 
-      // 3) UI 매핑
-      const items: SurveyCardProps[] = list.map((p) => {
-        const card = mapToSurveyCard(p, extrasMap.get(p.id));
+      // 3) UI 매핑 + 작성자 태그 배지 + 정렬 메타 필드 계산
+      const items: SortableSurveyCard[] = list.map((p) => {
+        const baseCard = mapToSurveyCard(p, extrasMap.get(p.id));
+
         const maybeUser = (p as unknown as { user?: unknown }).user;
         const rawUser = isRawUserTag(maybeUser) ? maybeUser : null;
         const authorTags = adaptUserTag(rawUser);
 
-        (card as any).createdAtMs = Date.parse((p as any).created_at ?? 0) || 0;
-        (card as any).responseCount = Number(
-          (p as any).response_count ??
-            (p as any).participants ??
-            (p as any).votes ??
-            (p as any).view_count ?? // 최종 폴백
-            0
+        const extra = extrasMap.get(p.id);
+        const createdAtMs = Date.parse(p.created_at ?? "") || 0;
+        const responseCount = pickNumber(
+          extra,
+          ["response_count", "participants", "votes"],
+          Number(p.view_count ?? 0)
         );
+
+        const withMeta: SortableSurveyCard = {
+          ...baseCard,
+          createdAtMs,
+          responseCount,
+        };
 
         return authorTags.length > 0
           ? {
-              ...card,
+              ...withMeta,
               tagSlot: React.createElement(AssignedTagList, {
                 tags: authorTags,
               }),
             }
-          : card;
+          : withMeta;
       });
 
       return {
         items,
-        // 마지막 페이지 길이가 PAGE_SIZE 미만이면 불러올 것 더 없음
-        hasMore: list.length >= PAGE_SIZE,
+        hasMore: list.length >= pageSize,
         page: pageParam as number,
       };
     },
 
-    // hasMore 기반 다음 페이지 계산
     getNextPageParam: (last) => (last.hasMore ? last.page + 1 : undefined),
 
-    // 404는 "끝" 신호로 보고 재시도/에러 전환 방지
     retry: (failureCount, err) => {
       const ae = err as AxiosError | undefined;
       if (ae?.response?.status === 404) return false;
@@ -118,6 +132,5 @@ export function useSurveys(sort: SortValue = "latest") {
 
     staleTime: 0,
     gcTime: 5 * 60 * 1000,
-    // 필요 시: refetchOnWindowFocus: false,
   });
 }

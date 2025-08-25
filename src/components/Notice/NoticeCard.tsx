@@ -2,21 +2,46 @@ import type { Notification } from "./notice.types";
 import { toMdHm } from "./format";
 import { buildNoticeCopy } from "./copy";
 import { useTheme } from "./useTheme";
+import { useNavigate } from "react-router-dom";
+import { useRef } from "react";
 
 export default function NoticeCard({
   n,
   deleteMode,
+  onDelete,
+  onMarkRead,
+  onNavigate,
 }: {
   n: Notification;
   deleteMode: boolean;
+  onDelete: () => void;
+  onMarkRead: () => void;
+  onNavigate?: () => void;
 }) {
   const { isDark } = useTheme();
+  const navigate = useNavigate();
 
   const { snippet, suffix } = buildNoticeCopy(n);
   const detail = n.detail ?? "";
   const time = toMdHm(n.createdAt);
   const path = n.context?.path;
   const clickable = !deleteMode; // 삭제모드 아닐 때만 인터랙션
+
+  const busyRef = useRef(false);
+
+  const handleClick = () => {
+    if (!clickable || busyRef.current) return;
+    busyRef.current = true;
+    if (!n.read) onMarkRead();
+    if (path) {
+      onNavigate?.(); // 모달 닫고
+      navigate(path); // 라우팅하기
+    }
+    setTimeout(() => {
+      busyRef.current = false;
+    }, 350);
+  };
+
   const isSystem = n.type === "system"; // 공지(system) 구분
   const isQuoted = n.type !== "system"; // comment/reply만 따옴표
 
@@ -64,8 +89,7 @@ export default function NoticeCard({
         elevationHover,
         clickable ? "cursor-pointer" : "cursor-default",
       ].join(" ")}
-      // TODO: UI만 작업함, 실제 이동/읽음 로직은 후속 이슈에서 연결
-      onClick={undefined}
+      onClick={handleClick}
       title={rawForTitle || undefined}
     >
       {/* 배경 오버레이: hover 시에만 살짝 보임 */}
@@ -82,7 +106,16 @@ export default function NoticeCard({
         <button
           type="button"
           aria-label="알림 삭제"
-          className="absolute right-2 top-2 w-6 h-6 rounded-full flex items-center justify-center opacity-90 hover:opacity-100 z-[1]"
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            onDelete();
+          }}
+          className="absolute right-2 top-2 w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center z-20 pointer-events-auto opacity-90 hover:opacity-100"
         >
           <span className="text-base text-primary-content leading-none">×</span>
         </button>
