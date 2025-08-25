@@ -8,6 +8,8 @@ import type {
   PostsResponse,
   DeleteResponse,
 } from "@src/types/mypage";
+import { isAxiosError } from "axios";
+
 export interface UserTag {
   tag_class: string;
   tag_number: number;
@@ -211,13 +213,11 @@ export const getMyBookmarks = async (
   pageSize: number = 20
 ): Promise<BookmarksResponse> => {
   try {
-    // 슬래시 유무 둘 다 허용되도록 우선 /me 로 시도하고, 실패하면 /me/ 재시도
     let res;
     try {
       res = await api.get("/api/bookmarks/me", { withCredentials: true });
-    } catch (e: any) {
-      // 404면 그냥 빈 배열 처리, 그 외는 /me/ 재시도
-      if (e?.response?.status === 404) {
+    } catch (e: unknown) {
+      if (isAxiosError(e) && e.response?.status === 404) {
         return {
           success: true,
           data: [],
@@ -234,24 +234,33 @@ export const getMyBookmarks = async (
 
     const payload = res.data;
 
-    // A형: { bookmarks: [...] }
     let list: Array<{ postId: number; title: string }> | null = null;
     if (payload && Array.isArray(payload.bookmarks)) {
       list = payload.bookmarks as Array<{ postId: number; title: string }>;
     }
 
-    // B형: [ { post: { postId, title } }, ... ]
     if (!list && Array.isArray(payload)) {
-      list = payload
-        .map((x: any) =>
-          x?.post?.postId
-            ? {
-                postId: Number(x.post.postId),
-                title: String(x.post.title ?? ""),
-              }
-            : null
-        )
-        .filter(Boolean) as Array<{ postId: number; title: string }>;
+      type RawB = { post?: { postId?: number | string; title?: unknown } };
+
+      const tmp: { postId: number; title: string }[] = [];
+      for (const item of payload as unknown[]) {
+        const p = (item as RawB).post;
+        const rawId = p?.postId;
+        const numId =
+          typeof rawId === "number"
+            ? rawId
+            : typeof rawId === "string"
+            ? Number(rawId)
+            : NaN;
+
+        if (Number.isFinite(numId)) {
+          tmp.push({
+            postId: numId,
+            title: typeof p?.title === "string" ? p.title : "",
+          });
+        }
+      }
+      list = tmp;
     }
 
     const raw = list ?? [];
@@ -301,9 +310,8 @@ export const getMyBookmarks = async (
         totalItems: allItems.length,
       },
     };
-  } catch (error: any) {
-    // 404면 빈 데이터 반환
-    if (error?.response?.status === 404) {
+  } catch (error: unknown) {
+    if (isAxiosError(error) && error.response?.status === 404) {
       return {
         success: true,
         data: [],
@@ -402,10 +410,6 @@ export const getMyActivitySummary = async (): Promise<MyPageCardData[]> => {
     ];
   }
 };
-
-/* =========================
- * Delete APIs
- * ========================= */
 
 // 북마크 삭제: DELETE /api/bookmarks/{post_id}/
 export const deleteBookmarks = async (

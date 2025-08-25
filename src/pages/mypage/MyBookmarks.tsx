@@ -34,6 +34,17 @@ import {
 } from "@src/constants/ui";
 import { PATHS } from "@constants/paths";
 
+const formatDate = (d?: string) => {
+  if (!d) return "";
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return "";
+  return dt.toLocaleDateString("ko-KR", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+
 interface BookmarkListItemProps {
   bookmark: BookmarkItem;
   onPostClick?: () => void;
@@ -59,16 +70,22 @@ function BookmarkListItem({
   };
 
   const handleRowClick = () => {
-    if (!isExiting && onPostClick) {
-      onPostClick?.();
-    }
+    if (!isExiting) onPostClick?.();
   };
+
+  const createdDate = formatDate(bookmark.date);
+  const bookmarkedAt = formatDate(bookmark.bookmarkedDate);
 
   return (
     <div
-      className={`flex items-center py-4 px-3 cursor-pointer transition-all duration-500 transform opacity-0 translate-x-8 animate-slide-in ${
-        isSelected ? "bg-primary/10" : ""
-      }`}
+      className={`
+        grid grid-cols-[24px,auto,1fr,auto,24px] gap-3 items-center
+        py-3 px-3 sm:py-4 sm:px-4
+        hover:bg-base-100 rounded-md
+        cursor-pointer transition-all duration-500 transform
+        opacity-0 translate-x-8 animate-slide-in
+        ${isSelected ? "bg-primary/10" : ""}
+      `}
       style={{
         transitionDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
         animationDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
@@ -76,51 +93,63 @@ function BookmarkListItem({
       onClick={handleRowClick}
     >
       {/* 체크박스 */}
-      <div className="w-8 flex-shrink-0 flex items-center justify-center">
+      <div className="flex items-center justify-center">
         <input
           type="checkbox"
           checked={isSelected}
           onChange={handleCheckboxChange}
-          className="checkbox checkbox-primary checkbox-sm border border-base-content bg-transparent [&:checked]:bg-primary [&:checked]:border-primary [&:checked:after]:text-white"
+          className="checkbox checkbox-primary checkbox-sm border border-base-content bg-transparent
+                     [&:checked]:bg-primary [&:checked]:border-primary [&:checked:after]:text-white"
           onClick={(e) => e.stopPropagation()}
+          aria-label="북마크 선택"
         />
       </div>
 
       {/* 카테고리 */}
-      <div className="w-16 flex-shrink-0">
-        <span className="bg-base-300 text-base-content text-xs px-2 py-1 rounded">
+      <div className="min-w-[42px]">
+        <span className="bg-base-300 text-base-content/90 text-[11px] px-2 py-0.5 rounded">
           {bookmark.category}
         </span>
       </div>
 
-      {/* 제목 */}
-      <div className="flex-1 px-4">
+      {/* 제목 & 부가정보 */}
+      <div className="min-w-0">
         <h3
           className={`text-base-content hover:text-primary transition-colors ${getDurationClass(
             ANIMATION_TIMINGS.HOVER_TRANSITION
-          )} line-clamp-1`}
+          )} truncate`}
+          title={bookmark.title}
         >
           {bookmark.title}
         </h3>
-        <p className="text-xs text-neutral-content mt-1">
-          북마크: {bookmark.bookmarkedDate}
-        </p>
+
+        {/* 북마크일시: 값 있을 때만 */}
+        {bookmarkedAt && (
+          <p className="text-[12px] text-neutral-content mt-0.5">
+            북마크: {bookmarkedAt}
+          </p>
+        )}
       </div>
 
-      {/* 원글 날짜 */}
-      <div className="w-20 sm:w-24 text-right text-xs sm:text-sm text-neutral-content mr-3">
-        {bookmark.date}
+      {/* 원글 작성일 */}
+      <div className="text-right text-xs sm:text-sm text-neutral-content tabular-nums">
+        {createdDate}
       </div>
 
-      {/* 북마크 아이콘 */}
-      <div className="w-8 h-8 flex items-center justify-center">
-        <img src={getBookmarkIconPath()} alt="북마크" className="w-5 h-5" />
+      {/* 아이콘 */}
+      <div className="w-6 h-6 flex items-center justify-center">
+        <img
+          src={getBookmarkIconPath()}
+          alt="북마크"
+          className="w-4 h-4 opacity-80 select-none"
+          draggable={false}
+        />
       </div>
     </div>
   );
 }
 
-function MyBookmarks(): JSX.Element {
+function MyBookmarks(): React.ReactElement {
   const navigate = useNavigate();
   const [isExiting, setIsExiting] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -438,7 +467,7 @@ function MyBookmarks(): JSX.Element {
                     마음에 드는 글을 북마크해보세요!
                   </p>
                   <button
-                    onClick={() => navigate(PATHS.BOARD_HOME)}
+                    onClick={() => navigate(PATHS.FREE_BOARD)}
                     className={`bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-md text-sm font-medium transition-colors ${getDurationClass(
                       ANIMATION_TIMINGS.HOVER_TRANSITION
                     )}`}
