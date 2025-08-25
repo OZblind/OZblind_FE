@@ -5,6 +5,7 @@ import { tokenStore } from "@api/client";
 import { useToastStore } from "@store/toastStore";
 import { PATHS } from "@constants/paths";
 import { useLogoutMutation } from "@hooks/useAuthQueries";
+import type { AxiosError } from "axios"; // ✅ 추가
 
 interface AccountDeletionSectionProps {
   onSuccess?: () => void;
@@ -26,9 +27,10 @@ export function AccountDeletionSection({
   const handleDelete = async () => {
     if (!isValid) return;
 
-    const idToken = tokenStore.access;
-    if (!idToken) {
-      setError("로그인 후에만 회원 탈퇴가 가능합니다.");
+    const access = tokenStore.access;
+
+    if (!access) {
+      setError("오즈키 인증을 완료한 후 탈퇴가 가능합니다.");
       return;
     }
 
@@ -37,23 +39,29 @@ export function AccountDeletionSection({
 
     try {
       await deleteAccount();
+
       setIsConfirmVisible(false);
-      tokenStore.clear(); // 탈퇴 성공 시 토큰 초기화
+      tokenStore.clear();
       if (onSuccess) onSuccess();
-      navigate(PATHS.ROOT, { replace: true });
+
       await logoutMut.mutateAsync();
+
       useToastStore.getState().push({
-        // toast
         message: "회원 탈퇴에 성공했어요.",
         type: "success",
         durationMs: 4000,
       });
+
+      navigate(PATHS.ROOT, { replace: true });
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("회원 탈퇴 중 알 수 없는 오류가 발생했습니다.");
+      let msg = "회원 탈퇴 중 알 수 없는 오류가 발생했습니다.";
+      if ((err as AxiosError)?.response?.data) {
+        const data = (err as AxiosError<{ error?: string }>).response?.data;
+        msg = data?.error ?? msg;
+      } else if (err instanceof Error) {
+        msg = err.message;
       }
+      setError(msg);
     } finally {
       setLoading(false);
     }
