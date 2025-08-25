@@ -118,7 +118,7 @@ export default function TestSurveyList() {
 
         <SurveyList
           items={items}
-          onItemClick={(id) => navigate(urlForPost.postDetail("survey", id))}
+          onItemClick={(id) => navigate(urlForPost.postDetail(id))}
           topBar={{
             boardName: "설문 게시판",
             onOpenSort: () => console.log("정렬 필터 열기"),

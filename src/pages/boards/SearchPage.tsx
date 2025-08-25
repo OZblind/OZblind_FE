@@ -18,21 +18,6 @@ import { adaptUserTag } from "@src/features/tags/adapters";
 
 const PAGE_SIZE = 15;
 
-// 게시판 타입 정의
-type BoardType = "free" | "jobs" | "info" | "survey" | "github";
-
-// 카테고리명을 게시판 슬러그로 변환
-const getCategoryBoardType = (category: string): BoardType => {
-  const categoryMap: Record<string, BoardType> = {
-    자유: "free",
-    취업: "jobs",
-    정보: "info",
-    설문: "survey",
-    GitHub: "github",
-  };
-  return categoryMap[category] || "free";
-};
-
 const isRawUserTag = (u: unknown): u is RawUserTag =>
   typeof u === "object" &&
   u !== null &&
@@ -383,16 +368,11 @@ export default function SearchPage() {
 
   const goDetail = useCallback(
     (id: FreeBoardItem["id"]) => {
-      // 아이템에서 카테고리 정보 추출
-      const item = items.find((item) => item.id === id);
-      const boardType = item?.category
-        ? getCategoryBoardType(item.category)
-        : "free";
-      const finalUrl = urlForPost.postDetail(boardType, id);
+      const finalUrl = urlForPost.postDetail(id);
       console.log("Navigating to URL:", finalUrl);
-      navigate(urlForPost.postDetail(boardType, id));
+      navigate(finalUrl);
     },
-    [navigate, items]
+    [navigate]
   );
 
   const isInitialLoading = items.length === 0 && busy;

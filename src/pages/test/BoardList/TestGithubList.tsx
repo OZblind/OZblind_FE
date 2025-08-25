@@ -131,7 +131,7 @@ export default function TestGithubList() {
 
         <GithubList
           items={items}
-          onItemClick={(id) => navigate(urlForPost.postDetail("github", id))}
+          onItemClick={(id) => navigate(urlForPost.postDetail(id))}
           topBar={{
             boardName: "GitHub 게시판",
             onOpenSort: () => console.log("정렬 필터 열기"),

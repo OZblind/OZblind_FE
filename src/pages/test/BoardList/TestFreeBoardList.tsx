@@ -22,7 +22,9 @@ function makeMockItems(count: number, startIndex: number): FreeBoardItem[] {
     return {
       id: `mock-${idx + 1}`,
       no: MOCK_TOTAL - idx, // 최신 글 번호가 더 큼(내림차순)
-      title: `샘플 게시글 제목 ${idx + 1} — 반응형/테이블·카드/무한스크롤 테스트`,
+      title: `샘플 게시글 제목 ${
+        idx + 1
+      } — 반응형/테이블·카드/무한스크롤 테스트`,
       author: `사용자${((idx + 1) % 7) + 1}`,
       dateText: formatYyMmDd(d),
       views: Math.floor(Math.random() * 5000),
@@ -153,7 +155,7 @@ export default function TestFreeBoardList() {
 
         <PostList
           items={items}
-          onItemClick={(id) => navigate(urlForPost.postDetail("free", id))} // id에 해당하는 게시글 상세 페이지로
+          onItemClick={(id) => navigate(urlForPost.postDetail(id))}
           topBar={{
             boardName: "자유 게시판",
             onOpenSort: () => console.log("정렬 필터 열기"),
