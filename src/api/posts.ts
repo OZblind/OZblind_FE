@@ -20,7 +20,9 @@ export type PostDetail = {
   id: number;
   title: string;
   content: string; // HTML/Markdown 그대로
-  user: number | string;
+  user?: { id: string | number } | null;
+  user_id?: string | number;
+  author_id?: string | number;
   board: number;
   image?: string | null;
   view_count: number;
@@ -91,7 +93,7 @@ export async function fetchPosts(params?: {
 
 export async function fetchPostDetail(id: number) {
   // api 접두어
-  const { data } = await api.get<PostDetail>(`/api/posts/${id}`);
+  const { data } = await api.get<PostDetail>(`/api/posts/${id}/`);
   return data; // (상세 진입 시 서버가 조회수+1 처리한다고 가정)
 }
 
@@ -121,7 +123,7 @@ export async function createPost(payload: CreatePostPayload) {
     });
     return data;
   } else {
-    // ✅ JSON 전송
+    // JSON 전송
     const body: Record<string, unknown> = {
       board: boardId,
       title,
@@ -150,18 +152,18 @@ export async function updatePost(payload: UpdatePostPayload) {
       form.append("content", String(rest.content));
     if (rest.image) form.append("image", rest.image as File | Blob);
 
-    const { data } = await api.patch<PostDetail>(`/api/posts/${id}`, form, {
+    const { data } = await api.patch<PostDetail>(`/api/posts/${id}/`, form, {
       headers: { "Content-Type": "multipart/form-data" },
     });
     return data;
   } else {
-    const { data } = await api.patch<PostDetail>(`/api/posts/${id}`, rest);
+    const { data } = await api.patch<PostDetail>(`/api/posts/${id}/`, rest);
     return data;
   }
 }
 
 export async function deletePost(id: number) {
-  await api.delete(`/api/posts/${id}`);
+  await api.delete(`/api/posts/${id}/`);
 }
 
 // ===== 단일호출(singleflight)만: 동시 중복 호출 합치기(캐시 없음) =====
