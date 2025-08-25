@@ -17,7 +17,7 @@ function embedNickHeader(nick: string, body: string) {
   return `${NICK_OPEN}${nick}${NICK_CLOSE}${body ?? ""}`;
 }
 
-function extractNickHeader(body: string | undefined): {
+export function extractNickHeader(body: string | undefined): {
   nick?: string;
   content: string;
 } {

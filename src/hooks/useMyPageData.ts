@@ -7,31 +7,26 @@ import {
   getMyPosts,
   getMyActivitySummary,
   deleteBookmarks,
+  type MyPageCommentsResponse,
 } from "@api/mypageApi";
 import type {
-  UserProfile,
   BookmarksResponse,
-  CommentsResponse,
   PostsResponse,
   MyPageCardData,
 } from "@src/types/mypage";
 
 export function useMyProfile() {
-  return useQuery<UserProfile>({
+  return useQuery({
     queryKey: ["myProfile"],
     queryFn: getMyProfile,
-    staleTime: 5 * 60 * 1000, // 5분간 fresh
-    gcTime: 10 * 60 * 1000, // cacheTime → gcTime으로 변경
-    retry: 2,
-    refetchOnWindowFocus: false,
   });
 }
 
 export function useMyBookmarks(page: number = 1, pageSize: number = 5) {
   return useQuery<BookmarksResponse>({
     queryKey: ["myBookmarks", { page, pageSize }],
-    queryFn: () => getMyBookmarks({ page, pageSize }),
-    placeholderData: (previousData) => previousData, // keepPreviousData → placeholderData로 변경
+    queryFn: () => getMyBookmarks(page, pageSize),
+    placeholderData: (previousData) => previousData,
     staleTime: 2 * 60 * 1000, // 2분간 fresh
     refetchOnWindowFocus: false,
   });
@@ -44,7 +39,6 @@ export function useDeleteBookmarks() {
   return useMutation({
     mutationFn: deleteBookmarks,
     onSuccess: (_data, variables) => {
-      // data → _data로 변경
       // 북마크 목록 캐시 무효화 - v5 문법
       void queryClient.invalidateQueries({
         queryKey: ["myBookmarks"],
@@ -77,14 +71,12 @@ export function useDeleteBookmarks() {
   });
 }
 
-// ============================================================================
-// 3. 댓글 관련 훅
-// ============================================================================
+// 댓글 관련 훅
 export function useMyComments(page: number = 1, pageSize: number = 5) {
-  return useQuery<CommentsResponse>({
+  return useQuery<MyPageCommentsResponse>({
     queryKey: ["myComments", { page, pageSize }],
-    queryFn: () => getMyComments({ page, pageSize }),
-    placeholderData: (previousData) => previousData, // keepPreviousData → placeholderData로 변경
+    queryFn: () => getMyComments(page, pageSize),
+    placeholderData: (previousData) => previousData,
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
@@ -93,8 +85,8 @@ export function useMyComments(page: number = 1, pageSize: number = 5) {
 export function useMyPosts(page: number = 1, pageSize: number = 5) {
   return useQuery<PostsResponse>({
     queryKey: ["myPosts", { page, pageSize }],
-    queryFn: () => getMyPosts({ page, pageSize }),
-    placeholderData: (previousData) => previousData, // keepPreviousData → placeholderData로 변경
+    queryFn: () => getMyPosts(page, pageSize),
+    placeholderData: (previousData) => previousData,
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
@@ -124,11 +116,15 @@ export function useMyPageLoadingState() {
 }
 
 export function useMyPagePagination(
-  data: BookmarksResponse | CommentsResponse | PostsResponse | undefined,
+  data: BookmarksResponse | MyPageCommentsResponse | PostsResponse | undefined,
   currentPage: number,
-  onPageChange: (page: number) => void
+  setCurrentPage: (page: number) => void
 ) {
   const pagination = data?.pagination;
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
   return {
     currentPage,
@@ -137,7 +133,7 @@ export function useMyPagePagination(
     itemsPerPage: pagination?.itemsPerPage || 5,
     hasNextPage: currentPage < (pagination?.totalPages || 1),
     hasPrevPage: currentPage > 1,
-    onPageChange,
+    onPageChange: handlePageChange,
     // 페이지 범위 계산 (1, 2, 3, 4, 5 형태)
     getPageNumbers: (maxVisible: number = 5) => {
       const total = pagination?.totalPages || 1;

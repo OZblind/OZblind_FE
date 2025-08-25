@@ -1,10 +1,10 @@
-// MyPageMain.tsx API 연결 버전
+// MyPageMain.tsx API 연결 버전 - 수정된 버전
 import React, { useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { PATHS } from "@constants/paths";
 import { ANIMATION_TIMINGS, ANIMATION_KEYFRAMES } from "@constants/animations";
 import { LIST_SETTINGS, EMPTY_MESSAGES } from "@constants/ui";
-import { useMyActivitySummary } from "@hooks/useMyPageData"; // API 훅 추가
+import { useMyActivitySummary } from "@hooks/useMyPageData";
 import { icons } from "@src/assets";
 import { useThemeIcon } from "@hooks/useThemeIcon";
 
@@ -23,6 +23,7 @@ interface CardProps {
   isExpanding?: boolean;
   isClicked?: boolean;
   getIconPath: (iconType: string) => string;
+  onItemClick?: (id: number) => void;
 }
 
 const Card: React.FC<CardProps> = ({
@@ -34,6 +35,7 @@ const Card: React.FC<CardProps> = ({
   isExpanding,
   isClicked,
   getIconPath,
+  onItemClick,
 }) => {
   const getEmptyMessage = (title: string) => {
     switch (title) {
@@ -44,13 +46,13 @@ const Card: React.FC<CardProps> = ({
       case "북마크":
         return EMPTY_MESSAGES.BOOKMARKS;
       default:
-        return `${title ?? "항목"}이 없습니다.`;
+        return EMPTY_MESSAGES.FALLBACK;
     }
   };
 
   return (
     <div
-      className={`bg-base-300/40 rounded-lg p-4 transition-all duration-300 transform-gpu flex-1 min-w-0 max-w-xs min-h-[350px] select-none ${
+      className={`bg-base-300/40 rounded-lg p-4 transition-all duration-300 transform-gpu flex-1 min-w-0 w-full max-w-sm h-[350px] select-none flex flex-col ${
         isExpanding
           ? isClicked
             ? "scale-150 z-20 opacity-100"
@@ -62,10 +64,10 @@ const Card: React.FC<CardProps> = ({
         transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
       }}
     >
-      {/* 카드 헤더 */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">
+      {/* 카드 헤더 - 고정 높이 */}
+      <div className="flex items-center justify-between mb-4 h-[40px] flex-shrink-0">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <span className="text-2xl flex-shrink-0">
             {title === "북마크" ? (
               <img
                 src={getIconPath("bookmark")}
@@ -88,12 +90,16 @@ const Card: React.FC<CardProps> = ({
               icon
             )}
           </span>
-          <h3 className="text-lg font-medium text-base-content">{title}</h3>
-          <span className="text-sm text-neutral-content">({count})</span>
+          <h3 className="text-lg font-medium text-base-content truncate">
+            {title}
+          </h3>
+          <span className="text-sm text-neutral-content flex-shrink-0">
+            ({count})
+          </span>
         </div>
         <button
           onClick={onClick}
-          className="w-8 h-8 bg-primary rounded-full flex items-center justify-center hover:bg-primary-focus transition-colors duration-200 group relative overflow-hidden"
+          className="w-8 h-8 bg-primary rounded-full flex items-center justify-center hover:bg-primary-focus transition-colors duration-200 group relative overflow-hidden flex-shrink-0"
           aria-label={`${title} 전체보기`}
         >
           <div
@@ -128,73 +134,74 @@ const Card: React.FC<CardProps> = ({
         </button>
       </div>
 
-      {/* 카드 내용 */}
-      <div className="space-y-3">
+      {/* 카드 내용 - 나머지 공간 차지 */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {items && items.length > 0 ? (
-          items.slice(0, LIST_SETTINGS.PREVIEW_ITEMS).map((item) => (
-            <div
-              key={item.id}
-              className="p-3 bg-base-200 rounded-lg hover:bg-base-100 transition-colors cursor-pointer"
-            >
-              <div className="flex items-center justify-between">
-                {item.category && (
-                  <span className="text-xs bg-base-300 px-2 py-1 rounded text-base-content">
-                    {item.category}
-                  </span>
-                )}
-                <span className="text-xs text-neutral-content">
-                  {item.date}
-                </span>
-              </div>
-              <h4
-                className="text-sm text-base-content mt-2"
-                style={{
-                  overflow: "hidden",
-                  whiteSpace: "nowrap",
-                  textOverflow: "ellipsis",
+          <div className="space-y-2 flex-1 overflow-hidden">
+            {items.slice(0, LIST_SETTINGS.PREVIEW_ITEMS - 1).map((item) => (
+              <div
+                key={item.id}
+                className="p-2 bg-base-200 rounded-lg hover:bg-base-100 transition-colors cursor-pointer overflow-hidden"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onItemClick?.(item.id);
                 }}
               >
-                {item.title}
-              </h4>
-            </div>
-          ))
+                <div className="flex items-center justify-between mb-1 gap-2">
+                  {item.category && (
+                    <span className="text-xs bg-base-300 px-1.5 py-0.5 rounded text-base-content flex-shrink-0">
+                      {item.category}
+                    </span>
+                  )}
+                  <span className="text-xs text-neutral-content flex-shrink-0">
+                    {new Date(item.date).toLocaleDateString("ko-KR", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
+                </div>
+                <h4 className="text-xs text-base-content line-clamp-2 break-all leading-tight h-8 overflow-hidden">
+                  {item.title}
+                </h4>
+              </div>
+            ))}
+            {/* 더보기 표시 - 컴팩트하게 */}
+            {items.length > LIST_SETTINGS.PREVIEW_ITEMS - 1 && (
+              <div className="text-center py-1">
+                <span className="text-xs text-neutral-content">
+                  외 {items.length - (LIST_SETTINGS.PREVIEW_ITEMS - 1)}개 더...
+                </span>
+              </div>
+            )}
+          </div>
         ) : (
-          <div className="text-center py-8">
-            <div className="text-neutral-content text-3xl mb-2">
+          <div className="text-center py-6 flex-1 flex flex-col justify-center">
+            <div className="text-neutral-content text-2xl mb-2">
               {title === "북마크" ? (
                 <img
                   src={getIconPath("bookmark")}
                   alt="북마크"
-                  className="w-8 h-8 mx-auto"
+                  className="w-6 h-6 mx-auto"
                 />
               ) : title === "작성글" ? (
                 <img
                   src={getIconPath("writing")}
                   alt="작성글"
-                  className="w-8 h-8 mx-auto"
+                  className="w-6 h-6 mx-auto"
                 />
               ) : title === "작성댓글" ? (
                 <img
                   src={getIconPath("chat")}
                   alt="작성댓글"
-                  className="w-8 h-8 mx-auto"
+                  className="w-6 h-6 mx-auto"
                 />
               ) : (
                 icon
               )}
             </div>
-            <p className="text-neutral-content text-sm">
+            <p className="text-neutral-content text-xs leading-relaxed px-2">
               {getEmptyMessage(title)}
             </p>
-          </div>
-        )}
-
-        {/* 더보기 표시 */}
-        {items && items.length > LIST_SETTINGS.PREVIEW_ITEMS && (
-          <div className="text-center py-2">
-            <span className="text-xs text-neutral-content">
-              외 {items.length - LIST_SETTINGS.PREVIEW_ITEMS}개 더...
-            </span>
           </div>
         )}
       </div>
@@ -208,7 +215,7 @@ const MyPageMain: React.FC = () => {
   const [clickedCard, setClickedCard] = useState<string | null>(null);
   const pendingPathRef = useRef<string | null>(null);
 
-  // API 훅 사용 - mock 데이터 대신
+  // API 훅 사용
   const { data: cardData, isLoading, error, refetch } = useMyActivitySummary();
 
   const themeIcon = useThemeIcon();
@@ -227,20 +234,43 @@ const MyPageMain: React.FC = () => {
   const getIconPath = (iconType: string) => {
     switch (iconType) {
       case "writing":
-        return writingIcon;
+        return writingIcon || "";
       case "chat":
-        return chatIcon;
+        return chatIcon || "";
       case "bookmark":
-        return bookmarkIcon;
+        return bookmarkIcon || "";
       default:
         return "";
     }
   };
 
+  const handlePostClick = (postId: number) => {
+    // PATHS.POST_DETAIL을 사용하여 동적 경로 생성
+    const postPath = PATHS.POST_DETAIL.replace(":id", postId.toString());
+    navigate(postPath);
+  };
+
   const handleCardClick = (path: string) => {
     setClickedCard(path);
     setIsExpanding(true);
-    pendingPathRef.current = `${PATHS.MYPAGE}/${path}`;
+
+    // path를 올바른 마이페이지 경로로 변환
+    let targetPath: string;
+    switch (path) {
+      case "posts":
+        targetPath = `${PATHS.MYPAGE}/${PATHS.MYPAGE_POSTS}`;
+        break;
+      case "comments":
+        targetPath = `${PATHS.MYPAGE}/${PATHS.MYPAGE_COMMENTS}`;
+        break;
+      case "bookmarks":
+        targetPath = `${PATHS.MYPAGE}/${PATHS.MYPAGE_BOOKMARKS}`;
+        break;
+      default:
+        targetPath = `${PATHS.MYPAGE}/${path}`;
+    }
+
+    pendingPathRef.current = targetPath;
   };
 
   const handleOverlayAnimationEnd = () => {
@@ -344,16 +374,17 @@ const MyPageMain: React.FC = () => {
           <div className="w-12 h-0.5 bg-primary rounded-full"></div>
         </div>
 
-        {/* 카드 그리드 */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center relative">
+        {/* 카드 그리드 - 높이 통일 */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-start relative">
           {cardData?.map((card, index) => (
             <Card
-              key={index}
+              key={`${card.title}-${index}`}
               title={card.title}
               count={card.count}
               icon={card.icon}
               items={card.items}
               onClick={() => handleCardClick(card.path)}
+              onItemClick={handlePostClick}
               isExpanding={isExpanding}
               isClicked={clickedCard === card.path}
               getIconPath={getIconPath}
