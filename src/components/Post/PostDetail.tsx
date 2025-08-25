@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import {
-  Bookmark,
   Loader2,
   MessageSquare,
   MoreHorizontal,
@@ -30,6 +29,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { urlForPost } from "@src/utils/urlForPost";
 import { createRootComment } from "@api/comments";
 import { toggleReaction } from "@src/api/reactions";
+import BookmarkButton from "../ui/BookmarkButton";
+import { fetchMyBookmarks } from "@src/api/bookmarks";
 
 const BOARD_LABEL: Record<string, string> = {
   free: "자유게시판",
@@ -47,7 +48,12 @@ export default function PostDetail({
   initialComments?: any[];
 }) {
   const [reacting, setReacting] = useState(false);
-  const [bookmarked, setBookmarked] = useState(false);
+  const [bookmarkCount, setBookmarkCount] = useState<number>(
+    post.reactions.bookmark ?? 0
+  );
+  const [isBookmarkedByMe, setIsBookmarkedByMe] = useState<boolean | null>(
+    null
+  );
   const [commentDraft, setCommentDraft] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [firstCommentSeed, setFirstCommentSeed] = useState<any[] | null>(null);
@@ -75,6 +81,23 @@ export default function PostDetail({
   }));
   const like = mine === "like";
   const dislike = mine === "dislike";
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const list = await fetchMyBookmarks(); // [{postId, title}, ...]
+        if (!alive) return;
+        setIsBookmarkedByMe(list.some((b) => b.postId === Number(post.id)));
+      } catch {
+        if (!alive) return;
+        setIsBookmarkedByMe(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [post.id]);
 
   // 뒤로가기/재진입 보정
   useEffect(() => {
@@ -313,15 +336,15 @@ export default function PostDetail({
           <ThumbsDown className="mr-1 h-4 w-4" /> {fmtNum(reaction.dislike)}
         </button>
 
-        <button
-          className={clsx("btn btn-ghost btn-sm", bookmarked && "text-primary")}
-          onClick={() => setBookmarked((v) => !v)}
-          aria-pressed={!!bookmarked}
-          type="button"
-        >
-          <Bookmark className="mr-2 h-4 w-4" />{" "}
-          {fmtNum(reaction.bookmark + (bookmarked ? 1 : 0))}
-        </button>
+        <BookmarkButton
+          postId={Number(post.id)} // 문자열이면 Number(...)로
+          initialBookmarked={Boolean(isBookmarkedByMe)}
+          initialCount={bookmarkCount}
+          onCountChange={(next) => {
+            setBookmarkCount(next);
+            // 필요시 post 상태 동기화
+          }}
+        />
       </div>
 
       {/* 댓글 입력 */}
