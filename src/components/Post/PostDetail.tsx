@@ -61,6 +61,12 @@ export default function PostDetail({
   const [firstCommentMineIds, setFirstCommentMineIds] = useState<
     string[] | null
   >(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // 작성자 id 보정 (inline user → authorId 순)
+  const authorIdResolved = String(
+    (post as any).user?.id ?? post.authorId ?? ""
+  );
 
   // 헤더에 표시되는 댓글 수를 낙관적으로 올려주기 위한 로컬 상태
   const [commentsCount, setCommentsCount] = useState(post.commentsCount);
@@ -191,8 +197,33 @@ export default function PostDetail({
       setSubmitting(false);
     }
   };
+  async function handleDeletePost() {
+    if (deleting) return;
+    const ok = window.confirm(
+      "이 게시글을 삭제할까요? 삭제 후 되돌릴 수 없습니다."
+    );
+    if (!ok) return;
 
-  const { canManage } = useCanManage(post.authorId, {
+    setDeleting(true);
+    try {
+      await deletePost(Number(post.id));
+      toast.push({ message: "게시글이 삭제되었습니다.", type: "success" });
+
+      // 삭제 후 목록으로 이동
+      navigate(`/board/${post.boardSlug}`);
+    } catch (e: any) {
+      const code = e?.response?.status;
+      if (code === 401)
+        toast.push({ message: "로그인이 필요합니다.", type: "warning" });
+      else if (code === 403)
+        toast.push({ message: "삭제 권한이 없습니다.", type: "warning" });
+      else toast.push({ message: "게시글 삭제에 실패했어요.", type: "error" });
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const { canManage } = useCanManage(authorIdResolved, {
     allowAdmin: true,
     allowModerator: true,
   });
@@ -212,17 +243,18 @@ export default function PostDetail({
     },
     ...onlyWhen(canManage, [
       {
+        id: "edit",
         label: "게시글 수정",
         icon: <Pencil className="h-4 w-4" />,
         onSelect: () => navigate(urlForPost.postEdit(String(post.id))),
+        disabled: deleting, // 삭제 중일 땐 비활성화
       },
       {
         label: "게시글 삭제",
         icon: <Trash2 className="h-4 w-4" />,
         danger: true,
-        onSelect: () => {
-          deletePost(Number(post.id));
-        },
+        onSelect: handleDeletePost, //  삭제 호출
+        disabled: deleting,
       },
     ]),
   ];
