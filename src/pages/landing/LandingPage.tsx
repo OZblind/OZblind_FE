@@ -45,7 +45,7 @@ export default function LandingPage() {
     } catch (e: unknown) {
       const msg =
         typeof e === "object" && e && "message" in e
-          ? (e as { message?: string }).message ?? "로그인 실패"
+          ? ((e as { message?: string }).message ?? "로그인 실패")
           : "로그인 실패";
       push({ message: msg, type: "error" });
     }
@@ -63,7 +63,7 @@ export default function LandingPage() {
         type="button"
         onClick={onClickGoogle}
         disabled={disabled}
-        className="btn btn-primary w-60"
+        className="btn btn-primary text-white w-60"
       >
         {disabled && <span className="loading loading-spinner"></span>}
         {disabled ? "처리 중..." : "Continue with Google"}

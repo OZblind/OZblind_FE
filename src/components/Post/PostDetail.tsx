@@ -400,7 +400,7 @@ export default function PostDetail({
             취소
           </button>
           <button
-            className="btn btn-primary btn-sm"
+            className="btn btn-primary btn-sm text-white"
             onClick={submitComment}
             disabled={submitting || !commentDraft.trim()}
             type="button"

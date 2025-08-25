@@ -204,7 +204,7 @@ export default function SurveyPostForm({
       {/* 설문지 작성 / 링크 / 마감일 */}
       <div className="flex flex-wrap gap-4">
         <div className="flex flex-col gap-1 shrink-0">
-          <label className="font-semibold text-white">설문 생성</label>
+          <label className="font-semibold text-base-content">설문 생성</label>
           <select
             aria-label="설문 폼 선택"
             className="border border-gray-300 rounded p-2 bg-white shrink-0"
@@ -224,7 +224,10 @@ export default function SurveyPostForm({
 
         {/* 설문 링크 입력 */}
         <div className="flex flex-col gap-1 flex-1 min-w-[220px]">
-          <label htmlFor="survey-link" className="font-semibold text-white">
+          <label
+            htmlFor="survey-link"
+            className="font-semibold text-base-content"
+          >
             설문 링크
           </label>
           <input
@@ -242,7 +245,10 @@ export default function SurveyPostForm({
 
         {/* 설문 마감일 */}
         <div className="flex flex-col gap-1 shrink-0">
-          <label htmlFor="survey-end" className="font-semibold text-white">
+          <label
+            htmlFor="survey-end"
+            className="font-semibold text-base-content"
+          >
             마감일
           </label>
           <input
@@ -287,8 +293,8 @@ export default function SurveyPostForm({
               ? "수정 중..."
               : "작성 중..."
             : isEdit
-            ? "수정"
-            : "작성"}
+              ? "수정"
+              : "작성"}
         </Button>
       </div>
       <ConfirmModal
