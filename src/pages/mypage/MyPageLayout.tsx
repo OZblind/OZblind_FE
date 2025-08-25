@@ -20,7 +20,7 @@ interface MyPageLayoutProps {
   className?: string;
 }
 
-function MyPageLayout({
+const MyPageLayout: React.FC<MyPageLayoutProps> = ({
   userProfile = {
     nickname: "익명",
     userId: "FE001",
@@ -28,7 +28,7 @@ function MyPageLayout({
     cohort: "11기",
     department: "프론트",
   },
-}: MyPageLayoutProps): JSX.Element {
+}) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [theme, setTheme] = useState<"oz_dark" | "oz_light">("oz_dark");
   const [isHovered, setIsHovered] = useState(false);
@@ -143,6 +143,6 @@ function MyPageLayout({
       `}</style>
     </div>
   );
-}
+};
 
 export default MyPageLayout;
