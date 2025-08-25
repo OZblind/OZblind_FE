@@ -100,11 +100,16 @@ export default function NoticeCard({
         <button
           type="button"
           aria-label="알림 삭제"
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
           onClick={(e) => {
             e.stopPropagation();
+            e.preventDefault();
             onDelete();
           }}
-          className="absolute right-2 top-2 w-6 h-6 rounded-full flex items-center justify-center opacity-90 hover:opacity-100 z-[1]"
+          className="absolute right-2 top-2 w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center z-20 pointer-events-auto opacity-90 hover:opacity-100"
         >
           <span className="text-base text-primary-content leading-none">×</span>
         </button>
