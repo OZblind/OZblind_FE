@@ -2,6 +2,9 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App.tsx";
 import "./index.css";
+import "@toast-ui/editor/dist/toastui-editor-viewer.css";
+import "prismjs/themes/prism.css";
+
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { bootstrapAuthSync } from "@utils/auth/sync";
 import { queryKeys } from "@constants/queryKeys";
@@ -20,9 +23,9 @@ bootstrapAuthSync({
 });
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </QueryClientProvider>
+  <QueryClientProvider client={queryClient}>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </QueryClientProvider>
 );
