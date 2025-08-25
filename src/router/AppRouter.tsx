@@ -41,7 +41,6 @@ import { useToastStore } from "@store/toastStore";
 import { resolvePostLoginPath } from "@utils/postLogin";
 import TestTagPage from "@src/pages/test/TestTagPage";
 import TestPostReadPage from "@src/pages/test/TestPostReadPage";
-import TestMainPage from "@src/pages/test/TestMainPage";
 import TestSurveyList from "@src/pages/test/BoardList/TestSurveyList";
 import TestJobBannerPage from "@src/pages/test/TestJobBanner";
 
@@ -244,7 +243,6 @@ export default function AppRouter() {
         <Route path="/test/tag" element={<TestTagPage />} />
         <Route path="/test/post" element={<TestPostReadPage />} />
         <Route path="/test/setting" element={<TestSettingPage />} />
-        <Route path="/test/main" element={<TestMainPage />}></Route>
         <Route path="/test/board/free-list" element={<TestFreeBoardList />} />
         <Route path="/test/board/survey-list" element={<TestSurveyList />} />
         <Route path="/test/board/github-list" element={<TestGithubList />} />
