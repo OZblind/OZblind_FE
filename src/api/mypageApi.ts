@@ -7,7 +7,6 @@ import type {
   BookmarksResponse,
   PostsResponse,
   DeleteResponse,
-  DeleteRequest,
 } from "@src/types/mypage";
 export interface UserTag {
   tag_class: string;
@@ -207,25 +206,60 @@ export const getMyComments = async (
   }
 };
 
-/* =========================
- * Bookmarks (북마크)
- * ========================= */
-
-// 내 북마크 목록: GET /api/bookmarks/me/
-// 응답: [{ post: { postId, title } }]
 export const getMyBookmarks = async (
   page: number = 1,
   pageSize: number = 20
 ): Promise<BookmarksResponse> => {
   try {
-    const res = await api.get("/api/bookmarks/me/", { withCredentials: true });
-    const raw: Array<{ post: { postId: number; title: string } }> =
-      res.data ?? [];
+    // 슬래시 유무 둘 다 허용되도록 우선 /me 로 시도하고, 실패하면 /me/ 재시도
+    let res;
+    try {
+      res = await api.get("/api/bookmarks/me", { withCredentials: true });
+    } catch (e: any) {
+      // 404면 그냥 빈 배열 처리, 그 외는 /me/ 재시도
+      if (e?.response?.status === 404) {
+        return {
+          success: true,
+          data: [],
+          pagination: {
+            currentPage: 1,
+            totalPages: 1,
+            itemsPerPage: 0,
+            totalItems: 0,
+          },
+        };
+      }
+      res = await api.get("/api/bookmarks/me/", { withCredentials: true });
+    }
 
+    const payload = res.data;
+
+    // A형: { bookmarks: [...] }
+    let list: Array<{ postId: number; title: string }> | null = null;
+    if (payload && Array.isArray(payload.bookmarks)) {
+      list = payload.bookmarks as Array<{ postId: number; title: string }>;
+    }
+
+    // B형: [ { post: { postId, title } }, ... ]
+    if (!list && Array.isArray(payload)) {
+      list = payload
+        .map((x: any) =>
+          x?.post?.postId
+            ? {
+                postId: Number(x.post.postId),
+                title: String(x.post.title ?? ""),
+              }
+            : null
+        )
+        .filter(Boolean) as Array<{ postId: number; title: string }>;
+    }
+
+    const raw = list ?? [];
+
+    // 상세 정보 보강 (카테고리/작성일)
     const uniquePostIds = [
-      ...new Set(raw.map((x) => x.post?.postId).filter(Boolean)),
+      ...new Set(raw.map((b) => b.postId).filter(Boolean)),
     ] as number[];
-
     const detailMap = new Map<
       number,
       { title: string; board: number; created_at: string }
@@ -242,38 +276,45 @@ export const getMyBookmarks = async (
       })
     );
 
-    // UI에서 쓰는 BookmarkItem으로 매핑
-    // 주의: 삭제 API가 DELETE /api/bookmarks/{post_id}/ 이므로
-    //       여기서 id를 postId로 맞춰둠 (체크박스/삭제 연동 쉬움)
     const allItems: BookmarkItem[] = raw.map((b) => {
-      const pid = b.post?.postId ?? 0;
-      const d = detailMap.get(pid);
+      const d = detailMap.get(b.postId);
       return {
-        id: pid, // ← 삭제에 post_id 필요해서 id=postId로 설정
-        postId: pid,
-        title: d?.title || b.post?.title || "(제목 없음)",
+        id: b.postId, // 삭제 API가 post_id 기준이라 id=postId로 세팅
+        postId: b.postId,
+        title: d?.title || b.title || "(제목 없음)",
         category: getBoardName(d?.board ?? 0),
-        date: d?.created_at ?? "", // 원글 작성일
-        bookmarkedDate: "", // 명세에 북마크일시가 없어 빈값
+        date: d?.created_at ?? "",
+        bookmarkedDate: "", // 백엔드에 북마크일시가 없어서 빈 값
       };
     });
 
-    // 클라 페이지네이션
     const start = (page - 1) * pageSize;
     const pageItems = allItems.slice(start, start + pageSize);
-    const totalItems = allItems.length;
 
     return {
       success: true,
       data: pageItems,
       pagination: {
         currentPage: page,
-        totalPages: Math.max(1, Math.ceil(totalItems / pageSize)),
+        totalPages: Math.max(1, Math.ceil(allItems.length / pageSize)),
         itemsPerPage: pageSize,
-        totalItems,
+        totalItems: allItems.length,
       },
     };
-  } catch (error) {
+  } catch (error: any) {
+    // 404면 빈 데이터 반환
+    if (error?.response?.status === 404) {
+      return {
+        success: true,
+        data: [],
+        pagination: {
+          currentPage: 1,
+          totalPages: 1,
+          itemsPerPage: 0,
+          totalItems: 0,
+        },
+      };
+    }
     console.error("북마크 조회 실패:", error);
     return {
       success: false,

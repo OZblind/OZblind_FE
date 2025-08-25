@@ -6,6 +6,7 @@ export const PATHS = {
   KEY_VERIFY: "/key-verify",
 
   // 게시판
+  BOARD_HOME: "/board",
   FREE_BOARD: "/board/free",
   JOBS_BOARD: "/board/jobs",
   INFO_BOARD: "/board/info",

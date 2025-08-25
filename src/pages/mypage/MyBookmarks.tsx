@@ -438,7 +438,7 @@ function MyBookmarks(): JSX.Element {
                     마음에 드는 글을 북마크해보세요!
                   </p>
                   <button
-                    onClick={() => navigate("/board")}
+                    onClick={() => navigate(PATHS.BOARD_HOME)}
                     className={`bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-md text-sm font-medium transition-colors ${getDurationClass(
                       ANIMATION_TIMINGS.HOVER_TRANSITION
                     )}`}
