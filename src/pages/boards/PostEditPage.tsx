@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/pages/post/PostEditPage.tsx
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -142,3 +141,4 @@ export default function PostEditPage() {
     </div>
   );
 }
+
