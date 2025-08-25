@@ -6,7 +6,13 @@ import { CARD_STYLE, CARD_TEXT } from "./boardColor";
 import { useNavigate } from "react-router-dom";
 import { Eye } from "lucide-react";
 
-export default function HotPostCard({ post }: { post: HotPost }) {
+export default function HotPostCard({
+  post,
+  num,
+}: {
+  post: HotPost;
+  num: number;
+}) {
   const navigate = useNavigate();
   const themeIcon = useThemeIcon();
   const { thumbUp } = useMemo(() => {
@@ -25,11 +31,19 @@ export default function HotPostCard({ post }: { post: HotPost }) {
 
   return (
     <button
-      className={`flex w-full h-[148px] rounded-lg shadow-md overflow-hidden border-2
+      className={`relative flex w-full h-[148px] rounded-lg shadow-md overflow-hidden border-2
         ${CARD_STYLE[post.board]}
         hover:shadow-lg hover:scale-105 transition-all duration-200`}
       onClick={() => navigate(`/posts/${post.id}`)}
     >
+      <span
+        className={`absolute top-[74px] right-1 text-[60px] opacity-15 ${
+          CARD_TEXT[post.board]
+        }`}
+      >
+        {num}
+      </span>
+
       <div className="flex flex-col justify-between p-2 flex-1 items-start text-left">
         <div>
           <p className={`text-sm mt-1 ${CARD_TEXT[post.board]}`}>
@@ -39,13 +53,13 @@ export default function HotPostCard({ post }: { post: HotPost }) {
             {post.title}
           </h3>
         </div>
-        <div className="flex items-center justify-between text-sm w-full font-thin text-base-content/40">
+        <div className="flex items-center gap-2 text-sm w-full font-thin text-base-content/40">
           <div className="flex items-center gap-1">
             <Eye className="h-4 w-4" />
             {post.view_count}
           </div>
           <div className="flex items-center gap-1">
-            <img src={thumbUp} alt="thumbUp" className="w-4 h-4" />
+            <img src={thumbUp} alt="thumbUp" className="w-4 h-4 opacity-40" />
             {post.like_count}
           </div>
         </div>
