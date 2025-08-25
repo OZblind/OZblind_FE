@@ -12,3 +12,10 @@ export type RawUserTag = {
   tag_class: "FE" | "BE";
   tag_number: number; // 기수 (예: 11)
 };
+
+export type PositionValue = "front" | "back" | "startup" | "design";
+export type TagClass = "FE" | "BE";
+export type TagFilter = {
+  tagClass?: TagClass;
+  cohort?: number;
+};

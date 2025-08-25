@@ -5,9 +5,11 @@ import { useInfiniteScroll } from "@hooks/useInfiniteScroll";
 import { formatYyyyMmDdHms } from "@utils/date";
 import { useSurveys } from "@src/hooks/useSurveys";
 import { urlForPost } from "@src/utils/urlForPost";
-import type { SurveyCardProps } from "@components/Board/survey/SurveyCard";
 import type { SortValue } from "@src/types/sort";
 import sortClientSide from "@src/utils/sortClientSide";
+import type { PositionValue } from "@src/types/tag";
+import { posToTagClass } from "@utils/tagRules";
+import type { SortableSurveyCard } from "@src/hooks/useSurveys";
 
 export default function SurveyListPage() {
   const nav = useNavigate();
@@ -17,6 +19,12 @@ export default function SurveyListPage() {
   );
   const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
   const [sort, setSort] = useState<SortValue>("latest");
+  const [pos, setPos] = useState<PositionValue>("back");
+  const [cohort, setCohort] = useState<number>(11);
+  const [activeFilter, setActiveFilter] = useState<{
+    pos: PositionValue;
+    cohort: number;
+  } | null>(null);
 
   const {
     data,
@@ -27,21 +35,25 @@ export default function SurveyListPage() {
     isError,
     error,
     refetch,
-  } = useSurveys();
+  } = useSurveys({
+    tags: activeFilter
+      ? {
+          tagClass: posToTagClass(activeFilter.pos),
+          cohort: activeFilter.cohort,
+        }
+      : undefined,
+  });
 
-  // 훅이 이미 SurveyCardProps[]를 반환하므로 플랫만 하면 됨
-  const items: SurveyCardProps[] = useMemo(
+  // 플랫
+  const items: SortableSurveyCard[] = useMemo(
     () => data?.pages.flatMap((p) => p.items) ?? [],
     [data]
   );
 
   const sortedItems = useMemo(() => {
     return sortClientSide(items, sort, {
-      createdAt: (it: any) =>
-        Number(it.createdAtMs ?? 0) ||
-        (it.deadline ? Date.parse(it.deadline) : 0) ||
-        Number(it.id ?? 0),
-      viewCount: (it: any) => Number(it.responseCount ?? it.participants ?? 0),
+      createdAt: (it: SortableSurveyCard) => it.createdAtMs,
+      viewCount: (it: SortableSurveyCard) => it.responseCount,
     });
   }, [items, sort]);
 
@@ -79,7 +91,6 @@ export default function SurveyListPage() {
           onItemClick={(id) => nav(`/posts/${id}`)}
           topBar={{
             boardName: "설문 게시판",
-            onOpenTag: () => {}, // TODO[UI→API-TAGS]: 태그 필터를 훅/서버에 연결
             onWrite: () => nav(urlForPost.postCreate("survey")),
           }}
           lastLoadedAt={lastLoadedAt}
@@ -95,6 +106,19 @@ export default function SurveyListPage() {
           sortValue={sort}
           onChangeSort={(v) => {
             setSort(v);
+            setLastLoadedAt(formatYyyyMmDdHms(new Date()));
+            rootEl?.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+          }}
+          tagValue={{ pos, cohort }}
+          tagApplied={!!activeFilter}
+          onApplyTag={(next) => {
+            if (next) {
+              setPos(next.pos);
+              setCohort(next.cohort);
+              setActiveFilter(next);
+            } else {
+              setActiveFilter(null);
+            }
             setLastLoadedAt(formatYyyyMmDdHms(new Date()));
             rootEl?.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
           }}

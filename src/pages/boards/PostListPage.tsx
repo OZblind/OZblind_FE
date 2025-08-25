@@ -8,8 +8,9 @@ import { formatYyyyMmDdHms } from "@utils/date";
 import { useBoardPosts } from "@hooks/useBoardPosts";
 import { LIST_SETTINGS, ERROR_MESSAGES } from "@constants/ui";
 import { tagsToAuthorLabel } from "@utils/tagsToAuthorLabel";
-import { adaptUserTag } from "@src/features/tags/adapters";
-import type { RawUserTag } from "@api/tags";
+import { adaptUserTag, isRawUserTag } from "@src/features/tags/adapters";
+import { posToTagClass } from "@utils/tagRules";
+import type { PositionValue } from "@src/types/tag";
 import type { SortValue } from "@src/types/sort";
 
 const BOARD_LABEL: Record<BoardSlug, string> = {
@@ -27,10 +28,19 @@ export default function PostListPage({ board }: { board: BoardSlug }) {
   );
   const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
   const [sort, setSort] = useState<SortValue>("latest");
+  const [pos, setPos] = useState<PositionValue>("back");
+  const [cohort, setCohort] = useState<number>(11);
+  const [activeFilter, setActiveFilter] = useState<{
+    pos: PositionValue;
+    cohort: number;
+  } | null>(null);
 
   // 게시판 변경 시 필터/스크롤 초기화
   useEffect(() => {
     setSort("latest");
+    setPos("back");
+    setCohort(11);
+    setActiveFilter(null);
     setLastLoadedAt(formatYyyyMmDdHms(new Date()));
     setRootEl(null);
   }, [board]);
@@ -48,21 +58,20 @@ export default function PostListPage({ board }: { board: BoardSlug }) {
     pageSize: LIST_SETTINGS.ITEMS_PER_PAGE,
     sort,
     // search,                // TODO(filter): 검색어 연결
-    // tags: [...],           // TODO(filter): 태그 필터 연결
+
+    // 필터 적용된 경우에만 태그 파라미터 전송 → 포지션 & 기수 AND
+    tags: activeFilter
+      ? {
+          tagClass: posToTagClass(activeFilter.pos),
+          cohort: activeFilter.cohort,
+        }
+      : undefined,
   });
 
   // pages(flat) → PostListItem[]
   const items = useMemo(() => (data?.pages ?? []).flat(), [data]);
 
   const uiItems = useMemo(() => items.map(mapToFreeItem), [items]);
-
-  // 작성자 태그 타입가드
-  const isRawUserTag = (u: unknown): u is RawUserTag =>
-    typeof u === "object" &&
-    u !== null &&
-    typeof (u as { id?: unknown }).id === "number" &&
-    (u as { tag_class?: unknown }).tag_class !== undefined &&
-    typeof (u as { tag_number?: unknown }).tag_number === "number";
 
   // 작성자 라벨 맵: postId → "11기 · 프론트" 등
   const authorLabelMap = useMemo(() => {
@@ -74,6 +83,7 @@ export default function PostListPage({ board }: { board: BoardSlug }) {
     }
     return m;
   }, [items]);
+
   // 초기 로딩/Empty 깜빡임 방지
   const hasNoPages = uiItems.length === 0;
   const isInitialLoading = hasNoPages && isFetching;
@@ -125,6 +135,19 @@ export default function PostListPage({ board }: { board: BoardSlug }) {
           sortValue={sort}
           onChangeSort={(v) => {
             setSort(v);
+            setLastLoadedAt(formatYyyyMmDdHms(new Date()));
+            rootEl?.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+          }}
+          tagValue={{ pos, cohort }}
+          tagApplied={!!activeFilter}
+          onApplyTag={(next) => {
+            if (next) {
+              setPos(next.pos);
+              setCohort(next.cohort);
+              setActiveFilter(next); // 필터 적용
+            } else {
+              setActiveFilter(null); // 전체 보기
+            }
             setLastLoadedAt(formatYyyyMmDdHms(new Date()));
             rootEl?.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
           }}

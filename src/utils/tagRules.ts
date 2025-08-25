@@ -1,4 +1,4 @@
-import type { Tag } from "@src/types/tag";
+import type { PositionValue, Tag, TagClass } from "@src/types/tag";
 
 /** 정확히 기수, 포지션 1개씩인지 검증 */
 export function validateAssignedTags(tags: Tag[]) {
@@ -25,3 +25,16 @@ export function mapUserToTags(cohort: string, position: string): Tag[] {
     },
   ];
 }
+
+// UI 포지션 → 서버 class
+export function posToTagClass(pos?: PositionValue): TagClass | undefined {
+  if (pos === "front") return "FE";
+  if (pos === "back") return "BE";
+  return undefined;
+}
+
+// 서버 RawUserTag → 라벨 문자열 변환 보조
+export const TAG_LABELS: Record<TagClass, string> = {
+  FE: "프론트",
+  BE: "백엔드",
+};
