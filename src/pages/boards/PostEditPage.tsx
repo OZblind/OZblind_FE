@@ -1,46 +1,34 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
+// src/pages/post/PostEditPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { fetchPostDetail, type PostDetail } from "@api/posts";
+import { fetchPostDetail } from "@api/posts";
+import { fetchSurveyExtra, fetchGithubExtra } from "@api/posts.special";
 import { BOARD_ID, type BoardSlug } from "@constants/boards";
-import { useCanManage } from "@src/hooks/useCanManage";
+
 import { useToastStore } from "@src/store/toastStore";
+import { useCanManage } from "@src/hooks/useCanManage";
 import SurveyPostForm from "@src/components/Board/SurveyPostForm";
+import GitRepoPostForm from "@src/components/Board/GithubPostForm";
 import SharedPostForm from "@src/components/Board/SharedPostForm";
-import GithubPostForm from "@src/components/Board/GithubPostForm";
+
+type Initials =
+  | { title: string; content: string } // 공통
+  | { title: string; content: string; formLink?: string; endDate?: string } // 설문
+  | { title: string; content: string; repoUrl?: string }; // 깃
 
 export default function PostEditPage() {
   const { id } = useParams<{ id: string }>();
   const postId = Number(id);
-  const navigate = useNavigate();
-  const toast = useToastStore();
-
-  const [post, setPost] = useState<PostDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [post, setPost] = useState<Awaited<
+    ReturnType<typeof fetchPostDetail>
+  > | null>(null);
+  const [initial, setInitial] = useState<Initials | null>(null);
+  const toast = useToastStore();
+  const navigate = useNavigate();
 
-  // 상세 불러오기
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        setLoading(true);
-        const data = await fetchPostDetail(postId);
-        if (!alive) return;
-        setPost(data);
-      } catch (e: any) {
-        setError(e?.response?.data?.detail || e?.message || "불러오기 실패");
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [postId]);
-
-  // board id → slug 역매핑
+  // board id -> slug
   const idToSlug = useMemo(() => {
     const m = new Map<number, BoardSlug>();
     (Object.entries(BOARD_ID) as [BoardSlug, number][]).forEach(([slug, bid]) =>
@@ -48,16 +36,64 @@ export default function PostEditPage() {
     );
     return m;
   }, []);
+  const boardSlug = useMemo<BoardSlug | null>(
+    () => (post ? idToSlug.get(post.board) ?? "free" : null),
+    [post, idToSlug]
+  );
 
-  const boardSlug = useMemo<BoardSlug>(() => {
-    if (!post) return "free";
-    return idToSlug.get(post.board) ?? "free";
-  }, [post, idToSlug]);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const detail = await fetchPostDetail(postId); // 제목/본문 등 공통 상세
+        if (!alive) return;
+        setPost(detail);
 
-  // 권한 체크 (작성자/관리자/모더레이터)
+        // 공통 초기값
+        const base = {
+          title: String(detail.title ?? ""),
+          content: String(detail.content ?? ""),
+        };
+
+        // 설문/깃이면 extra도 추가로 로드
+        const slug = idToSlug.get(detail.board);
+        if (slug === "survey") {
+          const extra = await fetchSurveyExtra(postId); // { end_date, link }
+          if (!alive) return;
+          setInitial({
+            ...base,
+            formLink: extra.link,
+            endDate: extra.end_date,
+          });
+        } else if (slug === "github") {
+          const extra = await fetchGithubExtra(postId); // { link }
+          if (!alive) return;
+          setInitial({ ...base, repoUrl: extra.link });
+        } else {
+          setInitial(base);
+        }
+      } catch (e: any) {
+        toast.push({
+          message: e?.response?.data?.detail || e?.message || "불러오기 실패",
+          type: "error",
+        });
+        navigate(-1);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [postId, idToSlug, navigate, toast]);
+
+  // 권한 체크(작성자/관리자/모더레이터)
   const authorId = useMemo(() => {
     const inline = (post as any)?.user?.id;
-    return String(inline ?? post?.user_id ?? post?.author_id ?? "");
+    return String(
+      inline ?? (post as any)?.user_id ?? (post as any)?.author_id ?? ""
+    );
   }, [post]);
   const { canManage } = useCanManage(authorId, {
     allowAdmin: true,
@@ -71,44 +107,14 @@ export default function PostEditPage() {
     }
   }, [loading, post, canManage, navigate, toast]);
 
-  if (loading)
+  if (loading || !boardSlug || !initial) {
     return (
       <div className="mx-auto max-w-3xl p-4">
         <h1 className="text-xl font-semibold">게시글 수정</h1>
         <p className="mt-4 opacity-70">불러오는 중…</p>
       </div>
     );
-
-  if (error)
-    return (
-      <div className="mx-auto max-w-3xl p-4">
-        <h1 className="text-xl font-semibold">게시글 수정</h1>
-        <p className="mt-4 text-red-500">{error}</p>
-      </div>
-    );
-
-  if (!post)
-    return (
-      <div className="mx-auto max-w-3xl p-4">
-        <h1 className="text-xl font-semibold">게시글 수정</h1>
-        <p className="mt-4 opacity-70">게시글을 찾을 수 없습니다.</p>
-      </div>
-    );
-
-  // 폼별 초기값 추출 (백엔드 필드명에 맞춰 안전하게)
-  const baseInitial = {
-    title: String(post.title ?? ""),
-    content: String(post.content ?? ""),
-  };
-  const surveyInitial = {
-    ...baseInitial,
-    formLink: (post as any).form_link ?? (post as any).formLink ?? "",
-    endDate: (post as any).end_date ?? (post as any).endDate ?? "",
-  };
-  const githubInitial = {
-    ...baseInitial,
-    repoUrl: (post as any).repo_url ?? (post as any).repoUrl ?? "",
-  };
+  }
 
   return (
     <div className="flex flex-col w-full h-full gap-2 text-black">
@@ -116,15 +122,24 @@ export default function PostEditPage() {
         <SurveyPostForm
           mode="edit"
           postId={postId}
-          initial={surveyInitial}
+          initial={{
+            title: initial.title,
+            content: initial.content,
+            formLink: (initial as any).formLink,
+            endDate: (initial as any).endDate,
+          }}
           onCancel={() => navigate(-1)}
           onSubmitted={() => navigate(`/posts/${postId}`)}
         />
       ) : boardSlug === "github" ? (
-        <GithubPostForm
+        <GitRepoPostForm
           mode="edit"
           postId={postId}
-          initial={githubInitial}
+          initial={{
+            title: initial.title,
+            content: initial.content,
+            repoUrl: (initial as any).repoUrl,
+          }}
           onCancel={() => navigate(-1)}
           onSubmitted={() => navigate(`/posts/${postId}`)}
         />
@@ -133,7 +148,7 @@ export default function PostEditPage() {
           mode="edit"
           board={boardSlug}
           postId={postId}
-          initial={baseInitial}
+          initial={{ title: initial.title, content: initial.content }}
           onCancel={() => navigate(-1)}
           onSubmitted={() => navigate(`/posts/${postId}`)}
         />
