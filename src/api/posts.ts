@@ -62,7 +62,10 @@ export async function fetchPosts(params?: {
 }) {
   const query = new URLSearchParams();
 
-  if (params?.board) query.set("board", String(BOARD_ID[params.board]));
+  if (params?.board) {
+    const bid = BOARD_ID[params.board];
+    if (bid != null) query.set("board", String(bid));
+  }
   if (params?.search) query.set("search", params.search);
   if (params?.ordering) query.set("ordering", params.ordering);
   if (params?.page) query.set("page", String(params.page));
