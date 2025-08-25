@@ -4,6 +4,16 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   plugins: [react(), tsconfigPaths()],
+  optimizeDeps: {
+    exclude: ["lucide-react"],
+    include: [
+      "@toast-ui/editor",
+      "@toast-ui/editor/dist/toastui-editor-viewer",
+      "@toast-ui/editor-plugin-code-syntax-highlight",
+      "prismjs",
+      "dompurify",
+    ],
+  },
   // server: {
   //   proxy: {
   //     "/api": {
