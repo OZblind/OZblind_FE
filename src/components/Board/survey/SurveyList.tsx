@@ -2,11 +2,11 @@ import ScrollSentinel from "@components/commons/InfiniteScroll/ScrollSentinel";
 import SurveyCard, { type SurveyCardProps } from "./SurveyCard";
 import EmptyState, { type EmptyStateProps } from "../common/EmptyState";
 import { LastLoadedBar, BoardTopBar } from "../common";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import SortRadioPopover from "@components/Board/common/sort/SortRadioPopover";
 import type { SortValue } from "@src/types/sort";
 import TagFilterPopover from "@components/Board/common/tagfilter/TagFilterPopover";
-import type { PositionValue } from "@components/Board/common/tagfilter/PositionRadio";
+import type { PositionValue } from "@src/types/tag";
 import { LIST_MESSAGES } from "@src/constants/ui";
 
 export type SurveyListProps = {
@@ -39,6 +39,10 @@ export type SurveyListProps = {
 
   sortValue?: SortValue;
   onChangeSort?: (v: SortValue) => void;
+
+  tagValue?: { pos: PositionValue; cohort: number };
+  tagApplied?: boolean;
+  onApplyTag?: (next: { pos: PositionValue; cohort: number } | null) => void;
 };
 
 export default function SurveyList({
@@ -58,6 +62,9 @@ export default function SurveyList({
   scrollRootRef,
   sortValue,
   onChangeSort,
+  tagValue,
+  tagApplied,
+  onApplyTag,
 }: SurveyListProps) {
   const isEmpty = items.length === 0;
 
@@ -76,7 +83,13 @@ export default function SurveyList({
   const [openTag, setOpenTag] = useState(false);
   const [position, setPosition] = useState<PositionValue>("back");
   const [cohort, setCohort] = useState<number>(11);
-  const tagActive = position !== "back" || cohort !== 11;
+  const tagActive = !!tagApplied;
+
+  useEffect(() => {
+    if (!tagValue) return;
+    if (position !== tagValue.pos) setPosition(tagValue.pos);
+    if (cohort !== tagValue.cohort) setCohort(tagValue.cohort);
+  }, [tagValue?.pos, tagValue?.cohort]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <section className={`flex h-full flex-col ${className ?? ""}`}>
@@ -173,9 +186,9 @@ export default function SurveyList({
           setPosition("back");
           setCohort(11);
         }}
-        onApply={() => {
-          // UI 전용: 실제 fetch/refetch는 상위 승격 시 연결
-          // (PostList에서 쓰던 패턴 그대로)
+        onApply={(next) => {
+          onApplyTag?.(next);
+          setOpenTag(false);
         }}
         onRequestClose={() => setOpenTag(false)}
       />
