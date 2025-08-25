@@ -2,16 +2,26 @@
 import { api } from "@api/client";
 import type { CommentMeta } from "@src/types/post";
 import { fetchRandomNickname } from "@src/api/nickname";
-import {
-  fetchPostDetailCached,
-  mutatePostDetailCache,
-  readPostDetailCache,
-} from "./posts";
+import { fetchPostDetailSingleflight } from "./posts";
 
 /** 닉네임 태그 유틸 */
 export const DELETED_PLACEHOLDER = "작성자에 의해 삭제된 댓글입니다.";
 const NICK_OPEN = "[[NICK]]";
 const NICK_CLOSE = "[[/NICK]]";
+
+export function normalizeDate(input: unknown): string {
+  if (input == null) return new Date().toISOString();
+  if (typeof input === "number") return new Date(input).toISOString();
+  let s = String(input).trim();
+
+  // 공백 구분인 "YYYY-MM-DD HH:mm:ss" 형태면 T로 치환
+  if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}/.test(s) && !s.includes("T")) {
+    s = s.replace(" ", "T");
+  }
+
+  const t = Date.parse(s);
+  return Number.isNaN(t) ? new Date().toISOString() : new Date(t).toISOString();
+}
 
 function embedNickHeader(nick: string, body: string) {
   return `${NICK_OPEN}${nick}${NICK_CLOSE}${body ?? ""}`;
@@ -24,15 +34,14 @@ export function extractNickHeader(body: string | undefined): {
   const text = String(body ?? "");
   if (text.startsWith(NICK_OPEN)) {
     const end = text.indexOf(NICK_CLOSE, NICK_OPEN.length);
-    if (end > -1) {
-      const nick = text.slice(NICK_OPEN.length, end);
-      const content = text.slice(end + NICK_CLOSE.length);
-      return { nick, content };
-    }
+    if (end > -1)
+      return {
+        nick: text.slice(NICK_OPEN.length, end),
+        content: text.slice(end + NICK_CLOSE.length),
+      };
   }
   return { content: text };
 }
-
 function isDeletedContent(body: string | undefined) {
   const { content } = extractNickHeader(body);
   return content.trim() === DELETED_PLACEHOLDER;
@@ -43,19 +52,16 @@ export function toClientFromPostDetail(c: any): CommentMeta {
   const rawReplies: any[] = Array.isArray(c.thread_comments)
     ? c.thread_comments
     : [];
-  const cleanedReplies = rawReplies.filter(
-    (r) => String(r?.id) !== String(c?.id)
-  );
+  const cleaned = rawReplies.filter((r) => String(r?.id) !== String(c?.id));
   const { nick, content } = extractNickHeader(c.content);
-  const replies = cleanedReplies.map(toClientFromPostDetail);
-
+  const replies = cleaned.map(toClientFromPostDetail);
   return {
     id: String(c.id),
     author: nick ?? "익명",
     authorId: String(c.user ?? ""),
     authorName: nick ?? "익명",
     content,
-    createdAt: c.created_at,
+    createdAt: normalizeDate(c.created_at ?? c.createdAt),
     likes: c.like_count ?? 0,
     dislikes: c.dislike_count ?? 0,
     liked: false,
@@ -72,44 +78,29 @@ export function filterDeletedThread(
 ): CommentMeta[] {
   const out: CommentMeta[] = [];
   for (const n of nodes) {
-    const filteredChildren = filterDeletedThread(n.replies ?? [], false);
-    const deleted = isDeletedContent(n.content);
-    const hide =
-      (!isRoot && deleted) ||
-      (isRoot && deleted && filteredChildren.length === 0);
-
-    if (!hide) {
-      out.push({
-        ...n,
-        replies: filteredChildren,
-        hasReplies: filteredChildren.length > 0,
-      });
-    }
+    const kids = filterDeletedThread(n.replies ?? [], false);
+    const del = isDeletedContent(n.content);
+    const hide = (!isRoot && del) || (isRoot && del && kids.length === 0);
+    if (!hide) out.push({ ...n, replies: kids, hasReplies: kids.length > 0 });
   }
   return out;
 }
 
-/** 안전한 임시 ID 생성 (연속 작성 대비) */
-const genTempId = () =>
-  typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? (crypto as any).randomUUID()
-    : `temp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-
-/** 목록: 상세 캐시에서 트리 변환 */
+/** 목록: 동시중복만 합쳐 1회 호출 (캐시 없음) */
 export async function listCommentsByPost(
   postId: string | number
 ): Promise<CommentMeta[]> {
-  const post: any = await fetchPostDetailCached(String(postId)); // 키 일관화
+  const post: any = await fetchPostDetailSingleflight(postId);
   const roots = Array.isArray(post?.root_comments) ? post.root_comments : [];
   const tree = roots.map(toClientFromPostDetail);
   return filterDeletedThread(tree, true);
 }
 
-/** (루트) 댓글 작성: 저장 후 캐시 즉시 패치 */
+/** 루트 댓글 작성 — 서버만 호출 (UI 즉시 반영은 PostComment의 낙관적 추가가 담당) */
 export async function createRootComment(
   postId: string | number,
   content: string
-): Promise<void> {
+): Promise<CommentMeta> {
   let nick = "익명";
   try {
     nick = (await fetchRandomNickname()) || "익명";
@@ -117,32 +108,40 @@ export async function createRootComment(
     /* empty */
   }
   const payload = { post: postId, content: embedNickHeader(nick, content) };
-  await api.post(`/api/comments/`, payload, { withCredentials: true });
+  const res = await api.post(`/api/comments/`, payload, {
+    withCredentials: true,
+  });
 
-  const current = readPostDetailCache(String(postId)) as any | undefined;
-  if (current && Array.isArray(current.root_comments)) {
-    const newRaw = {
-      id: genTempId(),
-      user: null,
-      content: payload.content,
-      created_at: new Date().toISOString(),
-      like_count: 0,
-      dislike_count: 0,
-      thread_comments: [],
-    };
-    mutatePostDetailCache(String(postId), (prev: any) => ({
-      ...prev,
-      root_comments: [newRaw, ...(prev.root_comments ?? [])],
-    }));
+  // DRF 기본: 201 + 생성된 객체 반환
+  const created = res?.data;
+  if (created && created.id != null) {
+    // 서버 포맷 -> UI 포맷
+    return toClientFromPostDetail(created);
   }
+
+  // 혹시 응답이 비어있다면(드물지만) 최소한의 정보로 생성
+  return {
+    id: `temp_${Date.now()}`, // 임시
+    author: nick,
+    authorId: String(created?.user ?? ""),
+    authorName: nick,
+    content,
+    createdAt: new Date().toISOString(),
+    likes: 0,
+    dislikes: 0,
+    liked: false,
+    disliked: false,
+    hasReplies: false,
+    replies: [],
+  };
 }
 
-/** (대댓글) 작성: 저장 후 캐시 즉시 패치 */
+/** 대댓글 작성 — 서버만 호출 (UI 즉시 반영은 PostComment의 낙관적 추가가 담당) */
 export async function createReply(opts: {
   postId: string | number;
   rootId: string | number;
   content: string;
-}): Promise<void> {
+}): Promise<CommentMeta> {
   let nick = "익명";
   try {
     nick = (await fetchRandomNickname()) || "익명";
@@ -150,56 +149,36 @@ export async function createReply(opts: {
     /* empty */
   }
 
-  // rootId는 반드시 숫자로 변환 (서버가 number 기대)
-  const rootIdNum =
-    typeof opts.rootId === "string" ? parseInt(opts.rootId, 10) : opts.rootId;
-  if (!Number.isFinite(rootIdNum)) {
-    // 임시/비정상 id라면 그냥 캐시만 패치하고 종료(또는 에러 처리)
-    return;
-  }
-
   const payload = {
     post: opts.postId,
-    root: rootIdNum,
+    root:
+      typeof opts.rootId === "string" ? parseInt(opts.rootId, 10) : opts.rootId,
     content: embedNickHeader(nick, opts.content),
   };
 
-  await api.post(`/api/comments/`, payload, { withCredentials: true });
-
-  // 캐시 트리에서 해당 "루트 댓글" 아래에 즉시 삽입
-  mutatePostDetailCache(String(opts.postId), (prev: any) => {
-    if (!prev || !Array.isArray(prev.root_comments)) return prev;
-
-    const targetIdStr = String(rootIdNum);
-    const newReply = {
-      id:
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? (crypto as any).randomUUID()
-          : `temp_r_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      user: null,
-      content: payload.content,
-      created_at: new Date().toISOString(),
-      like_count: 0,
-      dislike_count: 0,
-      thread_comments: [],
-    };
-
-    const nextRoots = prev.root_comments.map((root: any) => {
-      // 숫자/문자 모두 안전 비교
-      if (String(root.id) === targetIdStr) {
-        const prevReplies = Array.isArray(root.thread_comments)
-          ? root.thread_comments
-          : [];
-        return {
-          ...root,
-          thread_comments: [newReply, ...prevReplies],
-        };
-      }
-      return root;
-    });
-
-    return { ...prev, root_comments: nextRoots };
+  const res = await api.post(`/api/comments/`, payload, {
+    withCredentials: true,
   });
+  const created = res?.data;
+  if (created && created.id != null) {
+    return toClientFromPostDetail(created);
+  }
+
+  // 폴백 (응답이 비었을 때)
+  return {
+    id: `temp_${Date.now()}`,
+    author: nick,
+    authorId: String(created?.user ?? ""),
+    authorName: nick,
+    content: opts.content,
+    createdAt: new Date().toISOString(),
+    likes: 0,
+    dislikes: 0,
+    liked: false,
+    disliked: false,
+    hasReplies: false,
+    replies: [],
+  };
 }
 
 /** 수정 */
@@ -209,7 +188,6 @@ export async function updateComment(
   opts?: { nick?: string }
 ): Promise<void> {
   let nick = opts?.nick;
-
   if (!nick) {
     try {
       const { data } = await api.get(`/api/comments/me`, {
@@ -218,20 +196,14 @@ export async function updateComment(
       const mine = Array.isArray(data)
         ? data.find((c: any) => String(c.id) === String(id))
         : undefined;
-      if (mine) {
-        const parsed = extractNickHeader(mine.content);
-        if (parsed.nick) nick = parsed.nick;
-      }
+      if (mine) nick = extractNickHeader(mine.content).nick;
     } catch {
       /* empty */
     }
   }
-
   const payload = { content: nick ? embedNickHeader(nick, content) : content };
   await api.patch(`/api/comments/${id}`, payload, { withCredentials: true });
 }
-
-/** 삭제 */
 export async function deleteComment(id: string | number): Promise<void> {
   await api.delete(`/api/comments/${id}`, { withCredentials: true });
 }

@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import {
-  Bookmark,
   Loader2,
   MessageSquare,
   MoreHorizontal,
@@ -30,6 +29,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { urlForPost } from "@src/utils/urlForPost";
 import { createRootComment } from "@api/comments";
 import { toggleReaction } from "@src/api/reactions";
+import BookmarkButton from "../ui/BookmarkButton";
+import { fetchMyBookmarks } from "@src/api/bookmarks";
+import { deletePost } from "@src/api/posts";
 
 const BOARD_LABEL: Record<string, string> = {
   free: "자유게시판",
@@ -39,33 +41,72 @@ const BOARD_LABEL: Record<string, string> = {
   github: "깃헙게시판",
 };
 
-// ================== Main ==================
-export default function PostDetail({ post }: { post: PostMeta }) {
+export default function PostDetail({
+  post,
+  initialComments,
+}: {
+  post: PostMeta;
+  initialComments?: any[];
+}) {
   const [reacting, setReacting] = useState(false);
-  const [bookmarked, setBookmarked] = useState(false);
+  const [bookmarkCount, setBookmarkCount] = useState<number>(
+    post.reactions.bookmark ?? 0
+  );
+  const [isBookmarkedByMe, setIsBookmarkedByMe] = useState<boolean | null>(
+    null
+  );
   const [commentDraft, setCommentDraft] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [firstCommentSeed, setFirstCommentSeed] = useState<any[] | null>(null);
+  const [firstCommentMineIds, setFirstCommentMineIds] = useState<
+    string[] | null
+  >(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // 작성자 id 보정 (inline user → authorId 순)
+  const authorIdResolved = String(
+    (post as any).user?.id ?? post.authorId ?? ""
+  );
+
+  // 헤더에 표시되는 댓글 수를 낙관적으로 올려주기 위한 로컬 상태
+  const [commentsCount, setCommentsCount] = useState(post.commentsCount);
+  useEffect(() => setCommentsCount(post.commentsCount), [post.commentsCount]);
 
   const navigate = useNavigate();
   const toast = useToastStore();
 
-  // 1) 내 리액션 상태 (like | dislike | null)
+  // 내 리액션 상태
   const [mine, setMine] = useState<"like" | "dislike" | null>(
     ((post as any).viewerReaction as any) ?? null
   );
 
-  // 2) 집계 상태(서버 값을 초기값으로 사용)
+  // 집계 상태
   const [reaction, setReaction] = useState(() => ({
     like: post.reactions.like,
     dislike: post.reactions.dislike,
     bookmark: post.reactions.bookmark,
   }));
-  // 버튼 표시용 파생값
   const like = mine === "like";
   const dislike = mine === "dislike";
 
-  // 3) 뒤로가기/재진입 시에도 일관되게 보이도록 세션 스토리지로 보정
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const list = await fetchMyBookmarks(); // [{postId, title}, ...]
+        if (!alive) return;
+        setIsBookmarkedByMe(list.some((b) => b.postId === Number(post.id)));
+      } catch {
+        if (!alive) return;
+        setIsBookmarkedByMe(false);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [post.id]);
+
+  // 뒤로가기/재진입 보정
   useEffect(() => {
     if ((post as any).viewerReaction == null) {
       const stored = sessionStorage.getItem(`myReaction:${post.id}`);
@@ -79,25 +120,21 @@ export default function PostDetail({ post }: { post: PostMeta }) {
     else sessionStorage.removeItem(`myReaction:${post.id}`);
   }, [mine, post.id]);
 
-  // 공통 토글 로직 (낙관적 업데이트 → 실패 시 롤백)
+  // 리액션 토글(낙관적)
   const doToggle = async (next: "like" | "dislike") => {
     if (reacting) return;
     setReacting(true);
     const prev = { mine, reaction: { ...reaction } };
 
-    // 낙관적 업데이트(집계 + 내 상태 동시 반영)
     let nextMine: typeof mine = mine;
     const nextCounts = { ...reaction };
     if (mine === next) {
-      // 취소
       nextMine = null;
       nextCounts[next] = Math.max(0, nextCounts[next] - 1);
     } else if (mine === null) {
-      // 새로 선택
       nextMine = next;
       nextCounts[next] += 1;
     } else {
-      // 변경 (like ↔ dislike)
       nextCounts[mine] = Math.max(0, nextCounts[mine] - 1);
       nextCounts[next] += 1;
       nextMine = next;
@@ -111,55 +148,86 @@ export default function PostDetail({ post }: { post: PostMeta }) {
         target_id: post.id,
         reaction: next,
       });
-      // 성공 시: 그대로 두면 됨 (서버 카운트는 상위 쿼리에서 재검증/동기화되면 더 좋음)
     } catch (e: any) {
-      // 실패 → 롤백
       setMine(prev.mine);
       setReaction(prev.reaction);
       const code = e?.response?.status;
-      if (code === 401) {
+      if (code === 401)
         toast.push({ message: "로그인이 필요합니다.", type: "warning" });
-      } else if (code === 403) {
+      else if (code === 403)
         toast.push({ message: "권한이 없습니다.", type: "warning" });
-      } else {
-        toast.push({ message: "리액션 처리에 실패했어요.", type: "error" });
-      }
+      else toast.push({ message: "리액션 처리에 실패했어요.", type: "error" });
     } finally {
       setReacting(false);
     }
   };
 
-  // 중앙 API(createRootComment)로 루트 댓글 작성
+  // 루트 댓글 작성 (재조회/리마운트 없이 이벤트로 알려줌)
   const submitComment = async () => {
     const text = commentDraft.trim();
     if (!text || submitting) return;
 
     setSubmitting(true);
     try {
-      await createRootComment(post.id, text); // ← /api/comments POST (root 없이)
+      const created = await createRootComment(post.id, text); // 생성된 댓글 객체 받기
       setCommentDraft("");
-      setRefreshKey((k) => k + 1); // 댓글 목록 재조회(리마운트 유도)
+
+      // 댓글 리스트(PostComment)에게 "실제 댓글 객체" 브로드캐스트
+      window.dispatchEvent(
+        new CustomEvent("comment:root-added", {
+          detail: { postId: post.id, comment: created },
+        })
+      );
+
+      // 헤더 표시용 댓글 수도 낙관적으로 +1
+      setCommentsCount((c) => c + 1);
+
+      setFirstCommentSeed([created]);
+      setFirstCommentMineIds([String(created.id)]);
+
       toast.push({ message: "댓글이 등록되었습니다.", type: "success" });
     } catch (e: any) {
       const code = e?.response?.status;
-      if (code === 401) {
+      if (code === 401)
         toast.push({ message: "로그인이 필요합니다.", type: "warning" });
-      } else if (code === 403) {
+      else if (code === 403)
         toast.push({ message: "권한이 없습니다.", type: "warning" });
-      } else {
-        toast.push({ message: "댓글 등록에 실패했어요.", type: "error" });
-      }
+      else toast.push({ message: "댓글 등록에 실패했어요.", type: "error" });
     } finally {
-      setSubmitting(false); // 반드시 로더 해제
+      setSubmitting(false);
     }
   };
+  async function handleDeletePost() {
+    if (deleting) return;
+    const ok = window.confirm(
+      "이 게시글을 삭제할까요? 삭제 후 되돌릴 수 없습니다."
+    );
+    if (!ok) return;
 
-  const { canManage } = useCanManage(post.authorId, {
+    setDeleting(true);
+    try {
+      await deletePost(Number(post.id));
+      toast.push({ message: "게시글이 삭제되었습니다.", type: "success" });
+
+      // 삭제 후 목록으로 이동
+      navigate(`/board/${post.boardSlug}`);
+    } catch (e: any) {
+      const code = e?.response?.status;
+      if (code === 401)
+        toast.push({ message: "로그인이 필요합니다.", type: "warning" });
+      else if (code === 403)
+        toast.push({ message: "삭제 권한이 없습니다.", type: "warning" });
+      else toast.push({ message: "게시글 삭제에 실패했어요.", type: "error" });
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const { canManage } = useCanManage(authorIdResolved, {
     allowAdmin: true,
     allowModerator: true,
   });
 
-  // 상단 드롭다운 액션
   const menuItems: DropdownItem[] = [
     {
       label: "URL 복사",
@@ -169,31 +237,28 @@ export default function PostDetail({ post }: { post: PostMeta }) {
         toast.push({
           message: "URL 복사에 성공했습니다!",
           type: "success",
-          durationMs: 3000, // 선택 (기본값: 2500ms)
+          durationMs: 3000,
         });
       },
     },
-    // 작성자/관리자 전용
     ...onlyWhen(canManage, [
       {
+        id: "edit",
         label: "게시글 수정",
         icon: <Pencil className="h-4 w-4" />,
-        onSelect: () => {
-          navigate(urlForPost.postEdit(String(post.id)));
-        },
+        onSelect: () => navigate(urlForPost.postEdit(String(post.id))),
+        disabled: deleting, // 삭제 중일 땐 비활성화
       },
       {
         label: "게시글 삭제",
         icon: <Trash2 className="h-4 w-4" />,
         danger: true,
-        onSelect: () => {
-          // TODO: 삭제 로직
-        },
+        onSelect: handleDeletePost, //  삭제 호출
+        disabled: deleting,
       },
     ]),
   ];
 
-  // 작성자 태그
   const { tags, loading: authorLoading } = useAssignedTags("author", {
     inlineUser: (post as unknown as { user?: RawUserTag | null }).user,
     postId: post.id,
@@ -207,7 +272,9 @@ export default function PostDetail({ post }: { post: PostMeta }) {
           <Link
             to={`/board/${post.boardSlug}`}
             className="font-medium text-base-content hover:underline"
-            aria-label={`${BOARD_LABEL[post.boardName] ?? post.boardName} 목록으로 이동`}
+            aria-label={`${
+              BOARD_LABEL[post.boardName] ?? post.boardName
+            } 목록으로 이동`}
           >
             {BOARD_LABEL[post.boardName] ?? post.boardName}
           </Link>
@@ -243,7 +310,7 @@ export default function PostDetail({ post }: { post: PostMeta }) {
             <Eye className="h-4 w-4" /> {fmtNum(post.views)}
           </div>
           <div className="flex items-center gap-1">
-            <MessageSquare className="h-4 w-4" /> {fmtNum(post.commentsCount)}
+            <MessageSquare className="h-4 w-4" /> {fmtNum(commentsCount)}
           </div>
         </div>
       </div>
@@ -253,7 +320,7 @@ export default function PostDetail({ post }: { post: PostMeta }) {
 
       {/* 본문 위 카드 */}
       {(() => {
-        switch (post.boardName) {
+        switch (post.boardSlug) {
           case "survey":
             return (
               <div className="mb-6">
@@ -265,13 +332,11 @@ export default function PostDetail({ post }: { post: PostMeta }) {
               </div>
             );
           case "github":
-            return (
-              post.repoUrl && (
-                <div className="mb-6">
-                  <RepoPreviewCard repoLink={post.repoUrl} />
-                </div>
-              )
-            );
+            return post.repoUrl ? (
+              <div className="mb-6">
+                <RepoPreviewCard repoLink={post.repoUrl} />
+              </div>
+            ) : null;
           default:
             return null;
         }
@@ -304,15 +369,15 @@ export default function PostDetail({ post }: { post: PostMeta }) {
           <ThumbsDown className="mr-1 h-4 w-4" /> {fmtNum(reaction.dislike)}
         </button>
 
-        <button
-          className={clsx("btn btn-ghost btn-sm", bookmarked && "text-primary")}
-          onClick={() => setBookmarked((v) => !v)}
-          aria-pressed={!!bookmarked}
-          type="button"
-        >
-          <Bookmark className="mr-2 h-4 w-4" />{" "}
-          {fmtNum(reaction.bookmark + (bookmarked ? 1 : 0))}
-        </button>
+        <BookmarkButton
+          postId={Number(post.id)} // 문자열이면 Number(...)로
+          initialBookmarked={Boolean(isBookmarkedByMe)}
+          initialCount={bookmarkCount}
+          onCountChange={(next) => {
+            setBookmarkCount(next);
+            // 필요시 post 상태 동기화
+          }}
+        />
       </div>
 
       {/* 댓글 입력 */}
@@ -345,8 +410,20 @@ export default function PostDetail({ post }: { post: PostMeta }) {
         </div>
       </div>
 
-      {/* 댓글 창 */}
-      <PostComment key={refreshKey} postId={post.id} />
+      {/* 댓글 창 (이제 더 이상 key로 리마운트하지 않음) */}
+      {commentsCount > 0 && (
+        <PostComment
+          postId={post.id}
+          // initialComments가 있으면 그걸, 없으면 첫 댓글 시드를 전달
+          initialItems={
+            initialComments && initialComments.length > 0
+              ? initialComments
+              : firstCommentSeed || undefined
+          }
+          mineIdsSeed={firstCommentMineIds || undefined}
+        />
+      )}
+      <div className="h-16 md:h-24" aria-hidden />
     </div>
   );
 }

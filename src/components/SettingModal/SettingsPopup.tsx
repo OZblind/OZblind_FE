@@ -2,7 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { KeySection } from "./KeySection";
 import ThemeToggleSection from "./ThemeToggleSection";
 import { AccountDeletionSection } from "./AccountDeletionSection";
-import { tokenStore } from "@api/client";
+import { useAuthStore } from "@store/authStore";
 
 type Theme = "oz_dark" | "oz_light";
 
@@ -17,8 +17,7 @@ export function SettingPopup({
   theme,
   setTheme,
 }: SettingPopupProps) {
-  const idToken = tokenStore.access;
-  const isAuthenticated = Boolean(idToken);
+  const isAuthenticated = useAuthStore((s) => Boolean(s.tokens.accessToken));
 
   return (
     <div className="relative bg-base-200 rounded-md p-6 max-w-md w-full">

@@ -1,3 +1,4 @@
+// PostListPage.tsx (정리된 최종본)
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PostList from "@src/components/Board/free/PostList";
@@ -8,8 +9,9 @@ import { formatYyyyMmDdHms } from "@utils/date";
 import { useBoardPosts } from "@hooks/useBoardPosts";
 import { LIST_SETTINGS, ERROR_MESSAGES } from "@constants/ui";
 import { tagsToAuthorLabel } from "@utils/tagsToAuthorLabel";
-import { adaptUserTag } from "@src/features/tags/adapters";
-import type { RawUserTag } from "@api/tags";
+import { adaptUserTag, isRawUserTag } from "@src/features/tags/adapters";
+import { posToTagClass } from "@utils/tagRules";
+import type { PositionValue } from "@src/types/tag";
 import type { SortValue } from "@src/types/sort";
 
 const BOARD_LABEL: Record<BoardSlug, string> = {
@@ -22,15 +24,25 @@ const BOARD_LABEL: Record<BoardSlug, string> = {
 
 export default function PostListPage({ board }: { board: BoardSlug }) {
   const nav = useNavigate();
+
   const [lastLoadedAt, setLastLoadedAt] = useState(
     formatYyyyMmDdHms(new Date())
   );
   const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
   const [sort, setSort] = useState<SortValue>("latest");
+  const [pos, setPos] = useState<PositionValue>("back");
+  const [cohort, setCohort] = useState<number>(11);
+  const [activeFilter, setActiveFilter] = useState<{
+    pos: PositionValue;
+    cohort: number;
+  } | null>(null);
 
   // 게시판 변경 시 필터/스크롤 초기화
   useEffect(() => {
     setSort("latest");
+    setPos("back");
+    setCohort(11);
+    setActiveFilter(null);
     setLastLoadedAt(formatYyyyMmDdHms(new Date()));
     setRootEl(null);
   }, [board]);
@@ -47,24 +59,19 @@ export default function PostListPage({ board }: { board: BoardSlug }) {
   } = useBoardPosts(board, {
     pageSize: LIST_SETTINGS.ITEMS_PER_PAGE,
     sort,
-    // search,                // TODO(filter): 검색어 연결
-    // tags: [...],           // TODO(filter): 태그 필터 연결
+    tags: activeFilter
+      ? {
+          tagClass: posToTagClass(activeFilter.pos),
+          cohort: activeFilter.cohort,
+        }
+      : undefined,
   });
 
   // pages(flat) → PostListItem[]
   const items = useMemo(() => (data?.pages ?? []).flat(), [data]);
-
   const uiItems = useMemo(() => items.map(mapToFreeItem), [items]);
 
-  // 작성자 태그 타입가드
-  const isRawUserTag = (u: unknown): u is RawUserTag =>
-    typeof u === "object" &&
-    u !== null &&
-    typeof (u as { id?: unknown }).id === "number" &&
-    (u as { tag_class?: unknown }).tag_class !== undefined &&
-    typeof (u as { tag_number?: unknown }).tag_number === "number";
-
-  // 작성자 라벨 맵: postId → "11기 · 프론트" 등
+  // 작성자 라벨 맵
   const authorLabelMap = useMemo(() => {
     const m = new Map<number, string>();
     for (const p of items) {
@@ -74,6 +81,7 @@ export default function PostListPage({ board }: { board: BoardSlug }) {
     }
     return m;
   }, [items]);
+
   // 초기 로딩/Empty 깜빡임 방지
   const hasNoPages = uiItems.length === 0;
   const isInitialLoading = hasNoPages && isFetching;
@@ -93,13 +101,18 @@ export default function PostListPage({ board }: { board: BoardSlug }) {
 
   const handleRefresh = useCallback(() => {
     setLastLoadedAt(formatYyyyMmDdHms(new Date()));
-    refetch(); // infiniteQuery 캐시 유지한 채 재요청
+    refetch();
   }, [refetch]);
 
   const errorText =
     isError && error && typeof error === "object" && "message" in error
       ? (error as { message?: string }).message
       : ERROR_MESSAGES.LOAD_POSTS;
+
+  // PostList의 스크롤 div가 마운트되는 순간 여기에도 공유 (무한스크롤 root용)
+  const attachScrollRoot = useCallback((el: HTMLDivElement | null) => {
+    setRootEl(el);
+  }, []);
 
   return (
     <div className="self-stretch w-[800px] max-w-full p-4">
@@ -118,13 +131,26 @@ export default function PostListPage({ board }: { board: BoardSlug }) {
           errorText={isError ? errorText : undefined}
           hasMore={!!hasNextPage}
           sentinelRef={sentinelRef}
-          scrollRootRef={setRootEl}
+          scrollRootRef={attachScrollRoot}
           empty={{ message: "등록된 게시글이 없습니다." }}
           className="py-2"
           renderAuthorLabel={(it) => authorLabelMap.get(Number(it.id)) ?? ""}
           sortValue={sort}
           onChangeSort={(v) => {
             setSort(v);
+            setLastLoadedAt(formatYyyyMmDdHms(new Date()));
+            rootEl?.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+          }}
+          tagValue={{ pos, cohort }}
+          tagApplied={!!activeFilter}
+          onApplyTag={(next) => {
+            if (next) {
+              setPos(next.pos);
+              setCohort(next.cohort);
+              setActiveFilter(next);
+            } else {
+              setActiveFilter(null);
+            }
             setLastLoadedAt(formatYyyyMmDdHms(new Date()));
             rootEl?.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
           }}

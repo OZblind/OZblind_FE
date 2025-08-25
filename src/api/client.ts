@@ -189,12 +189,18 @@ export const tokenStore = {
   get refresh() {
     return tokens.refresh;
   },
-  set(access: string, refresh: string) {
+  _csrfToken: "",
+  get csrfToken() {
+    return this._csrfToken;
+  },
+  set(access: string, refresh: string, csrfToken?: string) {
     tokens.setAccess(access);
     tokens.setRefresh(refresh);
+    if (csrfToken) this._csrfToken = csrfToken;
   },
   clear() {
     tokens.clear();
+    this._csrfToken = "";
   },
 };
 
