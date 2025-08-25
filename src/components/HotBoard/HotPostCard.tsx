@@ -4,6 +4,7 @@ import { useThemeIcon } from "@hooks/useThemeIcon";
 import type { HotPost } from "@src/types/hotPost";
 import { CARD_STYLE, CARD_TEXT } from "./boardColor";
 import { useNavigate } from "react-router-dom";
+import { Eye } from "lucide-react";
 
 export default function HotPostCard({ post }: { post: HotPost }) {
   const navigate = useNavigate();
@@ -38,7 +39,11 @@ export default function HotPostCard({ post }: { post: HotPost }) {
             {post.title}
           </h3>
         </div>
-        <div className="flex items-center justify-end text-sm w-full font-thin text-base-content/40">
+        <div className="flex items-center justify-between text-sm w-full font-thin text-base-content/40">
+          <div className="flex items-center gap-1">
+            <Eye className="h-4 w-4" />
+            {post.view_count}
+          </div>
           <div className="flex items-center gap-1">
             <img src={thumbUp} alt="thumbUp" className="w-4 h-4" />
             {post.like_count}
