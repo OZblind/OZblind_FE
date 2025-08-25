@@ -31,6 +31,7 @@ import { createRootComment } from "@api/comments";
 import { toggleReaction } from "@src/api/reactions";
 import BookmarkButton from "../ui/BookmarkButton";
 import { fetchMyBookmarks } from "@src/api/bookmarks";
+import { deletePost } from "@src/api/posts";
 
 const BOARD_LABEL: Record<string, string> = {
   free: "자유게시판",
@@ -220,7 +221,7 @@ export default function PostDetail({
         icon: <Trash2 className="h-4 w-4" />,
         danger: true,
         onSelect: () => {
-          // TODO: 삭제 로직
+          deletePost(Number(post.id));
         },
       },
     ]),
