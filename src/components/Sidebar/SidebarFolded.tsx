@@ -37,12 +37,12 @@ export function SidebarFolded({ onToggle }: { onToggle: () => void }) {
         />
         <button
           onClick={() => setNoticeOpen(true)}
-          className="p-2 rounded-full hover:bg-base-300"
+          className="relative p-2 rounded-full hover:bg-base-300"
         >
           <img src={notificationsIcon} alt="notificationsIcon" />
           {hasNew && (
             <i
-              className="absolute right-2 top-2 w-2 h-2 rounded-full bg-error"
+              className="absolute right-1.5 top-1.5 w-2 h-2 rounded-full bg-[#F43535] z-10"
               aria-hidden
             />
           )}
