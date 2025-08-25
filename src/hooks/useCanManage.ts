@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useMemo } from "react";
 import { useShallow } from "zustand/shallow";
 import { useAuthStore, type AuthState } from "@src/store/authStore";
@@ -9,6 +10,20 @@ type Options = {
 };
 
 type AuthorId = string | number | null | undefined;
+
+function normalizeAuthorId(authorId?: AuthorId): string | undefined {
+  if (authorId == null) return undefined;
+
+  // 객체가 들어오는 실수 방어
+  if (typeof authorId === "object") {
+    const objId = (authorId as any)?.id ?? (authorId as any)?.user_id;
+    return objId != null ? String(objId) : undefined;
+  }
+
+  const s = String(authorId).trim();
+  if (!s || s.startsWith("[object")) return undefined; // "[object Object]" 방어
+  return s;
+}
 
 export function useCanManage(authorId?: AuthorId, opts: Options = {}) {
   const { allowAdmin = true, allowModerator = false, extraRoles = [] } = opts;
@@ -25,45 +40,39 @@ export function useCanManage(authorId?: AuthorId, opts: Options = {}) {
   );
 
   // 비교를 문자열로 통일
-  const authorIdStr =
-    authorId !== undefined && authorId !== null ? String(authorId) : undefined;
+  const authorIdStr = useMemo(() => normalizeAuthorId(authorId), [authorId]);
 
   const isOwner = useMemo(() => {
     if (!authorIdStr || !currentUserId) return false;
-    return currentUserId === authorIdStr;
+    return authorIdStr === currentUserId;
   }, [authorIdStr, currentUserId]);
 
-  const isAdmin = useMemo(
-    () => !!(allowAdmin && role === "admin"),
-    [allowAdmin, role]
-  );
+  const isAdmin = role === "admin" || role === "administrator";
 
-  const isModerator = useMemo(
-    () => !!(allowModerator && role === "moderator"),
-    [allowModerator, role]
-  );
+  const isModeratorRole =
+    role === "moderator" || role === "staff" || role === "manager";
 
-  const hasExtraRole = useMemo(() => {
-    if (!extraRoles?.length || !role) return false;
-    const lowered = extraRoles.map((r) => r.toLowerCase());
-    return lowered.includes(role);
-  }, [extraRoles, role]);
+  const hasExtraRole =
+    !!role && extraRoles.map((r) => r.toLowerCase()).includes(role);
 
-  const canManage = isOwner || isAdmin || isModerator || hasExtraRole;
+  const canManage =
+    isOwner ||
+    (allowAdmin && isAdmin) ||
+    (allowModerator && isModeratorRole) ||
+    hasExtraRole;
 
   return {
     canManage,
     isOwner,
     isAdmin,
-    isModerator,
+    isModerator: isModeratorRole,
     hasExtraRole,
     currentUserId,
-    role, // 이미 소문자
+    role, // 소문자
   };
 }
 
 // 조건부로 배열/아이템 펼치기
 export function onlyWhen<T>(cond: boolean, items: T[] | T): T[] {
-  if (!cond) return [];
-  return Array.isArray(items) ? items : [items];
+  return cond ? (Array.isArray(items) ? items : [items]) : [];
 }
