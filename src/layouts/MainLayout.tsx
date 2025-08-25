@@ -1,6 +1,6 @@
 import { Link, Outlet } from "react-router-dom";
 import Sidebar from "@components/Sidebar/Sidebar";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import NavUnifiedSearch from "@src/components/navigation/NavUnifiedSearch";
 import { useThemeIcon } from "@src/hooks/useThemeIcon";
 import { logos } from "@src/assets";
@@ -11,12 +11,29 @@ import ScrollToTopButton from "@components/commons/ScrollToTop/ScrollToTopButton
 import ScrollRootProvider from "@components/commons/ScrollToTop/ScrollRootProvider";
 import { useScrollRoot } from "@components/commons/ScrollToTop/useScrollRoot";
 
+// 맨 위로 가기 기본 루트 보장 헬퍼
+function EnsureDefaultScrollRoot({
+  elRef,
+}: {
+  elRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const { root, setRoot } = useScrollRoot();
+  useEffect(() => {
+    // root가 비어 있을 때만 기본 루트로 설정 (PostList가 있으면 그쪽이 덮어씀)
+    if (!root && elRef.current) {
+      setRoot(elRef.current);
+    }
+  }, [root, setRoot, elRef]);
+  return null;
+}
+
+// Outlet에 맨 위로 가기 버튼 붙임
 function OutletWithScrollToTop() {
   const { root } = useScrollRoot();
   return (
     <div className="relative w-full">
       <Outlet />
-      {/* 레이아웃 안쪽 우하단 고정(sticky). root는 페이지가 등록한 내부 스크롤 엘리먼트 */}
+      {/* root는 페이지가 등록한 내부 스크롤 엘리먼트 */}
       <div className="sticky bottom-6 w-full pointer-events-none z-[200]">
         <div className="flex justify-end">
           <div className="pointer-events-auto translate-x-2">
@@ -38,6 +55,8 @@ export default function MainLayout() {
       logo: dark ? logos.symbol.dark : logos.symbol.light,
     };
   }, [themeIcon]);
+
+  const outletScrollRef = useRef<HTMLDivElement | null>(null);
 
   // 브라우저 창 너비를 감지해 광고 배너를 노출할지 결정
   useEffect(() => {
@@ -66,8 +85,13 @@ export default function MainLayout() {
             </Link>
             <NavUnifiedSearch className="w-full" placeholder="통합검색" />
           </div>
-          <div className="flex justify-center overflow-y-auto overflow-x-visible scrollbar-hide p-2">
+          <div
+            ref={outletScrollRef}
+            className="flex justify-center overflow-y-auto overflow-x-visible scrollbar-hide p-2"
+          >
             <ScrollRootProvider>
+              {/* root가 비면 Outlet 스크롤 div를 기본 루트로 설정 */}
+              <EnsureDefaultScrollRoot elRef={outletScrollRef} />
               <OutletWithScrollToTop />
             </ScrollRootProvider>
           </div>
