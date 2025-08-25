@@ -6,6 +6,8 @@ import type { BoardSlug } from "@src/constants/boards";
 import { createPost, updatePost } from "@src/api/posts";
 import { useToastStore } from "@src/store/toastStore";
 import { useNavigate } from "react-router-dom";
+import ConfirmModal from "../commons/ConfirmModal/ConfirmModal";
+// import { createPost } from "@/api/post";
 
 interface Props {
   /** "free" | "job" | "info" (기존 문자열도 호환) */
@@ -38,6 +40,7 @@ export default function SharedPostForm({
   const [editorInitial, setEditorInitial] = useState(initial?.content ?? "");
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+  const [showConfirm, setShowConfirm] = useState(false);
 
   // initial 값이 변경될 수 있는 경우(예: 상세 로드 후 주입) 반영
   useEffect(() => {
@@ -148,14 +151,14 @@ export default function SharedPostForm({
         <Button
           variant="secondary"
           className="min-w-[100px]"
-          onClick={onCancel}
+          onClick={() => setShowConfirm(true)}
           disabled={submitting}
         >
           취소
         </Button>
         <Button
           variant="primary"
-          className="min-w-[100px]"
+          className="min-w-[100px] text-white"
           onClick={handleSubmit}
           disabled={submitting}
         >
@@ -168,6 +171,16 @@ export default function SharedPostForm({
             : "작성"}
         </Button>
       </div>
+      <ConfirmModal
+        isOpen={showConfirm}
+        title="게시글 작성을 취소하시겠어요?"
+        description="지금까지 작성한 정보는 전부 삭제됩니다."
+        onCancel={() => setShowConfirm(false)}
+        onConfirm={() => {
+          onCancel();
+          setShowConfirm(false);
+        }}
+      />
     </div>
   );
 }

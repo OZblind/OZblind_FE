@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { createGithubPost, editGithubPost } from "@src/api/posts.special";
 import { updatePost } from "@src/api/posts";
 import { useToastStore } from "@src/store/toastStore";
+import ConfirmModal from "../commons/ConfirmModal/ConfirmModal";
 
 interface Props {
   /** 기본값: "create" */
@@ -41,6 +42,7 @@ export default function GitRepoPostForm({
 
   const navigate = useNavigate();
   const toast = useToastStore();
+  const [showConfirm, setShowConfirm] = useState(false);
 
   // initial이 동적으로 주입될 수 있으니 동기화
   useEffect(() => {
@@ -227,14 +229,13 @@ export default function GitRepoPostForm({
         <Button
           variant="secondary"
           className="min-w-[100px]"
-          onClick={onCancel}
-          disabled={submitting}
+          onClick={() => setShowConfirm(true)}
         >
           취소
         </Button>
         <Button
           variant="primary"
-          className="min-w-[100px]"
+          className="min-w-[100px] text-white"
           onClick={handleSubmit}
           disabled={submitting}
         >
@@ -247,6 +248,16 @@ export default function GitRepoPostForm({
             : "작성"}
         </Button>
       </div>
+      <ConfirmModal
+        isOpen={showConfirm}
+        title="게시글 작성을 취소하시겠어요?"
+        description="지금까지 작성한 정보는 전부 삭제됩니다."
+        onCancel={() => setShowConfirm(false)}
+        onConfirm={() => {
+          onCancel();
+          setShowConfirm(false);
+        }}
+      />
     </div>
   );
 }

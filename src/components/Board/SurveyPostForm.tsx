@@ -6,6 +6,7 @@ import LinkPreviewCard from "./LinkPreviewCard";
 import { createSurveyPost, editSurveyPost } from "@src/api/posts.special";
 import { useNavigate } from "react-router-dom";
 import { useToastStore } from "@src/store/toastStore";
+import ConfirmModal from "../commons/ConfirmModal/ConfirmModal";
 
 interface Props {
   /** 기본값: "create" */
@@ -51,6 +52,7 @@ export default function SurveyPostForm({
 
   const navigate = useNavigate();
   const toast = useToastStore();
+  const [showConfirm, setShowConfirm] = useState(false);
 
   // initial이 나중에 주입되는 경우 동기화
   useEffect(() => {
@@ -270,14 +272,13 @@ export default function SurveyPostForm({
         <Button
           variant="secondary"
           className="min-w-[100px]"
-          onClick={onCancel}
-          disabled={submitting}
+          onClick={() => setShowConfirm(true)}
         >
           취소
         </Button>
         <Button
           variant="primary"
-          className="min-w-[100px]"
+          className="min-w-[100px] text-white"
           onClick={handleSubmit}
           disabled={submitting}
         >
@@ -290,6 +291,16 @@ export default function SurveyPostForm({
             : "작성"}
         </Button>
       </div>
+      <ConfirmModal
+        isOpen={showConfirm}
+        title="게시글 작성을 취소하시겠어요?"
+        description="지금까지 작성한 정보는 전부 삭제됩니다."
+        onCancel={() => setShowConfirm(false)}
+        onConfirm={() => {
+          onCancel();
+          setShowConfirm(false);
+        }}
+      />
     </div>
   );
 }
