@@ -6,9 +6,12 @@ import ProfileSection from "./ProfileSection";
 import SmallProfileSection from "./SmallProfileSection";
 import PostListSection from "./PostListSection";
 import LogoutSection from "./LogoutSection";
+import { useNewFlagValue } from "@src/hooks/useNotifications";
 
 export function SidebarOpen({ onToggle }: { onToggle: () => void }) {
   const [noticeOpen, setNoticeOpen] = useState(false);
+  const hasNew = useNewFlagValue();
+
   const [isSmall, setIsSmall] = useState(false);
   const themeIcon = useThemeIcon();
   const { menuIcon, notificationsIcon } = useMemo(() => {
@@ -43,9 +46,15 @@ export function SidebarOpen({ onToggle }: { onToggle: () => void }) {
           <div className="flex justify-between w-[270px] h-[40px]">
             <button
               onClick={() => setNoticeOpen(true)}
-              className="p-2 rounded-full hover:bg-base-300"
+              className="relative p-2 rounded-full hover:bg-base-300"
             >
               <img src={notificationsIcon} alt="notificationsIcon" />
+              {hasNew && (
+                <i
+                  className="absolute right-1.5 top-1.5 w-2 h-2 rounded-full bg-[#F43535] z-10"
+                  aria-hidden
+                />
+              )}
             </button>
             <button
               onClick={onToggle}

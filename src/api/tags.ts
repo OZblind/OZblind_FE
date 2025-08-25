@@ -4,7 +4,7 @@ import { ENDPOINTS } from "@constants/endpoints";
 import type { Tag } from "@src/types/tag";
 import { pickFirst } from "@src/utils/pickFirst";
 import { adaptUserTag } from "@src/features/tags/adapters";
-import { fetchPostDetailCached } from "@api/posts";
+import { fetchPostDetailSingleflight } from "./posts";
 
 /** 서버의 오즈키 기반 태그 구조 (ex. /api/user/tag, /api/posts/:id user) */
 export interface RawUserTag {
@@ -136,19 +136,12 @@ export async function getAuthorAssignedTags(opts: {
   postId?: string | number;
   inlineUser?: RawUserTag | null;
 }): Promise<Tag[]> {
-  // 1) inlineUser가 null/undefined가 아니면 즉시 반환 (네트워크 호출 금지)
-  if (opts.inlineUser !== null && opts.inlineUser !== undefined) {
+  // 인라인 있으면 절대 네트워크 안 칩니다.
+  if (opts.inlineUser !== undefined && opts.inlineUser !== null) {
     return adaptUserTag(opts.inlineUser);
   }
-
-  // 2) inlineUser 없음 → 캐시된 상세에서 user 추출
   if (opts.postId == null) return [];
-  const post: any = await fetchPostDetailCached(opts.postId);
+  // 동시중복만 합치고 바로 반환(캐시 없음)
+  const post: any = await fetchPostDetailSingleflight(opts.postId);
   return adaptUserTag(post?.user ?? null);
-
-  // (절대 호출 금지 권장)
-  // 아래처럼 직접 상세 GET을 다시 치면 조회수가 늘 수 있으므로 지양:
-  // const url = `${ENDPOINTS.POST_DETAIL}/${opts.postId}/`;
-  // const { data } = await api.get<{ user?: RawUserTag | null }>(url, { withCredentials: true });
-  // return adaptUserTag(data?.user ?? null);
 }

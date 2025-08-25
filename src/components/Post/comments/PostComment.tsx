@@ -14,6 +14,7 @@ import {
   createReply,
   updateComment,
   deleteComment,
+  normalizeDate,
 } from "@api/comments";
 
 type SortKey = "newest" | "oldest" | "likes";
@@ -41,10 +42,12 @@ function normalizeComment(
       likes: number;
       dislikes: number;
       replies: any[];
+      created_at: string | number;
     }>
 ): CommentNode {
   const viewerReaction =
     c.viewerReaction ?? (c.liked ? "like" : c.disliked ? "dislike" : null);
+
   const reactions = {
     like:
       (c.reactions?.like as number | undefined) ??
@@ -53,8 +56,20 @@ function normalizeComment(
       (c.reactions?.dislike as number | undefined) ??
       (typeof c.dislikes === "number" ? c.dislikes : 0),
   };
+
+  const createdAt = normalizeDate(
+    (c as any).createdAt ?? (c as any).created_at
+  );
+
+  const repliesArr = Array.isArray((c as any).replies)
+    ? (c as any).replies
+    : Array.isArray((c as any).thread_comments)
+    ? (c as any).thread_comments
+    : [];
+
   return {
     ...(c as CommentMeta),
+    createdAt,
     viewerReaction,
     reactions,
     liked: viewerReaction === "like",
@@ -64,11 +79,12 @@ function normalizeComment(
     replies: Array.isArray(c.replies)
       ? (c.replies.map(normalizeComment) as CommentNode[])
       : [],
+    hasReplies: repliesArr.length > 0,
   };
 }
 const normalizeTree = (arr: any[]): CommentNode[] => arr.map(normalizeComment);
 
-/* ------------------------------
+/* ------------------------------ *
  * utils
  * ------------------------------ */
 
@@ -82,9 +98,8 @@ function classFor(id: string | number) {
   return THREAD_COLOR_CLASSES[hashId(id) % THREAD_COLOR_CLASSES.length];
 }
 
-/* ------------------------------
+/* ------------------------------ *
  * Memoized CommentItem Wrapper
- * - data, depth, rootId, branchStyle, submittingRootId, loading만 비교
  * ------------------------------ */
 
 const MemoCommentItem = memo(
@@ -95,16 +110,18 @@ const MemoCommentItem = memo(
     prev.rootId === next.rootId &&
     prev.branchStyle === next.branchStyle &&
     prev.submittingRootId === next.submittingRootId &&
-    prev.loading === next.loading
+    prev.loading === next.loading &&
+    prev.mineIds === next.mineIds // Set 참조 동일성으로 메모
 );
 
-/* ------------------------------
- * ThreadRow: 루트 스레드 1개 렌더 (메모화)
+/* ------------------------------ *
+ * ThreadRow
  * ------------------------------ */
 type ThreadRowProps = {
   c: CommentNode;
   submittingRootId: string | null;
   loading: boolean;
+  mineIds: Set<string>; // 내가 소유한 댓글 id 모음
   onEdit: (id: CommentMeta["id"], content: string) => void;
   onDelete: (id: CommentMeta["id"]) => void;
   onAddReply: (rootId: CommentMeta["id"], content: string) => void;
@@ -113,6 +130,7 @@ const ThreadRow = memo(function ThreadRow({
   c,
   submittingRootId,
   loading,
+  mineIds,
   onEdit,
   onDelete,
   onAddReply,
@@ -133,6 +151,7 @@ const ThreadRow = memo(function ThreadRow({
         data={c}
         depth={0}
         rootId={c.id}
+        mineIds={mineIds}
         branchStyle={branchStyle}
         onEdit={onEdit}
         onDelete={onDelete}
@@ -143,36 +162,115 @@ const ThreadRow = memo(function ThreadRow({
     </div>
   );
 });
+type Props = {
+  postId: string | number;
+  initialItems?: any[];
+  mineIdsSeed?: Array<string | number>;
+};
 
-export default function PostComment({ postId }: { postId: string | number }) {
+export default function PostComment({
+  postId,
+  initialItems,
+  mineIdsSeed,
+}: Props) {
   const [items, setItems] = useState<CommentNode[]>([]);
   const itemsRef = useRef(items);
   const [loading, setLoading] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("newest");
   const [submittingId, setSubmittingId] = useState<string | null>(null); // "top" | rootId | null
+  const [mineIds, setMineIds] = useState<Set<string>>(new Set()); // 추가
   const toast = useToastStore();
-
+  const bootstrapped = useRef(false);
   // ref에 최신 state 유지 (콜백에서 사용)
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
 
-  // 공통 재조회
-  const refresh = useRef<() => Promise<void>>(async () => {
-    try {
-      setLoading(true);
-      const data = await listCommentsByPost(postId);
-      setItems(normalizeTree(data));
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (e) {
-      toast.push({ message: "댓글을 불러오지 못했어요.", type: "error" });
-    } finally {
-      setLoading(false);
-    }
-  });
+  // 초기 아이템을 우선 적용. 없을 때만 서버 호출
+  useEffect(() => {
+    // 포스트 바뀔 때마다 한 번만
+    bootstrapped.current = false;
+    setItems([]); // 초기화
+    setMineIds(new Set()); // (이전 답변에서 추가했던 mineIds 유지한다면)
+  }, [postId]);
 
   useEffect(() => {
-    refresh.current();
+    if (bootstrapped.current) return;
+
+    if (initialItems && initialItems.length > 0) {
+      setItems(normalizeTree(initialItems)); // 서버 응답 그대로 반영
+      setMineIds(new Set((mineIdsSeed ?? []).map(String)));
+      bootstrapped.current = true;
+      return;
+    }
+
+    // 초기 아이템 없으면 그때만 상세/댓글 로딩
+    (async () => {
+      try {
+        setLoading(true);
+        const data = await listCommentsByPost(postId); // ← 이 호출이 상세를 다시 부를 수 있음
+        setItems(normalizeTree(data));
+      } catch {
+        toast.push({ message: "댓글을 불러오지 못했어요.", type: "error" });
+      } finally {
+        setLoading(false);
+        bootstrapped.current = true;
+      }
+    })();
+  }, [postId, initialItems, toast, mineIdsSeed]);
+
+  // 루트 댓글 즉시 반영 + 소유권 부여
+  useEffect(() => {
+    const onRootAdded = (e: Event) => {
+      const ce = e as CustomEvent<{
+        postId: string | number;
+        content?: string;
+        comment?: CommentMeta;
+      }>;
+      if (!ce?.detail) return;
+      const { postId: pid, content, comment } = ce.detail;
+      if (String(pid) !== String(postId)) return;
+
+      let node: CommentNode;
+      if (comment) {
+        node = normalizeComment(comment);
+        setMineIds((prev) => {
+          const ns = new Set(prev);
+          ns.add(String(node.id));
+          return ns;
+        });
+      } else {
+        node = normalizeComment({
+          id: `temp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          author: "나",
+          authorId: "me",
+          authorName: "나",
+          content: content ?? "",
+          createdAt: new Date().toISOString(),
+          likes: 0,
+          dislikes: 0,
+          liked: false,
+          disliked: false,
+          hasReplies: false,
+          replies: [],
+        } as CommentMeta);
+        setMineIds((prev) => {
+          const ns = new Set(prev);
+          ns.add(String(node.id));
+          return ns;
+        });
+      }
+
+      setItems((curr) => [node, ...curr]);
+    };
+
+    window.addEventListener("comment:root-added", onRootAdded as EventListener);
+    return () => {
+      window.removeEventListener(
+        "comment:root-added",
+        onRootAdded as EventListener
+      );
+    };
   }, [postId]);
 
   const sortedTopLevel = useMemo(() => {
@@ -195,7 +293,6 @@ export default function PostComment({ postId }: { postId: string | number }) {
   const handleEdit = useCallback(
     async (id: CommentMeta["id"], content: string) => {
       const prev = itemsRef.current;
-      // 구조적 공유: 변경 경로만 새 객체
       setItems(
         (curr) =>
           commentTree.update(curr, id, (c) => ({
@@ -205,7 +302,6 @@ export default function PostComment({ postId }: { postId: string | number }) {
       );
       try {
         await updateComment(id, content);
-        await refresh.current();
       } catch {
         setItems(prev);
         toast.push({ message: "수정 실패", type: "error" });
@@ -220,7 +316,6 @@ export default function PostComment({ postId }: { postId: string | number }) {
       setItems((curr) => commentTree.remove(curr, id) as CommentNode[]);
       try {
         await deleteComment(id);
-        await refresh.current();
       } catch {
         setItems(prev);
         toast.push({ message: "삭제 실패", type: "error" });
@@ -230,7 +325,7 @@ export default function PostComment({ postId }: { postId: string | number }) {
   );
 
   /** 대댓글 작성 (※ 루트 댓글 작성은 PostDetail의 상단 입력이 담당) */
-  /** 낙관적 추가 기능. 임시댓글. 즉각적 반응감 */
+  /** 낙관적 추가 → 성공 시 실제 객체로 교체하고 소유권 부여 */
   const handleAddReply = useCallback(
     async (rootId: CommentMeta["id"], content: string) => {
       const tempId = `temp_${Date.now()}`;
@@ -263,8 +358,30 @@ export default function PostComment({ postId }: { postId: string | number }) {
       );
 
       try {
-        await createReply({ postId, rootId, content });
-        await refresh.current(); // 최종 동기화
+        const created = await createReply({ postId, rootId, content });
+        const real = normalizeComment(created);
+
+        // 임시(tempId) → 실제(real) 치환
+        setItems((curr) => {
+          const walk = (arr: CommentNode[]): any[] =>
+            arr.map((n) => {
+              if (String(n.id) === String(rootId)) {
+                const replies = (n.replies ?? []).map((r) =>
+                  String(r.id) === String(tempId) ? real : r
+                );
+                return { ...n, replies, hasReplies: replies.length > 0 };
+              }
+              return n.replies?.length ? { ...n, replies: walk(n.replies) } : n;
+            });
+          return walk(curr);
+        });
+
+        // 방금 만든 대댓글도 바로 내 소유로 표시
+        setMineIds((prev) => {
+          const ns = new Set(prev);
+          ns.add(String(real.id));
+          return ns;
+        });
       } catch (e: any) {
         setItems(prev);
         if (e?.response?.status === 401) {
@@ -304,8 +421,6 @@ export default function PostComment({ postId }: { postId: string | number }) {
         </div>
       </div>
 
-      {/* 여기서는 루트 입력창을 두지 않습니다. (상단 입력은 PostDetail에만 존재) */}
-
       {/* 스레드 렌더 */}
       <div className="space-y-8">
         {sortedTopLevel.map((c) => (
@@ -314,6 +429,7 @@ export default function PostComment({ postId }: { postId: string | number }) {
             c={c}
             submittingRootId={submittingId}
             loading={loading}
+            mineIds={mineIds}
             onEdit={handleEdit}
             onDelete={handleDelete}
             onAddReply={handleAddReply}

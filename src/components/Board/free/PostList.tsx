@@ -5,12 +5,13 @@ import EmptyState, {
 import PostRow, { type FreeBoardItem, FREE_LIST_GRID } from "./PostRow";
 // import PostCard from "./PostCard"; // 반응형 임시 삭제, UI 통일감 목적
 import { LastLoadedBar, BoardTopBar } from "../common";
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import SortRadioPopover from "@components/Board/common/sort/SortRadioPopover";
 import TagFilterPopover from "@components/Board/common/tagfilter/TagFilterPopover";
 import type { SortValue } from "@src/types/sort";
-import type { PositionValue } from "@components/Board/common/tagfilter/PositionRadio";
+import type { PositionValue } from "@src/types/tag";
 import { ERROR_MESSAGES, LIST_MESSAGES, LOADING_MESSAGES } from "@constants/ui";
+import { useScrollRoot } from "@components/commons/ScrollToTop/useScrollRoot";
 
 export type PostListProps = {
   items: FreeBoardItem[];
@@ -44,6 +45,10 @@ export type PostListProps = {
 
   sortValue?: SortValue;
   onChangeSort?: (v: SortValue) => void;
+
+  tagValue?: { pos: PositionValue; cohort: number };
+  tagApplied?: boolean; // 뱃지는 이거로만 판단
+  onApplyTag?: (next: { pos: PositionValue; cohort: number } | null) => void;
 };
 
 export default function PostList({
@@ -64,7 +69,17 @@ export default function PostList({
   renderAuthorLabel,
   sortValue,
   onChangeSort,
+  tagValue,
+  tagApplied,
+  onApplyTag,
 }: PostListProps) {
+  const { setRoot } = useScrollRoot();
+
+  const attachRef = (el: HTMLDivElement | null) => {
+    scrollRootRef?.(el);
+    setRoot(el);
+  };
+
   // ------ 정렬(UI) ------
   const sortBtnRef = useRef<HTMLButtonElement>(null);
   const [openSort, setOpenSort] = useState(false);
@@ -81,7 +96,15 @@ export default function PostList({
   const [openTag, setOpenTag] = useState(false);
   const [position, setPosition] = useState<PositionValue>("back");
   const [cohort, setCohort] = useState<number>(11);
-  const tagActive = position !== "back" || cohort !== 11;
+  const tagActive = !!tagApplied;
+
+  // 부모에서 내려준 현재 선택값(tagValue)과 내부 상태 동기화
+  useEffect(() => {
+    if (!tagValue) return;
+    // 동일 값일 때는 setState 스킵 (불필요한 리렌더 방지)
+    if (position !== tagValue.pos) setPosition(tagValue.pos);
+    if (cohort !== tagValue.cohort) setCohort(tagValue.cohort);
+  }, [tagValue?.pos, tagValue?.cohort]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isEmpty = items.length === 0;
 
@@ -111,8 +134,8 @@ export default function PostList({
 
       {/* 본문 스크롤 컨테이너 */}
       <div
-        ref={scrollRootRef}
-        className="w-full px-3 flex-1 min-h-0 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]"
+        ref={attachRef}
+        className="w-full px-3 flex-1 min-h-0 h-full overflow-y-auto overscroll-contain [scrollbar-gutter:stable]"
       >
         {isError && (
           <div className="w-full py-10 text-center text-sm text-red-500">
@@ -221,9 +244,9 @@ export default function PostList({
           setPosition("back");
           setCohort(11);
         }}
-        onApply={() => {
-          // UI 전용: 여기서는 fetch 안 함
-          // TODO: 실제 연동 시 상위(PostListPage)에서 상태를 들고 있다가 refetch + lastLoadedAt 갱신하면 됨
+        onApply={(next) => {
+          onApplyTag?.(next); // {pos, cohort} | null
+          setOpenTag(false);
         }}
         onRequestClose={() => setOpenTag(false)}
       />

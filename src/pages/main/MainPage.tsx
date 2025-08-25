@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getLatestPosts } from "../../api/latestPost";
 import type { Post } from "../../types/latestPost";
 import { useNavigate } from "react-router-dom";
+import { tokenStore } from "@api/client";
 
 export default function MainPage() {
   const navigate = useNavigate();
@@ -71,7 +72,7 @@ export default function MainPage() {
   return (
     <main className="flex flex-col gap-2">
       <JobBannerTabs />
-      <HotBoard />
+      <HotBoard csrfToken={tokenStore.csrfToken} />
       <div className="w-[800px] pb-8">
         <p className="py-2 text-base-content/50">최신글</p>
         <div className="border border-base-300 py-2 rounded-md min-h-[240px] h-[calc(100vh-600px)] overflow-hidden">

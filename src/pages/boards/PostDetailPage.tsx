@@ -2,13 +2,18 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useParams } from "react-router-dom";
 import {
-  fetchPostDetailCached,
+  fetchPostDetailSingleflight,
   type PostDetail as ApiPostDetail,
 } from "@api/posts";
 import PostDetail from "@components/Post/PostDetail"; // 네가 준 컴포넌트
 import type { PostMeta } from "@src/types/post";
 import { fetchGithubExtra, fetchSurveyExtra } from "@src/api/posts.special";
 import { BOARD_DISPLAY_NAME } from "@constants/boardDisplay";
+import {
+  filterDeletedThread,
+  normalizeDate,
+  toClientFromPostDetail,
+} from "@src/api/comments";
 
 const BOARD_ALIAS: Record<
   number,
@@ -33,32 +38,34 @@ export default function PostDetailPage() {
   // StrictMode/재렌더 가드: 같은 글에 대해 1회만 상세 호출
   const didFetchFor = useRef<string | null>(null);
 
+  const initialComments: any[] = useMemo(() => {
+    if (!data) return [];
+    const roots = Array.isArray((data as any).root_comments)
+      ? (data as any).root_comments
+      : [];
+    const tree = roots.map(toClientFromPostDetail);
+    return filterDeletedThread(tree, true);
+  }, [data]);
+
   useEffect(() => {
     if (!id) return;
-    const key = String(id); // 캐시 키 정규화(문자열 고정)
-
-    // 같은 postId로는 1회만
-    if (didFetchFor.current === key) return;
+    const key = String(id);
+    if (didFetchFor.current === key) return; // 같은 id로 2번 실행 방지
     didFetchFor.current = key;
 
     let alive = true;
     setLoading(true);
     setErr(null);
-
-    fetchPostDetailCached(key)
+    fetchPostDetailSingleflight(key)
       .then((res) => {
-        if (!alive) return;
-        setData(res as ApiPostDetail);
+        if (alive) setData(res);
       })
       .catch((e: any) => {
-        if (!alive) return;
-        setErr(e?.message ?? "게시글을 불러오지 못했습니다.");
+        if (alive) setErr(e?.message ?? "게시글을 불러오지 못했습니다.");
       })
       .finally(() => {
-        if (!alive) return;
-        setLoading(false);
+        if (alive) setLoading(false);
       });
-
     return () => {
       alive = false;
     };
@@ -135,7 +142,9 @@ export default function PostDetailPage() {
         ),
         bookmark: toInt(data.bookmark_count),
       },
-      createdAt: data.created_at,
+      createdAt: normalizeDate(
+        (data as any).created_at ?? (data as any).createdAt
+      ),
 
       // 선택 필드들 (설문/깃헙 전용)
       formLink: x?.formLink ?? null,
@@ -151,5 +160,5 @@ export default function PostDetailPage() {
   if (err) return <div className="p-4 text-red-500">{err}</div>;
   if (!postMeta) return <div className="p-4">게시글이 없습니다.</div>;
 
-  return <PostDetail post={postMeta} />;
+  return <PostDetail post={postMeta} initialComments={initialComments} />;
 }

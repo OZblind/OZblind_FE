@@ -4,6 +4,7 @@ import ToastEditor from "@components/Board/editor/ToastEditor";
 import { RepoPreviewCard } from "./RepoPreviewCard";
 import { useNavigate } from "react-router-dom";
 import { createGithubPost } from "@src/api/posts.special";
+import { useToastStore } from "@src/store/toastStore";
 
 interface Props {
   onCancel: () => void;
@@ -15,6 +16,7 @@ export default function GitRepoPostForm({ onCancel }: Props) {
   const [repoLink, setRepoLink] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const toast = useToastStore();
 
   const urlPattern = /^(https?:\/\/)[^\s$.?#].[^\s]*$/i;
 
@@ -25,8 +27,11 @@ export default function GitRepoPostForm({ onCancel }: Props) {
 
     // 실제 API 연동
     const res = await createGithubPost({ title, content, link: repoLink });
-    navigate(`/posts/${res.post_id}`);
-    alert("깃 레포 게시글이 등록되었습니다. (mock)");
+    requestAnimationFrame(() => navigate(`/posts/${res.post_id}`));
+    toast.push({
+      message: "설문 게시글이 등록되었습니다.",
+      type: "success",
+    });
     onCancel();
   };
 

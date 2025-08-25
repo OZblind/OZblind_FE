@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import GithubList from "@components/Board/github/GithubList";
 import { useInfiniteScroll } from "@hooks/useInfiniteScroll";
@@ -6,6 +6,9 @@ import { formatYyyyMmDdHms } from "@utils/date";
 import { urlForPost } from "@src/utils/urlForPost";
 import { useGithubPosts, useGithubListWithLinks } from "@hooks/useGithubPosts";
 import type { SortValue } from "@src/types/sort";
+import type { PositionValue } from "@src/types/tag";
+import { posToTagClass } from "@utils/tagRules";
+import { useScrollRoot } from "@components/commons/ScrollToTop/useScrollRoot";
 
 export default function GithubListPage() {
   const nav = useNavigate();
@@ -15,7 +18,12 @@ export default function GithubListPage() {
   const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
 
   const [sort, setSort] = useState<SortValue>("latest");
-  const [tagIds] = useState<number[] | undefined>(undefined);
+  const [pos, setPos] = useState<PositionValue>("back");
+  const [cohort, setCohort] = useState<number>(11);
+  const [activeFilter, setActiveFilter] = useState<{
+    pos: PositionValue;
+    cohort: number;
+  } | null>(null);
   const [search] = useState<string | undefined>(undefined);
 
   const {
@@ -29,9 +37,13 @@ export default function GithubListPage() {
     refetch,
   } = useGithubPosts({
     sort,
-    tagIds, // TODO(tags): Tag UI onApply → setTagIds
+    tags: activeFilter
+      ? {
+          tagClass: posToTagClass(activeFilter.pos),
+          cohort: activeFilter.cohort,
+        }
+      : undefined,
     search, // TODO(search): Search onSubmit → setSearch
-    // pageSize: 10,           // 필요 시 교체
   });
 
   // 링크/OG까지 보강된 items + onRepoClick
@@ -64,6 +76,13 @@ export default function GithubListPage() {
     return "GitHub 게시판 목록을 불러오는 중 문제가 발생했습니다.";
   }, [isError, error]);
 
+  const { setRoot } = useScrollRoot();
+
+  useEffect(() => {
+    setRoot(rootEl);
+    return () => setRoot(null);
+  }, [rootEl, setRoot]);
+
   return (
     <div className="self-stretch w-[800px] max-w-full p-4">
       <section className="w-full rounded-xl border border-base-content/30 p-3 pb-8 h-[calc(100vh-200px)] overflow-hidden">
@@ -73,8 +92,6 @@ export default function GithubListPage() {
           onRepoClick={onRepoClick}
           topBar={{
             boardName: "GitHub 게시판",
-            // TODO(tags): 태그 팝오버 → 선택값 setTagIds → 훅 옵션 반영
-            onOpenTag: () => {},
             onWrite: () => nav(urlForPost.postCreate("github")),
           }}
           lastLoadedAt={lastLoadedAt}
@@ -90,6 +107,19 @@ export default function GithubListPage() {
           sortValue={sort}
           onChangeSort={(v) => {
             setSort(v);
+            setLastLoadedAt(formatYyyyMmDdHms(new Date()));
+            rootEl?.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+          }}
+          tagValue={{ pos, cohort }}
+          tagApplied={!!activeFilter}
+          onApplyTag={(next) => {
+            if (next) {
+              setPos(next.pos);
+              setCohort(next.cohort);
+              setActiveFilter(next); // 적용
+            } else {
+              setActiveFilter(null); // 전체보기(필터 해제)
+            }
             setLastLoadedAt(formatYyyyMmDdHms(new Date()));
             rootEl?.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
           }}

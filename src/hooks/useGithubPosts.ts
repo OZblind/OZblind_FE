@@ -1,9 +1,13 @@
-import React from "react";
+// src/hooks/useGithubPosts.ts
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useInfiniteQuery, type InfiniteData } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GithubListItem } from "@components/Board/github/GithubList";
-import type { PostListItem } from "@api/posts";
-import { fetchGithubLinkById, fetchGithubListPage } from "@api/github";
 import { mapToGithubListItem } from "@src/features/posts/list/githubAdapter";
 import AssignedTagList from "@components/tags/AssignedTagList";
 import { adaptUserTag } from "@src/features/tags/adapters";
@@ -11,8 +15,11 @@ import type { RawUserTag } from "@api/tags";
 import { LIST_SETTINGS } from "@src/constants/ui";
 import type { AxiosError } from "axios";
 import type { SortValue } from "@src/types/sort";
+import { fetchPosts, type PostListItem } from "@api/posts";
+import { fetchGithubLinkById } from "@api/github";
+import type { TagFilter } from "@src/types/tag";
 
-// NOTE: 키 표시에만 사용 (API 파라미터는 github.ts에서 board id 사용)
+// NOTE: 키 표시에만 사용 (API 파라미터는 posts.ts에서 board slug → id 변환)
 const GITHUB_BOARD_SLUG = "github" as const;
 
 // UI SortValue → API ordering
@@ -34,10 +41,12 @@ export type UseGithubPostsOptions = {
   sort?: SortValue;
   search?: string;
   tagIds?: number[];
+  tags?: TagFilter;
 };
 
 type GithubPostsPage = { items: PostListItem[]; hasNext: boolean };
 
+// 페이지 단위 fetch (posts API 사용: 태그/정렬/검색 타입 안전)
 async function fetchGithubPage(
   page: number,
   opt?: UseGithubPostsOptions
@@ -45,14 +54,23 @@ async function fetchGithubPage(
   type SortKey = keyof typeof SORT_TO_ORDERING;
   const sortKey: SortKey = (opt?.sort ?? "latest") as SortKey;
   const ordering = SORT_TO_ORDERING[sortKey] ?? "-created_at";
+  const pageSize = opt?.pageSize ?? LIST_SETTINGS.ITEMS_PER_PAGE;
 
-  return fetchGithubListPage({
+  const list = await fetchPosts({
+    board: "github",
     page,
-    page_size: opt?.pageSize ?? LIST_SETTINGS.ITEMS_PER_PAGE,
+    page_size: pageSize,
     ordering,
-    // search: opt?.search,
-    // tags: opt?.tagIds,
+    search: opt?.search,
+    user_tag_class: opt?.tags?.tagClass,
+    user_tag_number:
+      typeof opt?.tags?.cohort === "number" ? opt!.tags!.cohort : undefined,
   });
+
+  return {
+    items: list,
+    hasNext: list.length >= pageSize,
+  };
 }
 
 export function useGithubPosts(opt?: UseGithubPostsOptions) {
@@ -60,6 +78,9 @@ export function useGithubPosts(opt?: UseGithubPostsOptions) {
   type SortKey = keyof typeof SORT_TO_ORDERING;
   const sortKey: SortKey = (opt?.sort ?? "latest") as SortKey;
   const ordering = SORT_TO_ORDERING[sortKey] ?? "-created_at";
+  const search = opt?.search ?? "";
+  const tagIds = opt?.tagIds ?? [];
+  const tags = opt?.tags;
 
   return useInfiniteQuery<GithubPostsPage, unknown>({
     // 옵션 포함해서 캐시 분리
@@ -69,8 +90,9 @@ export function useGithubPosts(opt?: UseGithubPostsOptions) {
         board: GITHUB_BOARD_SLUG,
         pageSize,
         ordering,
-        search: opt?.search ?? "",
-        tags: opt?.tagIds ?? [],
+        search,
+        tagIds,
+        tags,
       },
     ] as const,
 
