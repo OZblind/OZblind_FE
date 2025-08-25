@@ -59,7 +59,6 @@ export default function SurveyPostForm({
     if (typeof initial?.formLink === "string") setFormLink(initial.formLink);
     if (typeof initial?.endDate === "string")
       setEndDate(toInputDate(initial.endDate));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initial?.title, initial?.content, initial?.formLink, initial?.endDate]);
 
   const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
