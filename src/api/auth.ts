@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import api, { tokenStore } from "./client";
 
 // 서버 응답 타입들
@@ -9,6 +8,12 @@ type ActiveResponse = {
   access: string;
   refresh: string;
   next?: string; // e.g. "/main"
+};
+
+export type ActivateParams = {
+  idToken: string;
+  plainKey: string;
+  cohortNumber?: number | string; // 선택값으로 변경
 };
 
 type PendingResponse = {
@@ -23,6 +28,16 @@ export interface ActivateResponse {
   access: string;
   refresh: string;
   next?: string;
+}
+
+/** 키에서 COHORT 숫자(예: COHORT11) 추출 */
+function parseCohortFromKey(raw: string): number | null {
+  const key = String(raw ?? "").trim();
+  // COHORT 다음에 1~3자리 숫자 (대소문자 무관)
+  const m = key.match(/COHORT\s*?(\d{1,3})\b/i);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return Number.isInteger(n) ? n : null;
 }
 
 /** 1) 구글 로그인 시작
@@ -46,21 +61,45 @@ export async function loginWithGoogle(
 /** 2) 키 활성화
  *  POST /api/auth/activate/ (body: { id_token, cohort_number, plain_key })
  */
-export async function activateWithKey(params: {
-  idToken: string;
-  cohortNumber: number;
-  plainKey: any;
-}): Promise<ActivateResponse> {
-  const { idToken, cohortNumber, plainKey } = params;
+export async function activateWithKey(
+  params: ActivateParams
+): Promise<ActivateResponse> {
+  const id_token_str = String(params.idToken ?? "").trim();
+  const plain_key = String(params.plainKey ?? "").trim();
+  if (!id_token_str)
+    throw new Error("인증 토큰이 없습니다. 다시 로그인 해주세요.");
+  if (!plain_key) throw new Error("인증 키를 입력하세요.");
 
-  const { data } = await api.post<ActivateResponse>("/api/auth/activate", {
-    id_token_str: idToken,
-    cohort_number: cohortNumber,
-    plain_key: plainKey,
-  });
+  // 전달된 cohortNumber → 키에서 추출
+  let cohort = null as number | null;
+  if (
+    params.cohortNumber != null &&
+    String(params.cohortNumber).trim() !== ""
+  ) {
+    const n = Number(String(params.cohortNumber).trim());
+    if (Number.isInteger(n)) cohort = n;
+  }
+  if (cohort == null) {
+    cohort = parseCohortFromKey(plain_key);
+  }
+  if (cohort == null) {
+    throw new Error(
+      "키에서 기수(COHORT**)를 찾지 못했습니다. 예: ...-COHORT11-..."
+    );
+  }
 
-  // 성공 시 토큰 저장
-  tokenStore.set(data.access, data.refresh);
+  const { data, status } = await api.post<ActivateResponse>(
+    "/api/auth/activate",
+    {
+      id_token_str,
+      cohort_number: String(cohort),
+      plain_key,
+    }
+  );
+
+  if ((status === 200 || status === 201) && data?.access && data?.refresh) {
+    tokenStore.set(data.access, data.refresh);
+  }
   return data;
 }
 
