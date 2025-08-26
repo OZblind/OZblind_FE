@@ -6,6 +6,8 @@ import type { BoardSlug } from "@src/constants/boards";
 import { createPost, updatePost } from "@src/api/posts";
 import { useToastStore } from "@src/store/toastStore";
 import { useNavigate } from "react-router-dom";
+import ConfirmModal from "../commons/ConfirmModal/ConfirmModal";
+// import { createPost } from "@/api/post";
 
 interface Props {
   /** "free" | "job" | "info" (기존 문자열도 호환) */
@@ -35,13 +37,18 @@ export default function SharedPostForm({
   const isEdit = mode === "edit";
   const [title, setTitle] = useState(initial?.title ?? "");
   const [content, setContent] = useState(initial?.content ?? "");
+  const [editorInitial, setEditorInitial] = useState(initial?.content ?? "");
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+  const [showConfirm, setShowConfirm] = useState(false);
 
   // initial 값이 변경될 수 있는 경우(예: 상세 로드 후 주입) 반영
   useEffect(() => {
     if (typeof initial?.title === "string") setTitle(initial.title);
-    if (typeof initial?.content === "string") setContent(initial.content);
+    if (typeof initial?.content === "string") {
+      setContent(initial.content);
+      setEditorInitial(initial.content);
+    }
   }, [initial?.title, initial?.content]);
 
   const handleSubmit = async () => {
@@ -89,7 +96,6 @@ export default function SharedPostForm({
           content: nextContent,
         });
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const newId = (res as any)?.id ?? (res as any)?.post_id; // 백 규약 이중 대비
         useToastStore.getState().push({
           message: "게시글이 등록되었습니다.",
@@ -136,13 +142,8 @@ export default function SharedPostForm({
       <div className="flex-1">
         <ToastEditor
           // ToastEditor가 초기값 prop을 지원하면 활성화
-          // @ts-expect-error 구현에 따라 initialValue prop 존재
-          initialValue={content}
+          initial={editorInitial}
           onChange={setContent}
-          // initial이 바뀌면 에디터 리마운트하여 초기값 반영
-          key={`${isEdit ? postId : "create"}:${initial?.title ?? ""}:${
-            initial?.content ?? ""
-          }`}
         />
       </div>
 
@@ -150,14 +151,14 @@ export default function SharedPostForm({
         <Button
           variant="secondary"
           className="min-w-[100px]"
-          onClick={onCancel}
+          onClick={() => setShowConfirm(true)}
           disabled={submitting}
         >
           취소
         </Button>
         <Button
           variant="primary"
-          className="min-w-[100px]"
+          className="min-w-[100px] text-white"
           onClick={handleSubmit}
           disabled={submitting}
         >
@@ -170,6 +171,16 @@ export default function SharedPostForm({
             : "작성"}
         </Button>
       </div>
+      <ConfirmModal
+        isOpen={showConfirm}
+        title="게시글 작성을 취소하시겠어요?"
+        description="지금까지 작성한 정보는 전부 삭제됩니다."
+        onCancel={() => setShowConfirm(false)}
+        onConfirm={() => {
+          onCancel();
+          setShowConfirm(false);
+        }}
+      />
     </div>
   );
 }

@@ -45,7 +45,7 @@ function mountOverlay(): {
 
   const card = document.createElement("div");
   Object.assign(card.style, {
-    background: "white",
+    background: "#F5F5F5",
     padding: "24px",
     borderRadius: "12px",
     minWidth: "320px",
@@ -55,7 +55,12 @@ function mountOverlay(): {
 
   const title = document.createElement("div");
   title.textContent = "Google 계정으로 계속하기";
-  Object.assign(title.style, { fontSize: "16px", marginBottom: "12px" });
+  Object.assign(title.style, {
+    color: "#1A1A1A",
+    fontSize: "16px",
+    fontWeight: "medium",
+    marginBottom: "12px",
+  });
 
   const btnHost = document.createElement("div");
   btnHost.id = "google_btn_host";

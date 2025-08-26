@@ -53,17 +53,17 @@ export default function ConfirmModal({
       onClick={handleClickOutside}
     >
       <div
-        className="bg-primary-content rounded-2xl shadow-2xl w-full max-w-md mx-auto z-[4000] animate-in fade-in-0 zoom-in-95 duration-200"
+        className="bg-accent-content rounded-2xl shadow-2xl w-full max-w-md mx-auto z-[4000] animate-in fade-in-0 zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 모달 내용 */}
         <div className="p-6 text-center">
-          <h2 className="text-lg font-semibold text-accent-content mb-3 leading-relaxed break-keep">
+          <h2 className="text-lg font-semibold text-primary-content mb-3 leading-relaxed break-keep">
             {title}
           </h2>
 
           {description && (
-            <p className="text-sm text-gray-700 mb-6 leading-relaxed break-keep whitespace-pre-wrap">
+            <p className="text-sm text-[#8e8e8e] mb-6 leading-relaxed break-keep whitespace-pre-wrap">
               {description}
             </p>
           )}
@@ -73,7 +73,7 @@ export default function ConfirmModal({
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 px-4 py-3 rounded-xl outline-none border border-accent-content bg-transparent text-accent-content font-medium hover:bg-accent-content hover:border-transparent hover:text-primary-content focus:ring-2 focus:ring-primary/20 transition-colors duration-200"
+              className="flex-1 px-4 py-3 rounded-xl outline-none border border-base-content bg-transparent text-base-content  font-medium hover:bg-base-content hover:border-transparent hover:text-accent-content focus:ring-2 focus:ring-primary/20 transition-colors duration-200"
             >
               {cancelLabel}
             </button>
@@ -81,7 +81,7 @@ export default function ConfirmModal({
             <button
               type="button"
               onClick={onConfirm}
-              className="flex-1 px-4 py-3 rounded-xl outline-none bg-primary text-primary-content font-medium hover:bg-secondary focus:ring-2 focus:ring-primary/20 transition-colors duration-200"
+              className="flex-1 px-4 py-3 rounded-xl outline-none bg-primary text-[#f5f5f5] font-medium hover:bg-secondary focus:ring-2 focus:ring-primary/20 transition-colors duration-200"
             >
               {confirmLabel}
             </button>

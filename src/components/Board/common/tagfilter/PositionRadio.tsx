@@ -22,9 +22,9 @@ export default function PositionRadio({
     () =>
       options ?? [
         { value: "front", label: "프론트엔드" },
-        { value: "startup", label: "창업" },
+        { value: "startup", label: "창업", disabled: true },
         { value: "back", label: "백엔드" },
-        { value: "design", label: "디자인" },
+        { value: "design", label: "디자인", disabled: true },
       ],
     [options]
   );

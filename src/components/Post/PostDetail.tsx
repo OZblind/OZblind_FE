@@ -32,6 +32,7 @@ import { toggleReaction } from "@src/api/reactions";
 import BookmarkButton from "../ui/BookmarkButton";
 import { fetchMyBookmarks } from "@src/api/bookmarks";
 import { deletePost } from "@src/api/posts";
+import PostContent from "./PostContent";
 
 const BOARD_LABEL: Record<string, string> = {
   free: "자유게시판",
@@ -343,8 +344,8 @@ export default function PostDetail({
       })()}
 
       {/* 본문 */}
-      <div className="m-2 bg-base-100 shadow-none">
-        <div dangerouslySetInnerHTML={{ __html: post.content }} />
+      <div className="m-2 bg-base-100 shadow-none post-body">
+        <PostContent content={post?.content} className="not-prose tui-viewer" />
       </div>
 
       {/* 리액션 바 */}
@@ -399,7 +400,7 @@ export default function PostDetail({
             취소
           </button>
           <button
-            className="btn btn-primary btn-sm"
+            className="btn btn-primary btn-sm text-white"
             onClick={submitComment}
             disabled={submitting || !commentDraft.trim()}
             type="button"

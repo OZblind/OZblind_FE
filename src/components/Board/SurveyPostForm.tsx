@@ -3,10 +3,10 @@ import { useEffect, useState } from "react";
 import { Button } from "@components/ui/Button";
 import ToastEditor from "@components/Board/editor/ToastEditor";
 import LinkPreviewCard from "./LinkPreviewCard";
-import { createSurveyPost } from "@src/api/posts.special";
-import { updatePost } from "@src/api/posts";
+import { createSurveyPost, editSurveyPost } from "@src/api/posts.special";
 import { useNavigate } from "react-router-dom";
 import { useToastStore } from "@src/store/toastStore";
+import ConfirmModal from "../commons/ConfirmModal/ConfirmModal";
 
 interface Props {
   /** 기본값: "create" */
@@ -43,6 +43,7 @@ export default function SurveyPostForm({
 
   const [title, setTitle] = useState(initial?.title ?? "");
   const [content, setContent] = useState(initial?.content ?? "");
+  const [editorInitial, setEditorInitial] = useState(initial?.content ?? "");
   const [formLink, setFormLink] = useState(initial?.formLink ?? "");
   const [endDate, setEndDate] = useState(toInputDate(initial?.endDate) ?? ""); // YYYY-MM-DD
   const [provider, setProvider] = useState<string>(""); // placeholder 상태
@@ -51,15 +52,18 @@ export default function SurveyPostForm({
 
   const navigate = useNavigate();
   const toast = useToastStore();
+  const [showConfirm, setShowConfirm] = useState(false);
 
   // initial이 나중에 주입되는 경우 동기화
   useEffect(() => {
     if (typeof initial?.title === "string") setTitle(initial.title);
-    if (typeof initial?.content === "string") setContent(initial.content);
+    if (typeof initial?.content === "string") {
+      setContent(initial.content);
+      setEditorInitial(initial.content);
+    }
     if (typeof initial?.formLink === "string") setFormLink(initial.formLink);
     if (typeof initial?.endDate === "string")
       setEndDate(toInputDate(initial.endDate));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initial?.title, initial?.content, initial?.formLink, initial?.endDate]);
 
   const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -124,11 +128,10 @@ export default function SurveyPostForm({
           return;
         }
         // 수정: 일반 PATCH (form_link, end_date 포함)
-        await updatePost({
-          id: postId,
+        await editSurveyPost(postId, {
           title: t,
           content: c,
-          form_link: link,
+          link,
           end_date: end_date_iso,
         });
 
@@ -201,7 +204,7 @@ export default function SurveyPostForm({
       {/* 설문지 작성 / 링크 / 마감일 */}
       <div className="flex flex-wrap gap-4">
         <div className="flex flex-col gap-1 shrink-0">
-          <label className="font-semibold text-white">설문 생성</label>
+          <label className="font-semibold text-base-content">설문 생성</label>
           <select
             aria-label="설문 폼 선택"
             className="border border-gray-300 rounded p-2 bg-white shrink-0"
@@ -221,7 +224,10 @@ export default function SurveyPostForm({
 
         {/* 설문 링크 입력 */}
         <div className="flex flex-col gap-1 flex-1 min-w-[220px]">
-          <label htmlFor="survey-link" className="font-semibold text-white">
+          <label
+            htmlFor="survey-link"
+            className="font-semibold text-base-content"
+          >
             설문 링크
           </label>
           <input
@@ -239,7 +245,10 @@ export default function SurveyPostForm({
 
         {/* 설문 마감일 */}
         <div className="flex flex-col gap-1 shrink-0">
-          <label htmlFor="survey-end" className="font-semibold text-white">
+          <label
+            htmlFor="survey-end"
+            className="font-semibold text-base-content"
+          >
             마감일
           </label>
           <input
@@ -261,14 +270,7 @@ export default function SurveyPostForm({
 
       {/* 에디터 (이미지는 에디터 내부 업로더 사용) */}
       <div className="flex-1">
-        <ToastEditor
-          // @ts-expect-error 구현에 따라 initialValue 제공
-          initialValue={content}
-          onChange={setContent}
-          key={`${isEdit ? postId : "create"}:${initial?.title ?? ""}:${
-            initial?.content ?? ""
-          }:${initial?.formLink ?? ""}:${initial?.endDate ?? ""}`}
-        />
+        <ToastEditor initial={editorInitial} onChange={setContent} />
       </div>
 
       {/* 버튼 */}
@@ -276,14 +278,13 @@ export default function SurveyPostForm({
         <Button
           variant="secondary"
           className="min-w-[100px]"
-          onClick={onCancel}
-          disabled={submitting}
+          onClick={() => setShowConfirm(true)}
         >
           취소
         </Button>
         <Button
           variant="primary"
-          className="min-w-[100px]"
+          className="min-w-[100px] text-white"
           onClick={handleSubmit}
           disabled={submitting}
         >
@@ -292,10 +293,20 @@ export default function SurveyPostForm({
               ? "수정 중..."
               : "작성 중..."
             : isEdit
-            ? "수정"
-            : "작성"}
+              ? "수정"
+              : "작성"}
         </Button>
       </div>
+      <ConfirmModal
+        isOpen={showConfirm}
+        title="게시글 작성을 취소하시겠어요?"
+        description="지금까지 작성한 정보는 전부 삭제됩니다."
+        onCancel={() => setShowConfirm(false)}
+        onConfirm={() => {
+          onCancel();
+          setShowConfirm(false);
+        }}
+      />
     </div>
   );
 }
