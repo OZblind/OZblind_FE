@@ -253,17 +253,18 @@ export const getMyPosts = async (
       })
     );
 
-    for (const { base, detail } of details) {
+    for (const { base } of details) {
       if (collected.length >= pageSize) break;
-      if (isMine(detail, base.user)) {
+      if (isMine(undefined, base.user)) {
+        // detail 없이 판단
         collected.push({
           id: base.id,
-          category: getBoardName(detail?.board ?? base.board),
-          title: detail?.title || base.title,
-          date: detail?.created_at || base.created_at,
-          views: detail?.view_count ?? base.view_count,
+          category: getBoardName(base.board), // base.board 사용
+          title: base.title,
+          date: base.created_at,
+          views: base.view_count,
           comments: base.comment_count ?? 0,
-          authorId: detail?.user?.id ?? base.user?.id ?? 0,
+          authorId: base.user?.id ?? 0,
         });
       }
     }
@@ -504,11 +505,10 @@ const PREVIEW_LIMIT = 4;
 
 export const getMyActivitySummary = async (): Promise<MyPageCardData[]> => {
   try {
-    // 전체 카운트를 위해 첫 페이지 전체 사이즈로 조회
     const [postsResult, commentsResult, bookmarksResult] = await Promise.all([
-      getMyPosts(1, 1000).catch(() => null), // 큰 사이즈로 전체 조회
-      getMyComments(1, 1000).catch(() => null),
-      getMyBookmarks(1, 1000).catch(() => null),
+      getMyPosts(1, 50).catch(() => null),
+      getMyComments(1, 50).catch(() => null),
+      getMyBookmarks(1, 50).catch(() => null),
     ]);
 
     return [
