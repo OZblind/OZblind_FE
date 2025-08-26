@@ -23,8 +23,8 @@ export default function HotPostCard({
   }, [themeIcon]);
   const BOARD_NAME_MAP: Record<number, string> = {
     1: "자유",
-    2: "취업",
-    3: "정보",
+    2: "정보",
+    3: "취업",
     4: "설문",
     5: "GitHub",
   };
