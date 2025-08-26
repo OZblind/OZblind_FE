@@ -90,7 +90,8 @@ const Card: React.FC<CardProps> = ({
         </div>
         <button
           onClick={onClick}
-          className="w-10 h-10 bg-primary rounded-full flex items-center justify-center hover:bg-primary-focus transition-colors"
+          className="w-6 h-6 sm:w-8 sm:h-8 bg-primary rounded-full flex items-center justify-center
+             hover:bg-primary-focus transition-all duration-200 group transform hover:scale-110"
           aria-label={`${title} 전체보기`}
         >
           <svg
@@ -98,7 +99,7 @@ const Card: React.FC<CardProps> = ({
             height="16"
             viewBox="0 0 16 16"
             fill="none"
-            className="text-white"
+            className="text-white group-hover:rotate-180 transition-transform duration-300"
           >
             <path
               d="M8 3V13M3 8H13"
@@ -189,7 +190,13 @@ const MyPageMain: React.FC = () => {
   const [clickedCard, setClickedCard] = useState<string | null>(null);
   const pendingPathRef = useRef<string | null>(null);
 
-  const { data: cardData, isLoading, error, refetch } = useMyActivitySummary();
+  // 요약 데이터 (항상 resolve하도록 구현된 API/hook)
+  const {
+    data: cardData = [],
+    isFetching,
+    error,
+    refetch,
+  } = useMyActivitySummary();
 
   const themeIcon = useThemeIcon();
   const { writingIcon, chatIcon, bookmarkIcon } = useMemo(() => {
@@ -203,7 +210,6 @@ const MyPageMain: React.FC = () => {
     };
   }, [themeIcon]);
 
-  /* 중복 제거된 getIconPath */
   const getIconPath = (iconType: string) => {
     switch (iconType) {
       case "writing":
@@ -250,24 +256,12 @@ const MyPageMain: React.FC = () => {
     }
   };
 
-  if (isLoading) {
-    return <div>로딩 중...</div>;
-  }
-
-  if (error) {
-    return (
-      <div className="text-center">
-        <p>활동 정보를 불러오지 못했습니다.</p>
-        <button onClick={() => refetch()}>다시 시도</button>
-      </div>
-    );
-  }
-
   return (
     <>
       <div className="p-4 sm:p-6 relative overflow-hidden">
+        {/* 본문 렌더는 항상 수행 (로딩/에러여도 UI는 보이게) */}
         <div className="flex flex-col lg:flex-row gap-6 justify-center items-start relative">
-          {cardData?.map((card, index) => (
+          {cardData.map((card, index) => (
             <Card
               key={`${card.title}-${index}`}
               title={card.title}
@@ -278,11 +272,12 @@ const MyPageMain: React.FC = () => {
               onItemClick={handleItemClick}
               isExpanding={isExpanding}
               isClicked={clickedCard === card.path}
-              getIconPath={getIconPath} // 여기서 공용 함수 그대로 전달
+              getIconPath={getIconPath}
             />
           ))}
         </div>
 
+        {/* 페이지 전환 오버레이 */}
         {isExpanding && (
           <div
             className="absolute inset-0 bg-base-100 z-30"
@@ -292,6 +287,23 @@ const MyPageMain: React.FC = () => {
             }}
             onAnimationEnd={handleOverlayAnimationEnd}
           />
+        )}
+
+        {/* 로딩 오버레이 (화면 전체 리턴으로 막지 않음) */}
+        {isFetching && (
+          <div className="absolute inset-0 flex items-center justify-center bg-base-100/50 backdrop-blur-[1px] z-40">
+            <span className="loading loading-spinner loading-primary loading-lg" />
+          </div>
+        )}
+
+        {/* (선택) 에러 토스트/버튼이 필요하면 여기에 배치 */}
+        {error && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-sm text-error">
+            데이터 로딩에 실패했습니다.{" "}
+            <button className="underline" onClick={() => refetch()}>
+              다시 시도
+            </button>
+          </div>
         )}
       </div>
 

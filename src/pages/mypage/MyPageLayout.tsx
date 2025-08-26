@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import AssignedTagList from "@src/components/tags/AssignedTagList";
 import { useAssignedTags } from "@hooks/useAssignedTags";
 import profileImage from "@assets/images/profile.jpg";
 import { SettingsPage } from "@components/SettingModal/SettingsPage";
 import { ThemeInitializer } from "@components/SettingModal/ThemeInitializer";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface UserProfile {
   nickname?: string;
@@ -36,11 +37,26 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
   const hasKey = valid || Boolean(userProfile.hasKey);
   const handleProfileClick = () => setIsSettingsOpen(true);
 
+  // ✅ 마이페이지 진입 시 예전 캐시 강제 제거
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    queryClient.removeQueries({
+      predicate: (q) => {
+        const key = (q.queryKey ?? []).map(String).join("-");
+        return (
+          key.includes("myPosts") ||
+          key.includes("myActivitySummary") ||
+          key.includes("myComments") ||
+          key.includes("myBookmarks")
+        );
+      },
+    });
+  }, [queryClient]);
+
   return (
     <div className="bg-base-100 min-h-screen">
-      {/* 상단 컨테이너: 메인과 동일 */}
       <div className="max-w-6xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        {/* 프로필 섹션 */}
+        {/* 프로필 */}
         <div className="bg-base-200 rounded-lg shadow-sm p-4 sm:p-6 mb-6">
           <div className="flex flex-col items-center text-center">
             <div className="relative mb-4">
@@ -117,7 +133,7 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
           </div>
         </div>
 
-        {/* 메인 컨텐츠 — 메인 카드 폭과 통일 */}
+        {/* 메인 컨텐츠 */}
         <div className="bg-base-200 rounded-lg shadow-sm">
           <div className="max-w-[900px] mx-auto p-4 sm:p-6">
             <Outlet />

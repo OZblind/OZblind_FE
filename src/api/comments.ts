@@ -55,8 +55,17 @@ export function toClientFromPostDetail(c: any): CommentMeta {
   const cleaned = rawReplies.filter((r) => String(r?.id) !== String(c?.id));
   const { nick, content } = extractNickHeader(c.content);
   const replies = cleaned.map(toClientFromPostDetail);
+
+  // ✔ id를 문자열로 유지하되, 가능한 경우 숫자 문자열로 정규화
+  const idNormalized =
+    typeof c.id === "number"
+      ? String(c.id)
+      : /^\d+$/.test(String(c.id))
+      ? String(Number(c.id))
+      : String(c.id);
+
   return {
-    id: String(c.id),
+    id: idNormalized,
     author: nick ?? "익명",
     authorId: String(c.user ?? ""),
     authorName: nick ?? "익명",
@@ -202,8 +211,34 @@ export async function updateComment(
     }
   }
   const payload = { content: nick ? embedNickHeader(nick, content) : content };
-  await api.patch(`/api/comments/${id}`, payload, { withCredentials: true });
+
+  // ✔ detail 경로 트레일링 슬래시 우선 + 폴백
+  try {
+    await api.patch(`/api/comments/${id}/`, payload, { withCredentials: true });
+  } catch (e: any) {
+    if (e?.response?.status === 404 || e?.response?.status === 405) {
+      await api.patch(`/api/comments/${id}`, payload, {
+        withCredentials: true,
+      });
+    } else {
+      throw e;
+    }
+  }
 }
+
+/** 삭제 */
 export async function deleteComment(id: string | number): Promise<void> {
-  await api.delete(`/api/comments/${id}`, { withCredentials: true });
+  // ✔ 숫자 변환(정수 pk 라우터 대비)
+  const num = typeof id === "string" && /^\d+$/.test(id) ? Number(id) : id;
+
+  // ✔ 트레일링 슬래시 우선 + 폴백
+  try {
+    await api.delete(`/api/comments/${num}/`, { withCredentials: true });
+  } catch (e: any) {
+    if (e?.response?.status === 404 || e?.response?.status === 405) {
+      await api.delete(`/api/comments/${num}`, { withCredentials: true });
+    } else {
+      throw e;
+    }
+  }
 }

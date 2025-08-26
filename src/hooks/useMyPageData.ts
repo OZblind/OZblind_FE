@@ -1,192 +1,134 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToastStore } from "@src/store/toastStore";
+// src/hooks/useMyPageData.ts
 import {
-  getMyProfile,
+  useQuery,
+  useMutation,
+  useIsFetching,
+  keepPreviousData, // ✅ v5 방식
+} from "@tanstack/react-query";
+import {
+  getMyActivitySummary,
   getMyBookmarks,
   getMyComments,
   getMyPosts,
-  getMyActivitySummary,
-  deleteBookmarks,
-  type MyPageCommentsResponse,
-} from "@api/mypageApi";
+  deleteBookmarks as deleteBookmarksApi,
+} from "@src/api/mypageApi";
 import type {
   BookmarksResponse,
   PostsResponse,
   MyPageCardData,
 } from "@src/types/mypage";
+import type { MyPageCommentsResponse } from "@src/api/mypageApi";
 
-export function useMyProfile() {
-  return useQuery({
-    queryKey: ["myProfile"],
-    queryFn: getMyProfile,
-  });
+/* ========== 공통 유틸 ========== */
+function toErrorMessage(err: unknown): string {
+  if (!err) return "";
+  if (typeof err === "string") return err;
+  if (err instanceof Error) return err.message;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
 }
 
-export function useMyBookmarks(page: number = 1, pageSize: number = 5) {
+/* ========== Activity Summary ========== */
+export function useMyActivitySummary() {
+  const q = useQuery<MyPageCardData[]>({
+    queryKey: ["mypage", "summary"] as const,
+    queryFn: () => getMyActivitySummary(),
+    staleTime: 60_000,
+    retry: 1,
+    // v5: 필요하면 placeholderData 사용 가능
+    // placeholderData: [],
+  });
+  return { ...q, data: q.data ?? [] };
+}
+
+/* ========== 북마크 목록/삭제 ========== */
+export function useMyBookmarks(page: number, pageSize: number) {
   return useQuery<BookmarksResponse>({
-    queryKey: ["myBookmarks", { page, pageSize }],
+    queryKey: ["mypage", "bookmarks", page, pageSize] as const,
     queryFn: () => getMyBookmarks(page, pageSize),
-    placeholderData: (previousData) => previousData,
-    staleTime: 2 * 60 * 1000, // 2분간 fresh
-    refetchOnWindowFocus: false,
+    // ✅ v5 교체: keepPreviousData 대신
+    placeholderData: keepPreviousData,
+    retry: 1,
   });
 }
 
 export function useDeleteBookmarks() {
-  const queryClient = useQueryClient();
-  const { push } = useToastStore();
-
-  return useMutation({
-    mutationFn: deleteBookmarks,
-    onSuccess: (_data, variables) => {
-      // 북마크 목록 캐시 무효화 - v5 문법
-      void queryClient.invalidateQueries({
-        queryKey: ["myBookmarks"],
-      });
-      // 활동 요약 캐시 무효화 (개수 업데이트)
-      void queryClient.invalidateQueries({
-        queryKey: ["myActivitySummary"],
-      });
-
-      const count = variables.length;
-      const message =
-        count === 1
-          ? "북마크가 삭제되었습니다"
-          : `${count}개의 북마크가 삭제되었습니다`;
-
-      push({
-        message,
-        type: "success",
-        durationMs: 3000,
-      });
-    },
-    onError: (error) => {
-      const { push } = useToastStore.getState();
-      push({
-        message: error instanceof Error ? error.message : "삭제에 실패했습니다",
-        type: "error",
-        durationMs: 3000,
-      });
-    },
+  const m = useMutation({
+    mutationFn: (ids: number[]) => deleteBookmarksApi(ids),
   });
+  return {
+    mutate: m.mutate,
+    isPending: m.isPending,
+    isSuccess: m.isSuccess,
+    isError: m.isError,
+    error: m.error,
+  };
 }
 
-// 댓글 관련 훅
-export function useMyComments(page: number = 1, pageSize: number = 5) {
+/* ========== 댓글/게시글 목록 ========== */
+export function useMyComments(page: number, pageSize: number) {
   return useQuery<MyPageCommentsResponse>({
-    queryKey: ["myComments", { page, pageSize }],
+    queryKey: ["mypage", "comments", page, pageSize] as const,
     queryFn: () => getMyComments(page, pageSize),
-    placeholderData: (previousData) => previousData,
-    staleTime: 2 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    // ✅ v5 방식
+    placeholderData: keepPreviousData,
+    retry: 1,
   });
 }
 
-export function useMyPosts(page: number = 1, pageSize: number = 5) {
+export function useMyPosts(page: number, pageSize: number) {
   return useQuery<PostsResponse>({
-    queryKey: ["myPosts", { page, pageSize }],
+    queryKey: ["mypage", "posts", page, pageSize] as const,
     queryFn: () => getMyPosts(page, pageSize),
-    placeholderData: (previousData) => previousData,
-    staleTime: 2 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    // ✅ v5 방식
+    placeholderData: keepPreviousData,
+    retry: 1,
   });
 }
 
-export function useMyActivitySummary() {
-  return useQuery<MyPageCardData[]>({
-    queryKey: ["myActivitySummary"],
-    queryFn: getMyActivitySummary,
-    staleTime: 5 * 60 * 1000, // 5분간 fresh
-    gcTime: 10 * 60 * 1000, // cacheTime → gcTime으로 변경
-    retry: 2,
-    refetchOnWindowFocus: false,
-  });
+/* ========== 페이징/로딩/에러 상태 ========== */
+export function useMyPagePagination<
+  T extends { pagination?: { totalPages?: number } }
+>(
+  data: T | undefined,
+  currentPage: number,
+  setCurrentPage: (p: number) => void
+) {
+  const totalPages = Math.max(1, Number(data?.pagination?.totalPages ?? 1));
+  const onPageChange = (p: number) => {
+    const next = Math.min(Math.max(1, p), totalPages);
+    if (next !== currentPage) setCurrentPage(next);
+  };
+  return { totalPages, onPageChange };
 }
 
 export function useMyPageLoadingState() {
-  // 여러 쿼리의 로딩 상태를 통합 관리
-  const { isLoading: profileLoading } = useMyProfile();
-  const { isLoading: activityLoading } = useMyActivitySummary();
-
-  return {
-    isAnyLoading: profileLoading || activityLoading,
-    profileLoading,
-    activityLoading,
-  };
+  const fetching = useIsFetching();
+  return { isAnyLoading: fetching > 0 };
 }
 
-export function useMyPagePagination(
-  data: BookmarksResponse | MyPageCommentsResponse | PostsResponse | undefined,
-  currentPage: number,
-  setCurrentPage: (page: number) => void
+export function useMyPageError(
+  errorLike: unknown,
+  refetch?: () => Promise<unknown> | unknown
 ) {
-  const pagination = data?.pagination;
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  return {
-    currentPage,
-    totalPages: pagination?.totalPages || 1,
-    totalItems: pagination?.totalItems || 0,
-    itemsPerPage: pagination?.itemsPerPage || 5,
-    hasNextPage: currentPage < (pagination?.totalPages || 1),
-    hasPrevPage: currentPage > 1,
-    onPageChange: handlePageChange,
-    // 페이지 범위 계산 (1, 2, 3, 4, 5 형태)
-    getPageNumbers: (maxVisible: number = 5) => {
-      const total = pagination?.totalPages || 1;
-      if (total <= maxVisible) {
-        return Array.from({ length: total }, (_, i) => i + 1);
+  const hasError = !!errorLike;
+  const errorMessage = hasError ? toErrorMessage(errorLike) : "";
+  const retry = refetch
+    ? () => {
+        try {
+          const r = refetch();
+          if (r && typeof (r as Promise<unknown>).then === "function") {
+            return r as Promise<unknown>;
+          }
+        } catch {
+          /* noop */
+        }
+        return Promise.resolve();
       }
+    : undefined;
 
-      const start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-      const end = Math.min(total, start + maxVisible - 1);
-      const actualStart = Math.max(1, end - maxVisible + 1);
-
-      return Array.from(
-        { length: end - actualStart + 1 },
-        (_, i) => actualStart + i
-      );
-    },
-  };
-}
-
-export function useMyPageError(error: Error | null, retry?: () => void) {
-  const getErrorMessage = (error: Error | null): string => {
-    if (!error) return "";
-
-    // 네트워크 에러 체크
-    if (error.message.includes("Network")) {
-      return "네트워크 연결을 확인해주세요";
-    }
-
-    // 인증 에러 체크
-    if (
-      error.message.includes("401") ||
-      error.message.includes("Unauthorized")
-    ) {
-      return "로그인이 필요합니다";
-    }
-
-    // 서버 에러 체크
-    if (error.message.includes("500")) {
-      return "서버에서 문제가 발생했습니다";
-    }
-
-    return error.message || "알 수 없는 오류가 발생했습니다";
-  };
-
-  return {
-    hasError: !!error,
-    errorMessage: getErrorMessage(error),
-    retry,
-    isNetworkError: error?.message.includes("Network") || false,
-    isAuthError:
-      error?.message.includes("401") ||
-      error?.message.includes("Unauthorized") ||
-      false,
-    isServerError: error?.message.includes("500") || false,
-  };
+  return { hasError, errorMessage, retry };
 }

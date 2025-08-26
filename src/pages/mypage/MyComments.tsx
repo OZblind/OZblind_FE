@@ -49,52 +49,54 @@ const CommentListItem: React.FC<CommentListItemProps> = ({
 }) => {
   const handleRowClick = () => {
     if (isExiting || !comment.postId) return;
-    {
-      onPostClick?.();
-    }
+    onPostClick?.();
   };
 
   return (
     <div
-      className={`flex flex-col py-4 px-4 border-b border-base-300 hover:bg-base-200 cursor-pointer transition-all duration-500 transform opacity-0 translate-x-8 animate-slide-in`}
+      className="transition-all duration-500 transform opacity-0 translate-x-8 animate-slide-in"
       style={{
         transitionDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
         animationDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
       }}
-      onClick={handleRowClick}
     >
-      {/* 상단: 게시글 정보 */}
-      <div className="flex items-center gap-3 mb-2">
-        <span className="bg-base-300 text-base-content text-xs px-2 py-1 rounded">
-          {comment.postCategory}
-        </span>
-        <h3
-          className={`flex-1 text-base-content hover:text-primary transition-colors ${getDurationClass(
-            ANIMATION_TIMINGS.HOVER_TRANSITION
-          )} line-clamp-1 font-medium`}
-        >
-          {comment.postTitle}
-        </h3>
-        <div className="w-8 h-8 flex items-center justify-center">
-          <img src={getCommentIconPath()} alt="댓글" className="w-5 h-5" />
-        </div>
-      </div>
-
-      {/* 하단: 댓글 내용과 날짜 */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="pl-4 border-l-2 border-primary/30">
-            <p className="text-base-content text-sm leading-relaxed break-words">
-              {comment.commentContent}
-            </p>
+      <div
+        className="flex flex-col py-4 px-4 border-b border-base-300 hover:bg-base-200 cursor-pointer"
+        onClick={handleRowClick}
+      >
+        {/* 상단: 게시글 정보 */}
+        <div className="flex items-center gap-3 mb-2">
+          <span className="bg-base-300 text-base-content text-xs px-2 py-1 rounded">
+            {comment.postCategory}
+          </span>
+          <h3
+            className={`flex-1 text-base-content hover:text-primary transition-colors ${getDurationClass(
+              ANIMATION_TIMINGS.HOVER_TRANSITION
+            )} line-clamp-1 font-medium`}
+          >
+            {comment.postTitle}
+          </h3>
+          <div className="w-8 h-8 flex items-center justify-center">
+            <img src={getCommentIconPath()} alt="댓글" className="w-5 h-5" />
           </div>
         </div>
-        <div className="text-xs text-neutral-content flex-shrink-0 min-w-fit">
-          {new Date(comment.date).toLocaleDateString("ko-KR", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-          })}
+
+        {/* 하단: 댓글 내용과 날짜 */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="pl-4 border-l-2 border-primary/30">
+              <p className="text-base-content text-sm leading-relaxed break-words">
+                {comment.commentContent}
+              </p>
+            </div>
+          </div>
+          <div className="text-xs text-neutral-content flex-shrink-0 min-w-fit">
+            {new Date(comment.date).toLocaleDateString("ko-KR", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })}
+          </div>
         </div>
       </div>
     </div>
@@ -105,16 +107,11 @@ const MyComments: React.FC = () => {
   const navigate = useNavigate();
   const [isExiting, setIsExiting] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
-
-  // 페이지네이션 상태
   const [currentPage, setCurrentPage] = useState(1);
 
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // 테마 훅 사용
   const themeIcon = useThemeIcon();
 
-  // 테마에 따른 댓글 아이콘을 useMemo로 메모이제이션 (메인과 동일)
   const commentIcon = useMemo(() => {
     const dark = themeIcon === "oz_dark";
     return dark ? icons.chat?.light : icons.chat?.dark;
@@ -130,13 +127,11 @@ const MyComments: React.FC = () => {
   } = useMyComments(currentPage, LIST_SETTINGS.ITEMS_PER_PAGE);
 
   const { isAnyLoading } = useMyPageLoadingState();
-
   const { totalPages, onPageChange: handlePageChange } = useMyPagePagination(
     commentsData,
     currentPage,
     setCurrentPage
   );
-
   const { hasError, errorMessage, retry } = useMyPageError(
     commentsErrorMessage,
     refetchComments
@@ -145,10 +140,30 @@ const MyComments: React.FC = () => {
   const comments = commentsData?.data || [];
   const allCommentsCount = commentsData?.pagination?.totalItems || 0;
 
-  // 컴포넌트 마운트 시 애니메이션
   useEffect(() => {
     setIsLoaded(true);
   }, []);
+
+  // 게시글 삭제 감지를 위한 주기적 리패치
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refetchComments();
+    }, 30000); // 30초마다 서버 확인
+
+    const handleFocus = () => refetchComments();
+    const handleVisibilityChange = () => {
+      if (!document.hidden) refetchComments();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [refetchComments]);
 
   const handleBackClick = useCallback(() => {
     if (timeoutRef.current) {
@@ -172,10 +187,9 @@ const MyComments: React.FC = () => {
     };
   }, []);
 
-  // 댓글 클릭 시 해당 게시글로 이동 (404 해결)
   const handlePostClick = (postId: number) => {
     if (!postId) return;
-    navigate(PATHS.POST_DETAIL.replace(":id", String(postId))); // "/posts/:id"
+    navigate(PATHS.POST_DETAIL.replace(":id", String(postId)));
   };
 
   return (

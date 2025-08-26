@@ -28,6 +28,7 @@ export interface PostItem {
   date: string;
   views?: number;
   comments?: number;
+  authorId?: number;
 }
 
 // 마이페이지 카드 아이템 타입
