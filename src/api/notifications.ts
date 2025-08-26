@@ -1,4 +1,4 @@
-import api from "@api/client";
+import api, { tokenStore } from "@api/client";
 
 /** 서버 원본 타입 */
 export type ApiNotification = {
@@ -9,34 +9,50 @@ export type ApiNotification = {
   created_at: string; // ISO
 };
 
+/** 내부 유틸: 로그인 여부 확인 */
+function requireLogin() {
+  const access = tokenStore.access;
+  if (!access) throw new Error("로그인 필요");
+}
+
 /** 목록: GET /api/ntf/ */
 export async function fetchNotifications(): Promise<ApiNotification[]> {
+  requireLogin();
   const { data } = await api.get<ApiNotification[]>("/api/ntf/");
   return data;
 }
 
 /** 전체 읽음: PATCH /api/ntf/ */
 export async function markAllRead(): Promise<void> {
-  await api.patch("/api/ntf/", {}); // 바디 필요 없으므로 빈 객체
+  requireLogin();
+  await api.patch("/api/ntf/", {});
 }
 
 /** 전체 삭제: DELETE /api/ntf/ */
 export async function deleteAllNotifications(): Promise<void> {
+  requireLogin();
   await api.delete("/api/ntf/");
 }
 
 /** 개별 읽음: PATCH /api/ntf/{id} */
 export async function markOneRead(id: number): Promise<void> {
+  requireLogin();
   await api.patch(`/api/ntf/${id}`);
 }
 
 /** 개별 삭제: DELETE /api/ntf/{id} */
 export async function deleteOne(id: number): Promise<void> {
+  requireLogin();
   await api.delete(`/api/ntf/${id}`);
 }
 
 /** 새 알림 여부: GET /api/ntf/check  -> { new: boolean } */
 export async function checkNew(): Promise<{ new: boolean }> {
+  const access = tokenStore.access;
+  if (!access) {
+    // 로그인 안 됐으면 네트워크 호출 안 하고 false 반환
+    return { new: false };
+  }
   const { data } = await api.get<{ new: boolean }>("/api/ntf/check");
   return data;
 }
