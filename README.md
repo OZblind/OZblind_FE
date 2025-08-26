@@ -44,21 +44,34 @@
 ## 🛠 기술 스택
 ### Frontend
 - **React + TypeScript + Vite**
-- **Tailwind CSS**  
+- **ESLint + Prettier**
+- **Tailwind CSS + Daisy UI**  
 - **React Router DOM**
 - **React Query / Zustand** (상태 관리)
 - **TOAST UI Editor** (게시글 작성/뷰어)
 - **Lucide-React** (아이콘)
+- **Axios**
+- **Zustand**
+- **clsx**
+- **Tanstack Query(React Query)**
 
-### Backend (예정 / 연동)
-- **Django REST Framework**  
+### Backend (연동)
+- **Django**
+- **Django REST Framework**
+- **Django APITestCase, Pytest** (테스트 도구
+- **Python**
+- **JWT / OAuth2** (인증 및 인가 처리)
 - **WebSocket + Redis** (실시간 채팅)  
-- **Supabase / PostgreSQL** (인증 & 데이터 관리)
+- **PostgreSQL** (데이터 관리)
+- **Nginx, RDS, Gunicorn**
 
 ### Infra & Tools
+- **Swagger** (API 문서화)
 - **Vercel** (배포)  
 - **Docker** (개발환경 통합)  
-- **GitHub Actions** (CI/CD)  
+- **GitHub Actions** (CI/CD)
+- **AWS EC2** (백엔드 서버 호스팅)
+
 
 ---
 
