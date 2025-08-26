@@ -1,9 +1,8 @@
-// src/hooks/useMyPageData.ts
 import {
   useQuery,
   useMutation,
   useIsFetching,
-  keepPreviousData, // ✅ v5 방식
+  keepPreviousData,
 } from "@tanstack/react-query";
 import {
   getMyActivitySummary,
@@ -19,7 +18,6 @@ import type {
 } from "@src/types/mypage";
 import type { MyPageCommentsResponse } from "@src/api/mypageApi";
 
-/* ========== 공통 유틸 ========== */
 function toErrorMessage(err: unknown): string {
   if (!err) return "";
   if (typeof err === "string") return err;
@@ -31,25 +29,20 @@ function toErrorMessage(err: unknown): string {
   }
 }
 
-/* ========== Activity Summary ========== */
 export function useMyActivitySummary() {
   const q = useQuery<MyPageCardData[]>({
     queryKey: ["mypage", "summary"] as const,
     queryFn: () => getMyActivitySummary(),
     staleTime: 60_000,
     retry: 1,
-    // v5: 필요하면 placeholderData 사용 가능
-    // placeholderData: [],
   });
   return { ...q, data: q.data ?? [] };
 }
 
-/* ========== 북마크 목록/삭제 ========== */
 export function useMyBookmarks(page: number, pageSize: number) {
   return useQuery<BookmarksResponse>({
     queryKey: ["mypage", "bookmarks", page, pageSize] as const,
     queryFn: () => getMyBookmarks(page, pageSize),
-    // ✅ v5 교체: keepPreviousData 대신
     placeholderData: keepPreviousData,
     retry: 1,
   });
@@ -68,12 +61,10 @@ export function useDeleteBookmarks() {
   };
 }
 
-/* ========== 댓글/게시글 목록 ========== */
 export function useMyComments(page: number, pageSize: number) {
   return useQuery<MyPageCommentsResponse>({
     queryKey: ["mypage", "comments", page, pageSize] as const,
     queryFn: () => getMyComments(page, pageSize),
-    // ✅ v5 방식
     placeholderData: keepPreviousData,
     retry: 1,
   });
@@ -83,13 +74,11 @@ export function useMyPosts(page: number, pageSize: number) {
   return useQuery<PostsResponse>({
     queryKey: ["mypage", "posts", page, pageSize] as const,
     queryFn: () => getMyPosts(page, pageSize),
-    // ✅ v5 방식
     placeholderData: keepPreviousData,
     retry: 1,
   });
 }
 
-/* ========== 페이징/로딩/에러 상태 ========== */
 export function useMyPagePagination<
   T extends { pagination?: { totalPages?: number } }
 >(
