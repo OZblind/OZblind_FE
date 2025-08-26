@@ -3,26 +3,21 @@ import { useNavigate } from "react-router-dom";
 import { PATHS } from "@constants/paths";
 import { ANIMATION_TIMINGS, ANIMATION_KEYFRAMES } from "@constants/animations";
 import { LIST_SETTINGS, EMPTY_MESSAGES } from "@constants/ui";
-import { mockMyPageCards } from "@src/mocks/mypage.mock";
-import type { MyPageCardData } from "@src/types/mypage";
+import { useMyActivitySummary } from "@hooks/useMyPageData";
 import { icons } from "@src/assets";
 import { useThemeIcon } from "@hooks/useThemeIcon";
+import type { MyPageCardItem } from "@src/types/mypage";
 
-// 개별 카드 컴포넌트
 interface CardProps {
   title: string;
   count: number;
   icon: React.ReactNode;
-  items?: Array<{
-    id: number;
-    title: string;
-    date: string;
-    category?: string;
-  }>;
+  items?: MyPageCardItem[];
   onClick: () => void;
   isExpanding?: boolean;
   isClicked?: boolean;
   getIconPath: (iconType: string) => string;
+  onItemClick?: (id: number) => void;
 }
 
 const Card: React.FC<CardProps> = ({
@@ -34,9 +29,10 @@ const Card: React.FC<CardProps> = ({
   isExpanding,
   isClicked,
   getIconPath,
+  onItemClick,
 }) => {
-  const getEmptyMessage = (title: string) => {
-    switch (title) {
+  const getEmptyMessage = (t: string) => {
+    switch (t) {
       case "작성글":
         return EMPTY_MESSAGES.POSTS;
       case "작성댓글":
@@ -44,28 +40,25 @@ const Card: React.FC<CardProps> = ({
       case "북마크":
         return EMPTY_MESSAGES.BOOKMARKS;
       default:
-        return `${title ?? "항목"}이 없습니다.`;
+        return EMPTY_MESSAGES.FALLBACK;
     }
   };
 
   return (
     <div
-      className={`bg-base-300/40 rounded-lg p-4 transition-all duration-300 transform-gpu flex-1 min-w-0 max-w-xs min-h-[350px] select-none ${
+      className={`bg-base-300/40 rounded-lg p-4 transition-all duration-300 transform-gpu flex-1 min-w-0 w-full h-[400px] select-none flex flex-col ${
         isExpanding
           ? isClicked
             ? "scale-150 z-20 opacity-100"
             : "scale-0 opacity-0"
           : "scale-100 opacity-100"
       }`}
-      style={{
-        transformOrigin: "center",
-        transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)",
-      }}
+      style={{ maxWidth: "400px", transformOrigin: "center" }}
     >
       {/* 카드 헤더 */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">
+      <div className="flex items-center justify-between mb-4 h-[48px] flex-shrink-0">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <span className="text-2xl flex-shrink-0">
             {title === "북마크" ? (
               <img
                 src={getIconPath("bookmark")}
@@ -88,114 +81,101 @@ const Card: React.FC<CardProps> = ({
               icon
             )}
           </span>
-          <h3 className="text-lg font-medium text-base-content">{title}</h3>
-          <span className="text-sm text-neutral-content">({count})</span>
+          <h3 className="text-lg font-semibold text-base-content truncate">
+            {title}
+          </h3>
+          <span className="text-sm text-neutral-content flex-shrink-0 bg-primary/10 px-2 py-1 rounded-full">
+            {count}
+          </span>
         </div>
         <button
           onClick={onClick}
-          className="w-8 h-8 bg-primary rounded-full flex items-center justify-center hover:bg-primary-focus transition-colors duration-200 group relative overflow-hidden"
+          className="w-6 h-6 sm:w-8 sm:h-8 bg-primary rounded-full flex items-center justify-center
+             hover:bg-primary-focus transition-all duration-200 group transform hover:scale-110"
           aria-label={`${title} 전체보기`}
         >
-          {/* 플러스 아이콘 */}
-          <div
-            className="w-5 h-5 text-white flex items-center justify-center transition-transform duration-300"
-            style={{
-              transform: "rotate(0deg) scale(1)",
-              transition: "transform 0.3s ease",
-              transformOrigin: "50% 50%",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "rotate(90deg) scale(1.1)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "rotate(0deg) scale(1)";
-            }}
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            className="text-white group-hover:rotate-180 transition-transform duration-300"
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 16 16"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M8 3V13M3 8H13"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
+            <path
+              d="M8 3V13M3 8H13"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            />
+          </svg>
         </button>
       </div>
 
       {/* 카드 내용 */}
-      <div className="space-y-3">
-        {items && items.length > 0 ? (
-          items.slice(0, LIST_SETTINGS.PREVIEW_ITEMS).map((item) => (
-            <div
-              key={item.id}
-              className="p-3 bg-base-200 rounded-lg hover:bg-base-100 transition-colors cursor-pointer"
-            >
-              <div className="flex items-center justify-between">
-                {item.category && (
-                  <span className="text-xs bg-base-300 px-2 py-1 rounded text-base-content">
-                    {item.category}
-                  </span>
-                )}
-                <span className="text-xs text-neutral-content">
-                  {item.date}
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        {items.length > 0 ? (
+          <div className="space-y-3 flex-1 overflow-hidden">
+            {items.slice(0, LIST_SETTINGS.PREVIEW_ITEMS - 1).map((item) => {
+              const targetId = item.postId ?? item.id;
+              const disabled = !targetId;
+              return (
+                <div
+                  key={item.title + String(item.id)}
+                  className={`p-3 bg-base-200 rounded-lg border border-base-300/20 transition-colors ${
+                    disabled
+                      ? "opacity-60 cursor-not-allowed"
+                      : "hover:bg-base-100 cursor-pointer"
+                  }`}
+                  onClick={() => {
+                    if (disabled) return;
+                    onItemClick?.(targetId);
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-2 gap-2">
+                    {item.category && (
+                      <span className="text-xs bg-base-300 px-2 py-1 rounded text-base-content flex-shrink-0">
+                        {item.category}
+                      </span>
+                    )}
+                    <span className="text-xs text-neutral-content flex-shrink-0">
+                      {new Date(item.date).toLocaleDateString("ko-KR", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
+                  </div>
+                  <h4 className="text-sm text-base-content line-clamp-2 font-medium">
+                    {item.title}
+                  </h4>
+                </div>
+              );
+            })}
+            {items.length > LIST_SETTINGS.PREVIEW_ITEMS - 1 && (
+              <div className="text-center py-2">
+                <span className="text-sm text-neutral-content bg-base-300/30 px-3 py-1 rounded-full">
+                  외 {items.length - (LIST_SETTINGS.PREVIEW_ITEMS - 1)}개 더...
                 </span>
               </div>
-              <h4
-                className="text-sm text-base-content mt-2"
-                style={{
-                  overflow: "hidden",
-                  whiteSpace: "nowrap",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {item.title}
-              </h4>
-            </div>
-          ))
+            )}
+          </div>
         ) : (
-          <div className="text-center py-8">
-            <div className="text-neutral-content text-3xl mb-2">
-              {title === "북마크" ? (
-                <img
-                  src={getIconPath("bookmark")}
-                  alt="북마크"
-                  className="w-8 h-8 mx-auto"
-                />
-              ) : title === "작성글" ? (
-                <img
-                  src={getIconPath("writing")}
-                  alt="작성글"
-                  className="w-8 h-8 mx-auto"
-                />
-              ) : title === "작성댓글" ? (
-                <img
-                  src={getIconPath("chat")}
-                  alt="작성댓글"
-                  className="w-8 h-8 mx-auto"
-                />
-              ) : (
-                icon
-              )}
+          <div className="text-center py-8 flex-1 flex flex-col justify-center">
+            <div className="text-neutral-content text-3xl mb-3">
+              <img
+                src={getIconPath(
+                  title === "작성글"
+                    ? "writing"
+                    : title === "작성댓글"
+                    ? "chat"
+                    : "bookmark"
+                )}
+                alt={title}
+                className="w-8 h-8 mx-auto"
+              />
             </div>
             <p className="text-neutral-content text-sm">
               {getEmptyMessage(title)}
             </p>
-          </div>
-        )}
-
-        {/* 더보기 표시 */}
-        {items && items.length > LIST_SETTINGS.PREVIEW_ITEMS && (
-          <div className="text-center py-2">
-            <span className="text-xs text-neutral-content">
-              외 {items.length - LIST_SETTINGS.PREVIEW_ITEMS}개 더...
-            </span>
           </div>
         )}
       </div>
@@ -203,18 +183,22 @@ const Card: React.FC<CardProps> = ({
   );
 };
 
+/* ========== MyPageMain ========== */
 const MyPageMain: React.FC = () => {
   const navigate = useNavigate();
   const [isExpanding, setIsExpanding] = useState(false);
   const [clickedCard, setClickedCard] = useState<string | null>(null);
-
-  // setTimeout 대신 pendingPath로 안전한 네비게이션 관리
   const pendingPathRef = useRef<string | null>(null);
 
-  // 팀 훅 사용
-  const themeIcon = useThemeIcon();
+  // 요약 데이터 (항상 resolve하도록 구현된 API/hook)
+  const {
+    data: cardData = [],
+    isFetching,
+    error,
+    refetch,
+  } = useMyActivitySummary();
 
-  // 테마에 따른 아이콘들을 useMemo로 메모이제이션
+  const themeIcon = useThemeIcon();
   const { writingIcon, chatIcon, bookmarkIcon } = useMemo(() => {
     const dark = themeIcon === "oz_dark";
     return {
@@ -226,35 +210,45 @@ const MyPageMain: React.FC = () => {
     };
   }, [themeIcon]);
 
-  // 테마에 따른 아이콘 경로 반환
   const getIconPath = (iconType: string) => {
     switch (iconType) {
       case "writing":
-        return writingIcon;
+        return writingIcon || "";
       case "chat":
-        return chatIcon;
+        return chatIcon || "";
       case "bookmark":
-        return bookmarkIcon;
+        return bookmarkIcon || "";
       default:
         return "";
     }
   };
 
-  const cardData: MyPageCardData[] = mockMyPageCards;
-
-  // setTimeout 제거: 애니메이션 이벤트 기반으로 네비게이션
-  const handleCardClick = (path: string) => {
-    // 1. 클릭된 카드 표시
-    setClickedCard(path);
-
-    // 2. 확장 애니메이션 시작
-    setIsExpanding(true);
-
-    // 3. setTimeout 대신 pendingPath 설정
-    pendingPathRef.current = `${PATHS.MYPAGE}/${path}`;
+  const handleItemClick = (postId: number) => {
+    if (!postId) return;
+    navigate(PATHS.POST_DETAIL.replace(":id", String(postId)));
   };
 
-  // 오버레이 애니메이션 종료 시 네비게이션 (setTimeout 대신)
+  const handleCardClick = (path: string) => {
+    setClickedCard(path);
+    setIsExpanding(true);
+
+    let targetPath: string;
+    switch (path) {
+      case "posts":
+        targetPath = `${PATHS.MYPAGE}/${PATHS.MYPAGE_POSTS}`;
+        break;
+      case "comments":
+        targetPath = `${PATHS.MYPAGE}/${PATHS.MYPAGE_COMMENTS}`;
+        break;
+      case "bookmarks":
+        targetPath = `${PATHS.MYPAGE}/${PATHS.MYPAGE_BOOKMARKS}`;
+        break;
+      default:
+        targetPath = `${PATHS.MYPAGE}/${path}`;
+    }
+    pendingPathRef.current = targetPath;
+  };
+
   const handleOverlayAnimationEnd = () => {
     if (pendingPathRef.current) {
       navigate(pendingPathRef.current);
@@ -265,36 +259,25 @@ const MyPageMain: React.FC = () => {
   return (
     <>
       <div className="p-4 sm:p-6 relative overflow-hidden">
-        {/* 활동 섹션 헤더 */}
-        <div
-          className={`mb-6 transition-all duration-300 ${
-            isExpanding
-              ? "opacity-0 -translate-y-8"
-              : "opacity-100 translate-y-0"
-          }`}
-        >
-          <h2 className="text-lg sm:text-xl font-semibold text-base-content mb-2">
-            활동
-          </h2>
-          <div className="w-12 h-0.5 bg-primary rounded-full"></div>
-        </div>
-
-        {/* 카드 그리드 */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center relative">
+        {/* 본문 렌더는 항상 수행 (로딩/에러여도 UI는 보이게) */}
+        <div className="flex flex-col lg:flex-row gap-6 justify-center items-start relative">
           {cardData.map((card, index) => (
             <Card
-              key={index}
+              key={`${card.title}-${index}`}
               title={card.title}
               count={card.count}
               icon={card.icon}
               items={card.items}
               onClick={() => handleCardClick(card.path)}
+              onItemClick={handleItemClick}
               isExpanding={isExpanding}
               isClicked={clickedCard === card.path}
               getIconPath={getIconPath}
             />
           ))}
         </div>
+
+        {/* 페이지 전환 오버레이 */}
         {isExpanding && (
           <div
             className="absolute inset-0 bg-base-100 z-30"
@@ -305,9 +288,25 @@ const MyPageMain: React.FC = () => {
             onAnimationEnd={handleOverlayAnimationEnd}
           />
         )}
+
+        {/* 로딩 오버레이 (화면 전체 리턴으로 막지 않음) */}
+        {isFetching && (
+          <div className="absolute inset-0 flex items-center justify-center bg-base-100/50 backdrop-blur-[1px] z-40">
+            <span className="loading loading-spinner loading-primary loading-lg" />
+          </div>
+        )}
+
+        {/* (선택) 에러 토스트/버튼이 필요하면 여기에 배치 */}
+        {error && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-sm text-error">
+            데이터 로딩에 실패했습니다.{" "}
+            <button className="underline" onClick={() => refetch()}>
+              다시 시도
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* 공통 애니메이션 스타일 사용 */}
       {React.createElement("style", {
         dangerouslySetInnerHTML: {
           __html: ANIMATION_KEYFRAMES.EXPAND_FROM_CENTER,

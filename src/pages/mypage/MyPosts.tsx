@@ -9,20 +9,19 @@ import {
   SlideInStyles,
 } from "@constants/animations";
 import {
-  PAGINATION,
-  SIMULATION,
   ERROR_MESSAGES,
   LOADING_MESSAGES,
   EMPTY_MESSAGES,
   BUTTON_TEXT,
+  LIST_SETTINGS,
 } from "@src/constants/ui";
+import { safeParseInt, safeString } from "@src/utils/errorUtils";
 import {
-  safeCallback,
-  normalizeError,
-  safeParseInt,
-  safeString,
-} from "@src/utils/errorUtils";
-import { mockPosts } from "@src/mocks/mypage.mock";
+  useMyPosts,
+  useMyPagePagination,
+  useMyPageLoadingState,
+  useMyPageError,
+} from "@src/hooks/useMyPageData";
 import type { PostItem } from "@src/types/mypage";
 
 interface PostListItemProps {
@@ -39,9 +38,6 @@ const PostListItem: React.FC<PostListItemProps> = ({
   index = 0,
   isExiting = false,
 }) => {
-  // 안전한 콜백 처리
-  const handleClick = safeCallback(onClick);
-
   // 안전한 데이터 처리
   const safePost = {
     id: safeParseInt(post?.id, 0),
@@ -62,7 +58,8 @@ const PostListItem: React.FC<PostListItemProps> = ({
         transitionDelay: `${safeIndex * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
         animationDelay: `${safeIndex * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
       }}
-      onClick={() => !isExiting && handleClick && handleClick()} // 네비게이션 중복 방지
+      onClick={() => !isExiting && onClick && onClick()}
+      // 네비게이션 중복 방지
     >
       {/* 카테고리 */}
       <div className="w-16 flex-shrink-0">
@@ -95,50 +92,40 @@ const MyPosts: React.FC = () => {
   const [isExiting, setIsExiting] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // 간단한 상태 관리
-  const [posts, setPosts] = useState<PostItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   // 페이지네이션 상태
-  const [currentPage, setCurrentPage] = useState(PAGINATION.DEFAULT_PAGE);
-  const totalPages = PAGINATION.DEFAULT_TOTAL_PAGES.POSTS;
+  const [currentPage, setCurrentPage] = useState(1);
 
   // setTimeout 정리를 위한 ref
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  const {
+    data: postsData,
+    isLoading: postsLoading,
+    error: postsErrorMessage,
+    refetch: refetchPosts,
+  } = useMyPosts(currentPage, LIST_SETTINGS.ITEMS_PER_PAGE);
+
+  const { isAnyLoading } = useMyPageLoadingState();
+
+  const { totalPages, onPageChange: handlePageChange } = useMyPagePagination(
+    postsData,
+    currentPage,
+    setCurrentPage
+  );
+
+  // 에러 메시지 처리
+  const { hasError, errorMessage, retry } = useMyPageError(
+    postsErrorMessage,
+    refetchPosts
+  );
+
+  // posts 변수 (기존 코드와 호환성을 위해 postsData.data를 posts로 정의)
+  const posts = postsData?.data || [];
+  const allPostsCount = postsData?.pagination?.totalItems || 0;
+
   // 컴포넌트 마운트 시 애니메이션
   useEffect(() => {
     setIsLoaded(true);
-  }, []);
-
-  // 게시글 데이터 로딩 함수
-  const loadPosts = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, ANIMATION_TIMINGS.LOADING_DELAY_POSTS)
-      );
-
-      // 시뮬레이션: 가끔 에러 발생 (테스트용)
-      if (Math.random() < SIMULATION.ERROR_PROBABILITY) {
-        throw new Error(ERROR_MESSAGES.LOAD_POSTS);
-      }
-
-      // ✅ 목업 데이터 사용 (타입 안전성 확보)
-      setPosts(mockPosts);
-      setIsLoading(false);
-    } catch (err) {
-      const errorMessage = normalizeError(err);
-      setError(errorMessage);
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadPosts();
   }, []);
 
   // setTimeout 정리가 포함된 뒤로가기 핸들러
@@ -168,16 +155,9 @@ const MyPosts: React.FC = () => {
 
   const handlePostClick = (postId: number) => {
     console.log(`게시글 ${postId} 클릭`);
-    // navigate(`/post/${postId}`);
-  };
-
-  const handleRetry = () => {
-    loadPosts();
-  };
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    console.log(`페이지 ${page}로 이동`);
+    // PATHS.POST_DETAIL의 실제 패턴에 맞춰 수정 필요
+    // 일반적인 패턴들:
+    navigate(`/posts/${postId}`); // 또는 `/post/${postId}` 또는 `/board/post/${postId}`
   };
 
   return (
@@ -195,11 +175,11 @@ const MyPosts: React.FC = () => {
       >
         <PageHeader
           title="작성글"
-          count={posts.length}
+          count={allPostsCount}
           onBackClick={handleBackClick}
           isExiting={isExiting}
-          isLoading={isLoading}
-          hasError={!!error}
+          isLoading={postsLoading || isAnyLoading}
+          hasError={hasError}
         />
 
         <div
@@ -212,7 +192,7 @@ const MyPosts: React.FC = () => {
           }`}
         >
           {/* 로딩 상태 */}
-          {isLoading && (
+          {(postsLoading || isAnyLoading) && (
             <div className="flex flex-col items-center justify-center py-12">
               <span className="loading loading-spinner loading-primary loading-lg"></span>
               <p className="text-neutral-content text-sm mt-4">
@@ -222,14 +202,14 @@ const MyPosts: React.FC = () => {
           )}
 
           {/* 에러 상태 */}
-          {error && (
+          {hasError && (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">⚠️</div>
               <h3 className="text-lg font-medium text-base-content mb-2">
                 {ERROR_MESSAGES.GENERAL}
               </h3>
               <p className="text-neutral-content text-sm mb-6 max-w-md mx-auto">
-                {error}
+                {errorMessage}
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <button
@@ -241,7 +221,7 @@ const MyPosts: React.FC = () => {
                   {BUTTON_TEXT.BACK}
                 </button>
                 <button
-                  onClick={handleRetry}
+                  onClick={retry}
                   className={`bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-md text-sm font-medium transition-colors ${getDurationClass(
                     ANIMATION_TIMINGS.HOVER_TRANSITION
                   )}`}
@@ -253,7 +233,7 @@ const MyPosts: React.FC = () => {
           )}
 
           {/* 정상 상태 - 게시글 목록 */}
-          {!isLoading && !error && (
+          {!postsLoading && !hasError && postsData && (
             <>
               {posts.length > 0 ? (
                 posts.map((post, index) => (
@@ -288,7 +268,8 @@ const MyPosts: React.FC = () => {
           )}
         </div>
 
-        {!isLoading && !error && posts.length > 0 && (
+        {/* 페이지네이션 */}
+        {!postsLoading && !hasError && postsData && allPostsCount > 0 && (
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
@@ -299,7 +280,7 @@ const MyPosts: React.FC = () => {
         )}
       </div>
 
-      {/*  공통 CSS 애니메이션 컴포넌트 사용 */}
+      {/* 공통 CSS 애니메이션 컴포넌트 사용 */}
       <SlideInStyles />
     </>
   );

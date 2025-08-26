@@ -1,0 +1,628 @@
+// src/api/mypageApi.ts
+import { api, tokenStore } from "@api/client";
+import {
+  deleteComment as deleteCommentApi,
+  extractNickHeader,
+  DELETED_PLACEHOLDER,
+} from "@src/api/comments";
+import type {
+  BookmarkItem,
+  PostItem,
+  MyPageCardData,
+  BookmarksResponse,
+  PostsResponse,
+  DeleteResponse,
+} from "@src/types/mypage";
+
+/* ========= 전역 타입 보강 ========= */
+declare global {
+  interface Window {
+    queryClient?: import("@tanstack/react-query").QueryClient;
+  }
+}
+
+/* ========= 타입 ========= */
+export interface UserTag {
+  tag_class: string;
+  tag_number: number;
+}
+
+export interface MyPageCommentItem {
+  id: number;
+  postId: number;
+  postTitle: string;
+  postCategory: string;
+  commentContent: string;
+  date: string;
+}
+
+export interface MyPageCommentsResponse {
+  success: boolean;
+  data: MyPageCommentItem[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    itemsPerPage: number;
+    totalItems: number;
+  };
+}
+
+interface PostDetailResponse {
+  id: number;
+  board: number;
+  user: { id: number; tag_class: string; tag_number: number };
+  title: string;
+  content: string;
+  image: string;
+  view_count: number;
+  like_count: number;
+  dislike_count: number;
+  bookmark_count: number;
+  created_at: string;
+  updated_at: string;
+  root_comments: string;
+  bookmarks: string;
+}
+
+interface PostListItem {
+  id: number;
+  board: number;
+  title: string;
+  created_at: string;
+  view_count: number;
+  comment_count?: number;
+  user?: { id?: number; tag_class?: string; tag_number?: number };
+}
+
+/** JWT payload 최소형 */
+interface JwtPayload {
+  user_id?: number | string;
+  id?: number | string;
+  sub?: number | string;
+  [k: string]: unknown;
+}
+
+/* ========= 유틸 ========= */
+function getBoardName(boardId: number): string {
+  const map: Record<number, string> = {
+    1: "자유",
+    2: "취업",
+    3: "정보",
+    4: "설문",
+    5: "GitHub",
+  };
+  return map[boardId] || "일반";
+}
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null;
+}
+
+function toFiniteNumber(v: unknown): number | undefined {
+  const n = typeof v === "string" ? Number(v) : v;
+  return typeof n === "number" && Number.isFinite(n) ? n : undefined;
+}
+
+async function fetchPostDetail(postId: number): Promise<PostDetailResponse> {
+  const res = await api.get<PostDetailResponse>(`/api/posts/${postId}/`, {
+    withCredentials: true,
+  });
+  return res.data;
+}
+
+function invalidateRelatedCaches(context: string) {
+  if (typeof window !== "undefined" && window.queryClient) {
+    window.queryClient.invalidateQueries({
+      predicate: (query: { queryKey: readonly unknown[] }) => {
+        const key = (query.queryKey ?? [])
+          .map((v) => String(v))
+          .join("-")
+          .toLowerCase();
+        return (
+          key.includes("comment") ||
+          key.includes("activity") ||
+          key.includes("summary") ||
+          key.includes("posts") ||
+          key.includes("bookmarks")
+        );
+      },
+    });
+    // eslint-disable-next-line no-console
+    console.log(`${context}: 관련 캐시 무효화 완료`);
+  }
+}
+
+/* ========= 내 신원: JWT에서 id, 태그는 참고용 ========= */
+export type MeShape = {
+  id?: number;
+  tag_class?: string;
+  tag_number?: number;
+} | null;
+
+function safeDecodeJwt(token?: string): JwtPayload | null {
+  try {
+    if (!token) return null;
+    const parts = token.split(".");
+    if (parts.length < 2) return null;
+    const payloadB64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    // atob는 브라우저 전제
+    const json = globalThis.atob
+      ? globalThis.atob(payloadB64)
+      : Buffer.from(payloadB64, "base64").toString("utf-8");
+    return JSON.parse(json) as JwtPayload;
+  } catch {
+    return null;
+  }
+}
+
+function getMyIdFromToken(): number | undefined {
+  const payload = safeDecodeJwt(tokenStore?.access);
+  const raw = payload?.user_id ?? payload?.id ?? payload?.sub;
+  return toFiniteNumber(raw);
+}
+
+export async function getMyIdentity(): Promise<MeShape> {
+  const id = getMyIdFromToken();
+
+  // 태그는 선택적(참고용)
+  let tag: UserTag | null = null;
+  try {
+    const res = await api.get<UserTag>("/api/user/tag", {
+      withCredentials: true,
+      validateStatus: (s) => s === 200 || s === 404,
+    });
+    if (res.status === 200) tag = res.data;
+  } catch {
+    /* ignore */
+  }
+
+  if (!id && !tag) return null;
+  return {
+    ...(id ? { id } : {}),
+    ...(tag ? { tag_class: tag.tag_class, tag_number: tag.tag_number } : {}),
+  };
+}
+
+/* ========= 프로필 ========= */
+export const getMyProfile = async (): Promise<UserTag> => {
+  const res = await api.get<UserTag>("/api/user/tag", {
+    withCredentials: true,
+  });
+  return res.data;
+};
+
+/* ========= 내가 쓴 글 (id 일치만 허용) ========= */
+export const getMyPosts = async (
+  page: number = 1,
+  pageSize: number = 20
+): Promise<PostsResponse> => {
+  const me = await getMyIdentity();
+
+  const res = await api.get<{ results: PostListItem[] }>("/api/posts/", {
+    params: { page, page_size: pageSize },
+    withCredentials: true,
+  });
+  const raw = res.data?.results ?? [];
+
+  // 상세로 user.id 보강
+  const detailMap = new Map<number, PostDetailResponse>();
+  await Promise.all(
+    raw.map(async (p) => {
+      try {
+        const detail = await fetchPostDetail(p.id);
+        detailMap.set(p.id, detail);
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.warn(`게시글 ${p.id} 상세 조회 실패:`, error);
+      }
+    })
+  );
+
+  const myId = me?.id;
+  const myPosts = raw.filter((post) => {
+    if (!myId) return false;
+    const postUserId =
+      detailMap.get(post.id)?.user?.id ??
+      (typeof post.user?.id === "number" ? post.user.id : undefined);
+    return typeof postUserId === "number" && postUserId === myId;
+  });
+
+  const data: PostItem[] = myPosts.map((post) => {
+    const detail = detailMap.get(post.id);
+    return {
+      id: post.id,
+      category: getBoardName(detail?.board ?? post.board),
+      title: detail?.title || post.title,
+      date: detail?.created_at || post.created_at,
+      views: detail?.view_count ?? post.view_count,
+      comments: post.comment_count ?? 0,
+      authorId: detail?.user?.id ?? post.user?.id ?? 0,
+    };
+  });
+
+  return {
+    success: true,
+    data,
+    pagination: {
+      currentPage: page,
+      totalPages: Math.max(1, Math.ceil(myPosts.length / pageSize)),
+      itemsPerPage: pageSize,
+      totalItems: myPosts.length,
+    },
+  };
+};
+
+/* ========= 내 댓글 (소프트 삭제 제외) ========= */
+export const getMyComments = async (
+  page: number = 1,
+  pageSize: number = 20
+): Promise<MyPageCommentsResponse> => {
+  try {
+    const res = await api.get<unknown>("/api/comments/me", {
+      withCredentials: true,
+    });
+
+    type RawComment = {
+      id: number;
+      post: number;
+      content: string;
+      created_at?: string;
+      updated_at?: string;
+    };
+
+    const payload = res.data;
+    const raw: RawComment[] = Array.isArray(payload)
+      ? (payload as RawComment[])
+      : payload
+      ? [payload as RawComment]
+      : [];
+
+    // “작성자에 의해 삭제된 댓글입니다.” 제외
+    const filteredRaw = raw.filter((c) => {
+      const { content } = extractNickHeader(c.content);
+      return content.trim() !== DELETED_PLACEHOLDER;
+    });
+
+    const uniquePostIds = [
+      ...new Set(filteredRaw.map((c) => c.post).filter(Boolean)),
+    ] as number[];
+
+    const detailMap = new Map<number, PostDetailResponse>();
+    await Promise.all(
+      uniquePostIds.map(async (pid) => {
+        try {
+          const detail = await fetchPostDetail(pid);
+          detailMap.set(pid, detail);
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.warn(`게시글 ${pid} 상세 조회 실패:`, error);
+        }
+      })
+    );
+
+    const allItems: MyPageCommentItem[] = filteredRaw.map((c) => {
+      const detail = detailMap.get(c.post);
+      return {
+        id: c.id,
+        postId: c.post,
+        postTitle: detail?.title ?? "(제목 없음)",
+        postCategory: getBoardName(detail?.board ?? 0),
+        commentContent: c.content,
+        date: c.created_at ?? detail?.created_at ?? "",
+      };
+    });
+
+    const start = (page - 1) * pageSize;
+    const pageItems = allItems.slice(start, start + pageSize);
+
+    return {
+      success: true,
+      data: pageItems,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.max(1, Math.ceil(allItems.length / pageSize)),
+        itemsPerPage: pageSize,
+        totalItems: allItems.length,
+      },
+    };
+  } catch {
+    return {
+      success: false,
+      data: [],
+      pagination: {
+        currentPage: 1,
+        totalPages: 1,
+        itemsPerPage: 0,
+        totalItems: 0,
+      },
+    };
+  }
+};
+
+/* ========= 내 북마크 (자동 감지 / 404 안전) ========= */
+type BookmarkRow = { postId: number; title: string };
+
+function isBookmarkRow(v: unknown): v is BookmarkRow {
+  return (
+    isRecord(v) &&
+    typeof (v as Record<string, unknown>).postId === "number" &&
+    Number.isFinite((v as Record<string, unknown>).postId as number) &&
+    (typeof (v as Record<string, unknown>).title === "string" ||
+      typeof (v as Record<string, unknown>).title === "undefined")
+  );
+}
+function hasBookmarksArray(v: unknown): v is { bookmarks: BookmarkRow[] } {
+  return (
+    isRecord(v) &&
+    Array.isArray((v as { bookmarks?: unknown }).bookmarks) &&
+    (v as { bookmarks: unknown[] }).bookmarks.every(isBookmarkRow)
+  );
+}
+
+export const getMyBookmarks = async (
+  page: number = 1,
+  pageSize: number = 20
+): Promise<BookmarksResponse> => {
+  try {
+    // ① /api/bookmarks/ 먼저 시도 (200 or 404 허용, 404면 다음으로)
+    const listRes = await api.get<{ bookmarks?: BookmarkRow[] } | unknown[]>(
+      "/api/bookmarks/",
+      { withCredentials: true, validateStatus: (s) => s === 200 || s === 404 }
+    );
+
+    let rawList: BookmarkRow[] = [];
+
+    if (listRes.status === 200) {
+      const payload = listRes.data;
+      if (hasBookmarksArray(payload)) {
+        rawList = payload.bookmarks;
+      } else if (Array.isArray(payload)) {
+        // 구형: [{ post: { postId, title }}, ...]
+        const arr = payload as unknown[];
+        for (const item of arr) {
+          if (isRecord(item) && isRecord((item as { post?: unknown }).post)) {
+            const p = (item as { post: Record<string, unknown> }).post;
+            const pid = p.postId;
+            const id = toFiniteNumber(pid);
+            if (typeof id === "number") {
+              rawList.push({
+                postId: id,
+                title: typeof p.title === "string" ? p.title : "",
+              });
+            }
+          }
+        }
+      }
+    } else {
+      // ② 404면 /api/bookmarks/me 시도
+      const meRes = await api.get<{ bookmarks?: BookmarkRow[] } | unknown[]>(
+        "/api/bookmarks/me",
+        { withCredentials: true, validateStatus: (s) => s === 200 || s === 404 }
+      );
+      if (meRes.status === 200) {
+        const payload = meRes.data;
+        if (hasBookmarksArray(payload)) {
+          rawList = payload.bookmarks;
+        } else if (Array.isArray(payload)) {
+          const arr = payload as unknown[];
+          for (const item of arr) {
+            if (isRecord(item) && isRecord((item as { post?: unknown }).post)) {
+              const p = (item as { post: Record<string, unknown> }).post;
+              const pid = p.postId;
+              const id = toFiniteNumber(pid);
+              if (typeof id === "number") {
+                rawList.push({
+                  postId: id,
+                  title: typeof p.title === "string" ? p.title : "",
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 상세 정보 보강
+    const uniquePostIds = [...new Set(rawList.map((b) => b.postId))];
+    const detailMap = new Map<number, PostDetailResponse>();
+    await Promise.all(
+      uniquePostIds.map(async (pid) => {
+        try {
+          const detail = await fetchPostDetail(pid);
+          detailMap.set(pid, detail);
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.warn(`게시글 ${pid} 상세 조회 실패:`, error);
+        }
+      })
+    );
+
+    const allItems: BookmarkItem[] = rawList.map((b) => {
+      const detail = detailMap.get(b.postId);
+      return {
+        id: b.postId,
+        postId: b.postId,
+        title: detail?.title || b.title || "(제목 없음)",
+        category: getBoardName(detail?.board ?? 0),
+        date: detail?.created_at ?? "",
+        bookmarkedDate: "",
+      };
+    });
+
+    const start = (page - 1) * pageSize;
+    const pageItems = allItems.slice(start, start + pageSize);
+
+    return {
+      success: true,
+      data: pageItems,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.max(1, Math.ceil(allItems.length / pageSize)),
+        itemsPerPage: pageSize,
+        totalItems: allItems.length,
+      },
+    };
+  } catch {
+    // 어떤 오류든 안전하게 빈 목록
+    return {
+      success: true,
+      data: [],
+      pagination: {
+        currentPage: 1,
+        totalPages: 1,
+        itemsPerPage: 0,
+        totalItems: 0,
+      },
+    };
+  }
+};
+
+/* ========= 카드 요약 ========= */
+export const getMyActivitySummary = async (): Promise<MyPageCardData[]> => {
+  try {
+    const [postsResult, commentsResult, bookmarksResult] = await Promise.all([
+      getMyPosts(1, 3).catch(() => null),
+      getMyComments(1, 3).catch(() => null),
+      getMyBookmarks(1, 3).catch(() => null),
+    ]);
+
+    return [
+      {
+        title: "작성글",
+        count: postsResult?.pagination?.totalItems ?? 0,
+        icon: "posts",
+        path: "posts",
+        items:
+          postsResult?.data?.map((post) => ({
+            id: post.id,
+            postId: post.id,
+            title: post.title,
+            date: post.date,
+            category: post.category,
+          })) ?? [],
+      },
+      {
+        title: "작성댓글",
+        count: commentsResult?.pagination?.totalItems ?? 0,
+        icon: "comments",
+        path: "comments",
+        items:
+          commentsResult?.data?.map((c) => ({
+            id: c.id,
+            postId: c.postId,
+            title: c.postTitle,
+            date: c.date,
+            category: c.postCategory,
+          })) ?? [],
+      },
+      {
+        title: "북마크",
+        count: bookmarksResult?.pagination?.totalItems ?? 0,
+        icon: "bookmarks",
+        path: "bookmarks",
+        items:
+          bookmarksResult?.data?.map((b) => ({
+            id: b.id,
+            postId: b.postId,
+            title: b.title,
+            date: b.date,
+            category: b.category,
+          })) ?? [],
+      },
+    ];
+  } catch {
+    return [
+      { title: "작성글", count: 0, icon: "posts", path: "posts", items: [] },
+      {
+        title: "작성댓글",
+        count: 0,
+        icon: "comments",
+        path: "comments",
+        items: [],
+      },
+      {
+        title: "북마크",
+        count: 0,
+        icon: "bookmarks",
+        path: "bookmarks",
+        items: [],
+      },
+    ];
+  }
+};
+
+/* ========= 삭제 ========= */
+export const deleteBookmarks = async (
+  bookmarkIds: number[]
+): Promise<DeleteResponse> => {
+  await Promise.all(
+    bookmarkIds.map((postId) =>
+      api.delete(`/api/bookmarks/${postId}/`, { withCredentials: true })
+    )
+  );
+  invalidateRelatedCaches("북마크 삭제");
+  return {
+    success: true,
+    deletedCount: bookmarkIds.length,
+    message:
+      bookmarkIds.length === 1
+        ? "북마크가 삭제되었습니다."
+        : `${bookmarkIds.length}개의 북마크가 삭제되었습니다.`,
+  };
+};
+
+export const deleteComments = async (
+  commentIds: Array<number | string>
+): Promise<DeleteResponse> => {
+  const ids = (commentIds ?? [])
+    .map((v) => (typeof v === "string" && /^\d+$/.test(v) ? Number(v) : v))
+    .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
+
+  if (ids.length === 0) {
+    return {
+      success: false,
+      deletedCount: 0,
+      message: "삭제할 댓글이 선택되지 않았습니다",
+    };
+  }
+
+  const results = await Promise.allSettled(
+    ids.map((id) => deleteCommentApi(id))
+  );
+  const ok = results.filter((r) => r.status === "fulfilled").length;
+  const fail = ids.length - ok;
+
+  if (ok > 0) invalidateRelatedCaches("댓글 삭제");
+
+  return {
+    success: ok > 0,
+    deletedCount: ok,
+    message:
+      fail === 0
+        ? ok === 1
+          ? "댓글이 삭제되었습니다"
+          : `${ok}개의 댓글이 삭제되었습니다`
+        : ok === 0
+        ? "댓글 삭제에 실패했습니다"
+        : `${ok}개 삭제, ${fail}개 실패했습니다`,
+  };
+};
+
+export const deletePosts = async (
+  postIds: number[]
+): Promise<DeleteResponse> => {
+  await Promise.all(
+    postIds.map((id) =>
+      api.delete(`/api/posts/${id}/`, { withCredentials: true })
+    )
+  );
+  invalidateRelatedCaches("게시글 삭제");
+  return {
+    success: true,
+    deletedCount: postIds.length,
+    message:
+      postIds.length === 1
+        ? "게시글이 삭제되었습니다"
+        : `${postIds.length}개의 게시글이 삭제되었습니다`,
+  };
+};

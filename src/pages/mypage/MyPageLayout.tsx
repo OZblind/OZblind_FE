@@ -1,19 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import AssignedTagList from "@src/components/tags/AssignedTagList";
 import { useAssignedTags } from "@hooks/useAssignedTags";
 import profileImage from "@assets/images/profile.jpg";
 import { SettingsPage } from "@components/SettingModal/SettingsPage";
 import { ThemeInitializer } from "@components/SettingModal/ThemeInitializer";
+import { useQueryClient } from "@tanstack/react-query";
 
-// 사용자 프로필 타입 정의
 interface UserProfile {
   nickname?: string;
   userId?: string;
   profileImage?: string;
   hasKey?: boolean;
-  cohort?: string; // 기수 정보 추가
-  department?: string; // 부서 정보 추가
+  cohort?: string;
+  department?: string;
 }
 
 interface MyPageLayoutProps {
@@ -33,21 +33,32 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [theme, setTheme] = useState<"oz_dark" | "oz_light">("oz_dark");
   const [isHovered, setIsHovered] = useState(false);
+  const { tags, loading: tagLoading, valid } = useAssignedTags("me");
+  const hasKey = valid || Boolean(userProfile.hasKey);
+  const handleProfileClick = () => setIsSettingsOpen(true);
 
-  const handleProfileClick = () => {
-    setIsSettingsOpen(true);
-  };
-
-  // 로그인 사용자 태그: /api/user/tag 우선 → /api/user/profile 폴백
-  const { tags, loading: tagLoading } = useAssignedTags("me");
+  // ✅ 마이페이지 진입 시 예전 캐시 강제 제거
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    queryClient.removeQueries({
+      predicate: (q) => {
+        const key = (q.queryKey ?? []).map(String).join("-");
+        return (
+          key.includes("myPosts") ||
+          key.includes("myActivitySummary") ||
+          key.includes("myComments") ||
+          key.includes("myBookmarks")
+        );
+      },
+    });
+  }, [queryClient]);
 
   return (
-    <div className={`bg-base-100`}>
-      <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        {/* 프로필 섹션 */}
+    <div className="bg-base-100 min-h-screen">
+      <div className="max-w-6xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+        {/* 프로필 */}
         <div className="bg-base-200 rounded-lg shadow-sm p-4 sm:p-6 mb-6">
           <div className="flex flex-col items-center text-center">
-            {/* 프로필 이미지 */}
             <div className="relative mb-4">
               <button
                 onClick={handleProfileClick}
@@ -56,7 +67,6 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
                 className="w-16 h-16 sm:w-20 sm:h-20 bg-base-300 rounded-full flex items-center justify-center transition-all duration-500 hover:bg-primary hover:scale-105 group relative overflow-hidden"
                 aria-label="프로필 설정"
               >
-                {/* 프로필 아이콘/이미지 */}
                 <div
                   className="absolute inset-0 flex items-center justify-center transition-all duration-500"
                   style={{
@@ -79,7 +89,6 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
                   )}
                 </div>
 
-                {/* 톱니바퀴 아이콘 */}
                 <div
                   className={`absolute inset-0 flex items-center justify-center transition-all duration-500 ${
                     isHovered ? "animate-gear-pulse" : ""
@@ -102,23 +111,21 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
                 </div>
               </button>
 
-              {/* 키 인증 상태 표시 */}
-              {userProfile.hasKey && (
+              {hasKey && (
                 <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-success rounded-full flex items-center justify-center">
                   <span className="text-success-content text-xs">✓</span>
                 </div>
               )}
             </div>
 
-            {/* 사용자의 태그 배지 */}
             <div className="flex flex-wrap items-center justify-center gap-1.5 mb-3 min-h-6">
               {!tagLoading && <AssignedTagList tags={tags} />}
               {tagLoading && (
                 <span className="h-5 w-14 rounded-full bg-base-300 animate-pulse" />
               )}
             </div>
-            {/* 키 인증 안내 */}
-            {!userProfile.hasKey && (
+
+            {!hasKey && !tagLoading && (
               <div className="px-4 py-2 bg-warning text-warning-content text-sm rounded-lg font-medium">
                 키 인증이 필요합니다
               </div>
@@ -127,12 +134,13 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
         </div>
 
         {/* 메인 컨텐츠 */}
-        <div className="bg-base-200 rounded-lg shadow-sm min-h-[400px]">
-          <Outlet />
+        <div className="bg-base-200 rounded-lg shadow-sm">
+          <div className="max-w-[900px] mx-auto p-4 sm:p-6">
+            <Outlet />
+          </div>
         </div>
       </div>
 
-      {/* 설정 모달 */}
       <SettingsPage
         isOpen={isSettingsOpen}
         setIsOpen={setIsSettingsOpen}
@@ -141,22 +149,12 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
       />
       <ThemeInitializer setTheme={setTheme} />
 
-      {/* 커스텀 애니메이션 CSS */}
       <style>{`
-        .animate-gear-pulse {
-          animation: growPulse 2s ease-in-out infinite;
-        }
-
+        .animate-gear-pulse { animation: growPulse 2s ease-in-out infinite; }
         @keyframes growPulse {
-          0% {
-            transform: scale(1.2);
-          }
-          50% {
-            transform: scale(1.5);
-          }
-          100% {
-            transform: scale(1.2);
-          }
+          0% { transform: scale(1.2); }
+          50% { transform: scale(1.5); }
+          100% { transform: scale(1.2); }
         }
       `}</style>
     </div>

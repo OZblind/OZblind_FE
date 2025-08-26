@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@src/components/commons/MyPage/PageHeader";
 import Pagination from "@src/components/commons/MyPage/Pagination";
@@ -8,78 +14,90 @@ import {
   getDurationClass,
   SlideInStyles,
 } from "@constants/animations";
+import type { MyPageCommentItem } from "@api/mypageApi";
+import { icons } from "@src/assets";
+import { useThemeIcon } from "@hooks/useThemeIcon";
 import {
-  PAGINATION,
-  SIMULATION,
+  useMyComments,
+  useMyPagePagination,
+  useMyPageLoadingState,
+  useMyPageError,
+} from "@src/hooks/useMyPageData";
+import {
   ERROR_MESSAGES,
   LOADING_MESSAGES,
   EMPTY_MESSAGES,
   BUTTON_TEXT,
+  LIST_SETTINGS,
 } from "@src/constants/ui";
-import {
-  safeCallback,
-  normalizeError,
-  safeParseInt,
-  safeString,
-} from "@src/utils/errorUtils";
-import { mockComments } from "@src/mocks/mypage.mock";
-import type { CommentItem } from "@src/types/mypage";
+import { PATHS } from "@constants/paths";
 
 interface CommentListItemProps {
-  comment: CommentItem;
-  onClick?: () => void;
+  comment: MyPageCommentItem;
+  onPostClick?: () => void;
   index?: number;
   isExiting?: boolean;
+  getCommentIconPath: () => string;
 }
 
-// CSS transition-delay로 순차 등장 (setTimeout 제거)
 const CommentListItem: React.FC<CommentListItemProps> = ({
   comment,
-  onClick,
+  onPostClick,
   index = 0,
   isExiting = false,
+  getCommentIconPath,
 }) => {
-  // 안전한 콜백 처리
-  const handleClick = safeCallback(onClick);
-
-  // 안전한 데이터 처리
-  const safeComment = {
-    id: safeParseInt(comment?.id, 0),
-    postTitle: safeString(comment?.postTitle, "제목 없음"),
-    postCategory: safeString(comment?.postCategory, "일반"),
-    commentContent: safeString(comment?.commentContent, "내용 없음"),
-    date: safeString(comment?.date, "날짜 없음"),
-    postId: safeParseInt(comment?.postId, 0),
+  const handleRowClick = () => {
+    if (isExiting || !comment.postId) return;
+    onPostClick?.();
   };
-
-  const safeIndex = Math.max(0, safeParseInt(index, 0));
 
   return (
     <div
-      className={`p-4 border-b border-base-300 hover:bg-base-200 cursor-pointer transition-all duration-500 transform opacity-0 translate-x-8 animate-slide-in`}
+      className="transition-all duration-500 transform opacity-0 translate-x-8 animate-slide-in"
       style={{
-        // CSS로 순차 등장 효과 구현 (JavaScript 타이머 불필요)
-        transitionDelay: `${safeIndex * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
-        animationDelay: `${safeIndex * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
+        transitionDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
+        animationDelay: `${index * ANIMATION_TIMINGS.ITEM_STAGGER_BASE}ms`,
       }}
-      onClick={() => !isExiting && handleClick && handleClick()} // 네비게이션 중복 방지
     >
-      {/* 원글 정보 */}
-      <div className="flex items-center gap-2 mb-2">
-        <span className="bg-base-300 text-base-content text-xs px-2 py-1 rounded">
-          {safeComment.postCategory}
-        </span>
-        <h4 className="text-sm text-base-content font-medium line-clamp-1 flex-1">
-          {safeComment.postTitle}
-        </h4>
-        <span className="text-xs text-neutral-content">{safeComment.date}</span>
-      </div>
+      <div
+        className="flex flex-col py-4 px-4 border-b border-base-300 hover:bg-base-200 cursor-pointer"
+        onClick={handleRowClick}
+      >
+        {/* 상단: 게시글 정보 */}
+        <div className="flex items-center gap-3 mb-2">
+          <span className="bg-base-300 text-base-content text-xs px-2 py-1 rounded">
+            {comment.postCategory}
+          </span>
+          <h3
+            className={`flex-1 text-base-content hover:text-primary transition-colors ${getDurationClass(
+              ANIMATION_TIMINGS.HOVER_TRANSITION
+            )} line-clamp-1 font-medium`}
+          >
+            {comment.postTitle}
+          </h3>
+          <div className="w-8 h-8 flex items-center justify-center">
+            <img src={getCommentIconPath()} alt="댓글" className="w-5 h-5" />
+          </div>
+        </div>
 
-      {/* 댓글 내용 */}
-      <div className="pl-4 border-l-2 border-primary/30">
-        <p className="text-base-content text-sm line-clamp-2">
-          {safeComment.commentContent}
-        </p>
+        {/* 하단: 댓글 내용과 날짜 */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="pl-4 border-l-2 border-primary/30">
+              <p className="text-base-content text-sm leading-relaxed break-words">
+                {comment.commentContent}
+              </p>
+            </div>
+          </div>
+          <div className="text-xs text-neutral-content flex-shrink-0 min-w-fit">
+            {new Date(comment.date).toLocaleDateString("ko-KR", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -89,58 +107,65 @@ const MyComments: React.FC = () => {
   const navigate = useNavigate();
   const [isExiting, setIsExiting] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // 간단한 상태 관리
-  const [comments, setComments] = useState<CommentItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // 페이지네이션 상태
-  const [currentPage, setCurrentPage] = useState(PAGINATION.DEFAULT_PAGE);
-  const totalPages = PAGINATION.DEFAULT_TOTAL_PAGES.COMMENTS;
-
-  // setTimeout 정리를 위한 ref
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const themeIcon = useThemeIcon();
 
-  // 컴포넌트 마운트 시 애니메이션
+  const commentIcon = useMemo(() => {
+    const dark = themeIcon === "oz_dark";
+    return dark ? icons.chat?.light : icons.chat?.dark;
+  }, [themeIcon]);
+
+  const getCommentIconPath = () => commentIcon || "";
+
+  const {
+    data: commentsData,
+    isLoading: commentsLoading,
+    error: commentsErrorMessage,
+    refetch: refetchComments,
+  } = useMyComments(currentPage, LIST_SETTINGS.ITEMS_PER_PAGE);
+
+  const { isAnyLoading } = useMyPageLoadingState();
+  const { totalPages, onPageChange: handlePageChange } = useMyPagePagination(
+    commentsData,
+    currentPage,
+    setCurrentPage
+  );
+  const { hasError, errorMessage, retry } = useMyPageError(
+    commentsErrorMessage,
+    refetchComments
+  );
+
+  const comments = commentsData?.data || [];
+  const allCommentsCount = commentsData?.pagination?.totalItems || 0;
+
   useEffect(() => {
     setIsLoaded(true);
   }, []);
 
-  // 댓글 데이터 로딩 함수
-  const loadComments = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // 시뮬레이션: 네트워크 지연
-      await new Promise((resolve) =>
-        setTimeout(resolve, ANIMATION_TIMINGS.LOADING_DELAY)
-      );
-
-      // 시뮬레이션: 가끔 에러 발생 (테스트용)
-      if (Math.random() < SIMULATION.ERROR_PROBABILITY) {
-        throw new Error(ERROR_MESSAGES.LOAD_COMMENTS);
-      }
-
-      // 목업 데이터 사용 (타입 안전성 확보)
-      setComments(mockComments);
-      setIsLoading(false);
-    } catch (err) {
-      const errorMessage = normalizeError(err);
-      setError(errorMessage);
-      setIsLoading(false);
-    }
-  };
-
-  // 초기 데이터 로딩
+  // 게시글 삭제 감지를 위한 주기적 리패치
   useEffect(() => {
-    loadComments();
-  }, []);
+    const interval = setInterval(() => {
+      refetchComments();
+    }, 30000); // 30초마다 서버 확인
 
-  // setTimeout 정리가 포함된 뒤로가기 핸들러
-  const handleBackClick = () => {
-    // 기존 timeout 정리
+    const handleFocus = () => refetchComments();
+    const handleVisibilityChange = () => {
+      if (!document.hidden) refetchComments();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [refetchComments]);
+
+  const handleBackClick = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -151,9 +176,8 @@ const MyComments: React.FC = () => {
       navigate("/mypage");
       timeoutRef.current = null;
     }, ANIMATION_TIMINGS.PAGE_TRANSITION);
-  };
+  }, [navigate]);
 
-  // 컴포넌트 언마운트 시 setTimeout 정리
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
@@ -163,32 +187,9 @@ const MyComments: React.FC = () => {
     };
   }, []);
 
-  // 댓글 클릭 핸들러 (원글로 이동) - 안전성 개선
-  const handleCommentClick = (postId: number) => {
-    const safePostId = safeParseInt(postId, 0);
-    if (safePostId > 0) {
-      console.log(`원글 ${safePostId}로 이동`);
-      // navigate(`/post/${safePostId}`);
-    }
-  };
-
-  // 재시도 핸들러 (안전한 에러 처리)
-  const handleRetry = async () => {
-    try {
-      await loadComments();
-    } catch (error) {
-      console.error("재시도 중 오류 발생:", error);
-      setError(normalizeError(error));
-    }
-  };
-
-  // 페이지 변경 핸들러 (안전성 개선)
-  const handlePageChange = (page: number) => {
-    const safePage = safeParseInt(page, 1);
-    if (safePage >= 1 && safePage <= totalPages) {
-      setCurrentPage(safePage);
-      console.log(`댓글 페이지 ${safePage}로 이동`);
-    }
+  const handlePostClick = (postId: number) => {
+    if (!postId) return;
+    navigate(PATHS.POST_DETAIL.replace(":id", String(postId)));
   };
 
   return (
@@ -204,17 +205,15 @@ const MyComments: React.FC = () => {
             : ANIMATION_CLASSES.PAGE_INITIAL
         }`}
       >
-        {/* PageHeader 컴포넌트 */}
         <PageHeader
           title="작성댓글"
-          count={comments.length}
+          count={allCommentsCount}
           onBackClick={handleBackClick}
           isExiting={isExiting}
-          isLoading={isLoading}
-          hasError={!!error}
+          isLoading={commentsLoading || isAnyLoading}
+          hasError={hasError}
         />
 
-        {/* 메인 컨텐츠 */}
         <div
           className={`bg-base-200 rounded-lg overflow-hidden transition-all ${getDurationClass(
             ANIMATION_TIMINGS.ITEM_APPEAR
@@ -225,7 +224,7 @@ const MyComments: React.FC = () => {
           }`}
         >
           {/* 로딩 상태 */}
-          {isLoading && (
+          {(commentsLoading || isAnyLoading) && (
             <div className="flex flex-col items-center justify-center py-12">
               <span className="loading loading-spinner loading-primary loading-lg"></span>
               <p className="text-neutral-content text-sm mt-4">
@@ -235,14 +234,20 @@ const MyComments: React.FC = () => {
           )}
 
           {/* 에러 상태 */}
-          {error && (
+          {hasError && (
             <div className="text-center py-12">
-              <div className="text-6xl mb-4">💬</div>
+              <div className="text-6xl mb-4">
+                <img
+                  src={getCommentIconPath()}
+                  alt="댓글"
+                  className="w-16 h-16 mx-auto"
+                />
+              </div>
               <h3 className="text-lg font-medium text-base-content mb-2">
                 {ERROR_MESSAGES.GENERAL}
               </h3>
               <p className="text-neutral-content text-sm mb-6 max-w-md mx-auto">
-                {error}
+                {errorMessage}
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <button
@@ -254,7 +259,7 @@ const MyComments: React.FC = () => {
                   {BUTTON_TEXT.BACK}
                 </button>
                 <button
-                  onClick={handleRetry}
+                  onClick={retry}
                   className={`bg-primary hover:bg-primary-hover text-white px-6 py-2 rounded-md text-sm font-medium transition-colors ${getDurationClass(
                     ANIMATION_TIMINGS.HOVER_TRANSITION
                   )}`}
@@ -266,22 +271,28 @@ const MyComments: React.FC = () => {
           )}
 
           {/* 정상 상태 - 댓글 목록 */}
-          {!isLoading && !error && (
+          {!commentsLoading && !hasError && commentsData && (
             <>
-              {comments && comments.length > 0 ? (
+              {comments.length > 0 ? (
                 comments.map((comment, index) => (
                   <CommentListItem
-                    key={comment?.id || index}
+                    key={comment.id}
                     comment={comment}
-                    onClick={() => handleCommentClick(comment?.postId)}
+                    onPostClick={() => handlePostClick(comment.postId)}
                     index={index}
                     isExiting={isExiting}
+                    getCommentIconPath={getCommentIconPath}
                   />
                 ))
               ) : (
-                // 빈 상태
                 <div className="text-center py-12">
-                  <div className="text-neutral-content text-4xl mb-4">💬</div>
+                  <div className="text-neutral-content text-4xl mb-4">
+                    <img
+                      src={getCommentIconPath()}
+                      alt="댓글"
+                      className="w-12 h-12 mx-auto"
+                    />
+                  </div>
                   <h3 className="text-neutral-content text-lg font-medium mb-2">
                     {EMPTY_MESSAGES.COMMENTS}
                   </h3>
@@ -302,19 +313,21 @@ const MyComments: React.FC = () => {
           )}
         </div>
 
-        {/* 페이지네이션 - 데이터가 있을 때만 표시 */}
-        {!isLoading && !error && comments.length > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-            isLoaded={isLoaded}
-            isExiting={isExiting}
-          />
-        )}
+        {/* 페이지네이션 */}
+        {!commentsLoading &&
+          !hasError &&
+          commentsData &&
+          allCommentsCount > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              isLoaded={isLoaded}
+              isExiting={isExiting}
+            />
+          )}
       </div>
 
-      {/* 공통 CSS 애니메이션 컴포넌트 사용 */}
       <SlideInStyles />
     </>
   );

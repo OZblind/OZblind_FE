@@ -6,6 +6,9 @@ export const ENDPOINTS = {
   KEY_VERIFY: "/api/auth/key-verify",
   USER_PROFILE: "/api/user/profile",
   USER_TAG: "/api/user/tag",
+  MY_BOOKMARKS: "/api/user/bookmarks",
+  MY_COMMENTS: "/api/user/comments",
+  MY_POSTS: "/api/user/posts",
   POST_DETAIL: "/api/posts", // (뒤에 /:id/ 붙여서 사용)
   POSTS: "/api/posts",
 } as const;
