@@ -3,7 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { PATHS } from "@constants/paths";
 import { ANIMATION_TIMINGS, ANIMATION_KEYFRAMES } from "@constants/animations";
 import { LIST_SETTINGS, EMPTY_MESSAGES } from "@constants/ui";
-import { useMyActivitySummary } from "@hooks/useMyPageData";
+import {
+  useMyActivitySummary,
+  usePreloadMyPageData,
+} from "@hooks/useMyPageData";
 import { icons } from "@src/assets";
 import { useThemeIcon } from "@hooks/useThemeIcon";
 import type { MyPageCardItem } from "@src/types/mypage";
@@ -14,6 +17,7 @@ interface CardProps {
   icon: React.ReactNode;
   items?: MyPageCardItem[];
   onClick: () => void;
+  onHover?: () => void;
   isExpanding?: boolean;
   isClicked?: boolean;
   getIconPath: (iconType: string) => string;
@@ -26,6 +30,7 @@ const Card: React.FC<CardProps> = ({
   icon,
   items = [],
   onClick,
+  onHover,
   isExpanding,
   isClicked,
   getIconPath,
@@ -54,6 +59,7 @@ const Card: React.FC<CardProps> = ({
           : "scale-100 opacity-100"
       }`}
       style={{ maxWidth: "400px", transformOrigin: "center" }}
+      onMouseEnter={onHover}
     >
       {/* 카드 헤더 */}
       <div className="flex items-center justify-between mb-4 h-[48px] flex-shrink-0">
@@ -117,7 +123,7 @@ const Card: React.FC<CardProps> = ({
           <div className="space-y-3 flex-1 overflow-hidden">
             {items.slice(0, LIST_SETTINGS.PREVIEW_ITEMS - 1).map((item) => {
               const targetId = item.postId ?? item.id;
-              const disabled = !targetId;
+              const disabled = !targetId || typeof targetId !== "number";
               return (
                 <div
                   key={item.title + String(item.id)}
@@ -127,7 +133,7 @@ const Card: React.FC<CardProps> = ({
                       : "hover:bg-base-100 cursor-pointer"
                   }`}
                   onClick={() => {
-                    if (disabled) return;
+                    if (disabled || typeof targetId !== "number") return;
                     onItemClick?.(targetId);
                   }}
                 >
@@ -151,11 +157,7 @@ const Card: React.FC<CardProps> = ({
               );
             })}
             {items.length > LIST_SETTINGS.PREVIEW_ITEMS - 1 && (
-              <div className="text-center py-2">
-                <span className="text-sm text-neutral-content bg-base-300/30 px-3 py-1 rounded-full">
-                  외 {items.length - (LIST_SETTINGS.PREVIEW_ITEMS - 1)}개 더...
-                </span>
-              </div>
+              <div className="text-center py-2"></div>
             )}
           </div>
         ) : (
@@ -189,6 +191,9 @@ const MyPageMain: React.FC = () => {
   const [isExpanding, setIsExpanding] = useState(false);
   const [clickedCard, setClickedCard] = useState<string | null>(null);
   const pendingPathRef = useRef<string | null>(null);
+
+  // 프리로딩 훅
+  const { preloadByCardType } = usePreloadMyPageData();
 
   // 요약 데이터 (항상 resolve하도록 구현된 API/hook)
   const {
@@ -224,8 +229,13 @@ const MyPageMain: React.FC = () => {
   };
 
   const handleItemClick = (postId: number) => {
-    if (!postId) return;
+    if (!postId || typeof postId !== "number") return;
     navigate(PATHS.POST_DETAIL.replace(":id", String(postId)));
+  };
+
+  const handleCardHover = (path: string) => {
+    // 카드 호버시 해당 데이터를 프리로드
+    preloadByCardType(path);
   };
 
   const handleCardClick = (path: string) => {
@@ -269,6 +279,7 @@ const MyPageMain: React.FC = () => {
               icon={card.icon}
               items={card.items}
               onClick={() => handleCardClick(card.path)}
+              onHover={() => handleCardHover(card.path)}
               onItemClick={handleItemClick}
               isExpanding={isExpanding}
               isClicked={clickedCard === card.path}
