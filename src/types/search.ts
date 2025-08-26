@@ -1,4 +1,5 @@
-// 게시글 타입 정의
+import type { RawUserTag } from "@src/types/tag";
+
 export interface Post {
   id: number;
   title: string;
@@ -7,6 +8,7 @@ export interface Post {
   category: string;
   createdAt: string;
   viewCount: number;
+  user?: RawUserTag;
 }
 
 // 검색 미리보기 결과 타입

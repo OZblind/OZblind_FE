@@ -56,9 +56,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
             className={`text-primary-content text-white text-sm sm:text-lg font-bold group-hover:rotate-180 transition-transform ${getDurationClass(
               ANIMATION_TIMINGS.SCALE_TRANSITION
             )}`}
-          >
-            −
-          </span>
+          ></span>
         </button>
       </div>
     </div>

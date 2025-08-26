@@ -7,4 +7,5 @@ export const ENDPOINTS = {
   USER_PROFILE: "/api/user/profile",
   USER_TAG: "/api/user/tag",
   POST_DETAIL: "/api/posts", // (뒤에 /:id/ 붙여서 사용)
+  POSTS: "/api/posts",
 } as const;

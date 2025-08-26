@@ -28,6 +28,7 @@ export default function TestHub() {
     { to: "/boards/info", label: "정보 게시판" },
     { to: "/boards/survey", label: "설문 게시판" },
     { to: "/boards/github", label: "GitHub 게시판" },
+    { to: "/boards/search", label: "통합 검색 페이지" },
 
     { to: "/test/board/github-list", label: "깃허브 게시글 목록 테스트" },
     { to: "/test/jobbanner", label: "취업 배너 테스트" },
