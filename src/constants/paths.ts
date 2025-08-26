@@ -4,6 +4,8 @@ export const PATHS = {
   MAIN: "/main",
   KEY_VERIFY: "/key-verify",
 
+  SEARCH_BOARD: "/boards/search",
+
   // 게시판
   FREE_BOARD: "/board/free",
   JOBS_BOARD: "/board/jobs",
