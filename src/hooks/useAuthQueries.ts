@@ -8,6 +8,7 @@ import {
   revokeSession, // POST /auth/revoke/
   type GoogleStartResponse,
   type ActivateResponse,
+  type ActivateParams,
 } from "@api/auth";
 import { tokenStore } from "@api/client";
 import { useAuthStore } from "@store/authStore";
@@ -135,11 +136,7 @@ export function useActivateWithKeyMutation() {
   const setFromAuthPayload = useAuthStore.getState().setFromAuthPayload;
   const qc = useQueryClient();
 
-  return useMutation<
-    ActivateResponse,
-    Error,
-    { idToken: string; cohortNumber: number; plainKey: string }
-  >({
+  return useMutation<ActivateResponse, Error, ActivateParams>({
     mutationFn: activateWithKey,
     onSuccess: async (res) => {
       // 토큰 브로드캐스트
