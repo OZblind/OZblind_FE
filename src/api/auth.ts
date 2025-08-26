@@ -1,4 +1,6 @@
+import { useAuthStore } from "@src/store/authStore";
 import api, { tokenStore } from "./client";
+import { queryClient } from "@src/main";
 
 // 서버 응답 타입들
 export type GoogleStartStatus = "active" | "pending_activation" | "activated";
@@ -28,6 +30,18 @@ export interface ActivateResponse {
   access: string;
   refresh: string;
   next?: string;
+}
+
+function clearAllCookies() {
+  try {
+    document.cookie.split(";").forEach((c) => {
+      document.cookie = c
+        .replace(/^ +/, "")
+        .replace(/=.*/, `=;expires=${new Date(0).toUTCString()};path=/`);
+    });
+  } catch {
+    /* empty */
+  }
 }
 
 /** 키에서 COHORT 숫자(예: COHORT11) 추출 */
@@ -116,7 +130,7 @@ export async function getProfile() {
 }
 
 /** 4) 리프레시 (수동 호출 필요 시만. 자동 갱신은 client.ts에서 처리)
- *  POST /api/auth/token/refresh/
+ *  POST /api/auth/token/refresh
  */
 export async function refreshAccess() {
   const refresh = tokenStore.refresh;
@@ -134,10 +148,38 @@ export async function refreshAccess() {
  */
 export async function revokeSession() {
   const refresh = tokenStore.refresh;
-  if (!refresh) return;
   try {
-    await api.post("/api/auth/revoke", { refresh });
+    if (refresh) {
+      await api.post(
+        "/api/auth/revoke",
+        { refresh },
+        { withCredentials: true }
+      );
+    }
+  } catch {
+    // 실패해도 클라 상태는 지움
   } finally {
+    // 1) 토큰/스토리지
     tokenStore.clear();
+
+    try {
+      sessionStorage.clear();
+    } catch {
+      /* empty */
+    }
+
+    // 2) 접근 가능한 쿠키(참고: HttpOnly 쿠키는 JS로 못 지움)
+    clearAllCookies();
+
+    // 3) 전역 상태 초기화 (Zustand 등)
+    useAuthStore.getState().reset?.();
+
+    // 4) React Query 캐시 전체 제거
+    queryClient.clear();
+
+    // 5) 민감 라우트 벗어나기(선택)
+    // navigate("/login"); // 라우터 환경에 맞게 사용
+    // 또는 하드 리로드로 남은 메모리 상태까지 정리
+    // window.location.replace("/login");
   }
 }
