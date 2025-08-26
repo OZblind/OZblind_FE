@@ -7,6 +7,8 @@ import { getLatestPosts } from "../../api/latestPost";
 import type { Post } from "../../types/latestPost";
 import { useNavigate } from "react-router-dom";
 import { tokenStore } from "@api/client";
+import { BOARD_SHORT_NAME } from "@src/constants/board";
+import { BOARD_SLUG_BY_ID } from "@src/constants/boards";
 
 export default function MainPage() {
   const navigate = useNavigate();
@@ -25,33 +27,37 @@ export default function MainPage() {
 
     try {
       const posts: Post[] = await getLatestPosts(1);
+      console.log(posts[0]);
       if (!mountedRef.current) return;
 
-      const newItems: FreeBoardItem[] = posts.map((post) => ({
-        id: post.id,
-        no: post.id,
-        title: post.title,
-        author:
-          post.user && typeof post.user === "object"
-            ? post.user.tag_class === "FE"
-              ? `프론트 ${post.user.tag_number}기`
-              : post.user.tag_class === "BE"
-              ? `백엔드 ${post.user.tag_number}기`
-              : `${post.user.tag_class} ${post.user.tag_number}기`
-            : "익명",
-        dateText: formatYyMmDd(new Date(post.created_at)),
-        views: post.view_count,
-        likes: post.like_count,
-      }));
+      const newItems: FreeBoardItem[] = posts.map((post) => {
+        const slug = BOARD_SLUG_BY_ID[post.board as number]; // ← 여기서 undefined 뜨면 매핑 필요
+        const plainTitle = post.title.replace(/^\[[^\]]+\]\s*/, "");
+        const prefix = slug ? `[${BOARD_SHORT_NAME[slug]}] ` : " ";
+
+        return {
+          id: post.id,
+          no: post.id,
+          title: `${prefix}${plainTitle}`, // ← 여기서만 프리픽스 추가
+          author:
+            post.user && typeof post.user === "object"
+              ? post.user.tag_class === "FE"
+                ? `프론트 ${post.user.tag_number}기`
+                : post.user.tag_class === "BE"
+                ? `백엔드 ${post.user.tag_number}기`
+                : `${post.user.tag_class} ${post.user.tag_number}기`
+              : "익명",
+          dateText: formatYyMmDd(new Date(post.created_at)),
+          views: post.view_count,
+          likes: post.like_count,
+        };
+      });
 
       setItems(newItems);
       setLastLoadedAt(formatYyyyMmDdHms(new Date()));
     } catch (e: unknown) {
-      if (e instanceof Error) {
-        setErr(e.message);
-      } else {
-        setErr(String(e));
-      }
+      if (e instanceof Error) setErr(e.message);
+      else setErr(String(e));
     } finally {
       if (mountedRef.current) setBusy(false);
     }
