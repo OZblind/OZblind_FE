@@ -8,3 +8,11 @@ export const BOARD_NAME_BY_SLUG = {
   survey: "설문게시판",
   github: "깃헙게시판",
 } as const;
+
+export const BOARD_SHORT_NAME: Record<BoardSlug, string> = {
+  free: "자유",
+  jobs: "취업",
+  info: "정보",
+  survey: "설문",
+  github: "GitHub",
+};
