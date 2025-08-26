@@ -1,6 +1,6 @@
 import api from "@api/client";
 import axios from "axios";
-import sanitizeHtml from "sanitize-html";
+import DOMPurify from "dompurify"; // sanitize-html 대체
 import { ENDPOINTS } from "@constants/endpoints";
 import { BOARD_ID, type BoardSlug } from "@constants/boards";
 import type { Post, Category, SearchPreview } from "@src/types/search";
@@ -134,6 +134,15 @@ const filterPostsByRelevance = (
   return posts;
 };
 
+// sanitize-html → DOMPurify 대체: 모든 태그 제거(텍스트만 남김)
+function stripAllHtml(html?: string): string {
+  if (!html) return "";
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [],
+    ALLOWED_ATTR: [],
+  });
+}
+
 // API 응답을 Post 타입으로 변환
 const transformPostResponse = (response: PostResponse): Post => {
   // user 객체에서 적절한 작성자 이름 생성
@@ -167,10 +176,7 @@ const transformPostResponse = (response: PostResponse): Post => {
   return {
     id: response.id,
     title: response.title,
-    content: sanitizeHtml(response.content ?? "", {
-      allowedTags: [],
-      allowedAttributes: {},
-    }),
+    content: stripAllHtml(response.content), // ← DOMPurify 사용
     author: authorName,
     category: BOARD_ID_TO_CATEGORY[response.board] || "기타",
     createdAt: response.created_at,
