@@ -1,4 +1,3 @@
-// src/api/mypageApi.ts
 import { api, tokenStore } from "@api/client";
 import {
   deleteComment as deleteCommentApi,
@@ -74,7 +73,8 @@ interface PostListItem {
   user?: { id?: number; tag_class?: string; tag_number?: number };
 }
 
-/** JWT payload 최소형 */
+type PostListResponse = { results: PostListItem[]; count?: number };
+
 interface JwtPayload {
   user_id?: number | string;
   id?: number | string;
@@ -82,12 +82,11 @@ interface JwtPayload {
   [k: string]: unknown;
 }
 
-/* ========= 유틸 ========= */
 function getBoardName(boardId: number): string {
   const map: Record<number, string> = {
     1: "자유",
-    2: "취업",
-    3: "정보",
+    2: "정보",
+    3: "취업",
     4: "설문",
     5: "GitHub",
   };
@@ -132,7 +131,7 @@ function invalidateRelatedCaches(context: string) {
   }
 }
 
-/* ========= 내 신원: JWT에서 id, 태그는 참고용 ========= */
+/* ========= 내 신원 ========= */
 export type MeShape = {
   id?: number;
   tag_class?: string;
@@ -145,7 +144,6 @@ function safeDecodeJwt(token?: string): JwtPayload | null {
     const parts = token.split(".");
     if (parts.length < 2) return null;
     const payloadB64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    // atob는 브라우저 전제
     const json = globalThis.atob
       ? globalThis.atob(payloadB64)
       : Buffer.from(payloadB64, "base64").toString("utf-8");
@@ -163,8 +161,6 @@ function getMyIdFromToken(): number | undefined {
 
 export async function getMyIdentity(): Promise<MeShape> {
   const id = getMyIdFromToken();
-
-  // 태그는 선택적(참고용)
   let tag: UserTag | null = null;
   try {
     const res = await api.get<UserTag>("/api/user/tag", {
@@ -183,7 +179,6 @@ export async function getMyIdentity(): Promise<MeShape> {
   };
 }
 
-/* ========= 프로필 ========= */
 export const getMyProfile = async (): Promise<UserTag> => {
   const res = await api.get<UserTag>("/api/user/tag", {
     withCredentials: true,
@@ -191,68 +186,100 @@ export const getMyProfile = async (): Promise<UserTag> => {
   return res.data;
 };
 
-/* ========= 내가 쓴 글 (id 일치만 허용) ========= */
+const MAX_SCAN_PAGES = 5;
+
 export const getMyPosts = async (
   page: number = 1,
   pageSize: number = 20
 ): Promise<PostsResponse> => {
   const me = await getMyIdentity();
-
-  const res = await api.get<{ results: PostListItem[] }>("/api/posts/", {
-    params: { page, page_size: pageSize },
-    withCredentials: true,
-  });
-  const raw = res.data?.results ?? [];
-
-  // 상세로 user.id 보강
-  const detailMap = new Map<number, PostDetailResponse>();
-  await Promise.all(
-    raw.map(async (p) => {
-      try {
-        const detail = await fetchPostDetail(p.id);
-        detailMap.set(p.id, detail);
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.warn(`게시글 ${p.id} 상세 조회 실패:`, error);
-      }
-    })
-  );
-
   const myId = me?.id;
-  const myPosts = raw.filter((post) => {
-    if (!myId) return false;
-    const postUserId =
-      detailMap.get(post.id)?.user?.id ??
-      (typeof post.user?.id === "number" ? post.user.id : undefined);
-    return typeof postUserId === "number" && postUserId === myId;
-  });
+  const myTagClass = me?.tag_class;
+  const myTagNumber = me?.tag_number;
+  const isMine = (
+    detail?: PostDetailResponse,
+    fallbackUser?: PostListItem["user"]
+  ) => {
+    const uid = detail?.user?.id ?? fallbackUser?.id;
+    if (typeof myId === "number" && typeof uid === "number")
+      return uid === myId;
 
-  const data: PostItem[] = myPosts.map((post) => {
-    const detail = detailMap.get(post.id);
-    return {
-      id: post.id,
-      category: getBoardName(detail?.board ?? post.board),
-      title: detail?.title || post.title,
-      date: detail?.created_at || post.created_at,
-      views: detail?.view_count ?? post.view_count,
-      comments: post.comment_count ?? 0,
-      authorId: detail?.user?.id ?? post.user?.id ?? 0,
-    };
-  });
+    if (
+      myTagClass &&
+      myTagNumber &&
+      detail?.user?.tag_class &&
+      detail?.user?.tag_number
+    ) {
+      return (
+        detail.user.tag_class === myTagClass &&
+        detail.user.tag_number === myTagNumber
+      );
+    }
+    return false;
+  };
+
+  const collected: PostItem[] = [];
+  let currentPage = page;
+  for (let scanned = 0; scanned < MAX_SCAN_PAGES; scanned += 1) {
+    if (collected.length >= pageSize) break;
+
+    let list: PostListItem[] = [];
+    try {
+      const res = await api.get<PostListResponse>("/api/posts/", {
+        params: { page: currentPage, page_size: pageSize },
+        withCredentials: true,
+      });
+      list = Array.isArray(res.data?.results) ? res.data.results : [];
+    } catch {
+      list = [];
+    }
+    if (list.length === 0) break;
+
+    // 상세 조회 후 소유자 일치만 수집
+    const details = await Promise.all(
+      list.map(async (p) => {
+        try {
+          const d = await fetchPostDetail(p.id);
+          return { base: p, detail: d };
+        } catch {
+          return {
+            base: p,
+            detail: undefined as unknown as PostDetailResponse | undefined,
+          };
+        }
+      })
+    );
+
+    for (const { base, detail } of details) {
+      if (collected.length >= pageSize) break;
+      if (isMine(detail, base.user)) {
+        collected.push({
+          id: base.id,
+          category: getBoardName(detail?.board ?? base.board),
+          title: detail?.title || base.title,
+          date: detail?.created_at || base.created_at,
+          views: detail?.view_count ?? base.view_count,
+          comments: base.comment_count ?? 0,
+          authorId: detail?.user?.id ?? base.user?.id ?? 0,
+        });
+      }
+    }
+
+    currentPage += 1;
+  }
 
   return {
     success: true,
-    data,
+    data: collected, // **내 글만**
     pagination: {
       currentPage: page,
-      totalPages: Math.max(1, Math.ceil(myPosts.length / pageSize)),
+      totalPages: Math.max(1, Math.ceil(collected.length / pageSize)),
       itemsPerPage: pageSize,
-      totalItems: myPosts.length,
+      totalItems: collected.length,
     },
   };
 };
 
-/* ========= 내 댓글 (소프트 삭제 제외) ========= */
 export const getMyComments = async (
   page: number = 1,
   pageSize: number = 20
@@ -277,7 +304,6 @@ export const getMyComments = async (
       ? [payload as RawComment]
       : [];
 
-    // “작성자에 의해 삭제된 댓글입니다.” 제외
     const filteredRaw = raw.filter((c) => {
       const { content } = extractNickHeader(c.content);
       return content.trim() !== DELETED_PLACEHOLDER;
@@ -294,7 +320,6 @@ export const getMyComments = async (
           const detail = await fetchPostDetail(pid);
           detailMap.set(pid, detail);
         } catch (error) {
-          // eslint-disable-next-line no-console
           console.warn(`게시글 ${pid} 상세 조회 실패:`, error);
         }
       })
@@ -364,7 +389,6 @@ export const getMyBookmarks = async (
   pageSize: number = 20
 ): Promise<BookmarksResponse> => {
   try {
-    // ① /api/bookmarks/ 먼저 시도 (200 or 404 허용, 404면 다음으로)
     const listRes = await api.get<{ bookmarks?: BookmarkRow[] } | unknown[]>(
       "/api/bookmarks/",
       { withCredentials: true, validateStatus: (s) => s === 200 || s === 404 }
@@ -377,7 +401,6 @@ export const getMyBookmarks = async (
       if (hasBookmarksArray(payload)) {
         rawList = payload.bookmarks;
       } else if (Array.isArray(payload)) {
-        // 구형: [{ post: { postId, title }}, ...]
         const arr = payload as unknown[];
         for (const item of arr) {
           if (isRecord(item) && isRecord((item as { post?: unknown }).post)) {
@@ -394,7 +417,6 @@ export const getMyBookmarks = async (
         }
       }
     } else {
-      // ② 404면 /api/bookmarks/me 시도
       const meRes = await api.get<{ bookmarks?: BookmarkRow[] } | unknown[]>(
         "/api/bookmarks/me",
         { withCredentials: true, validateStatus: (s) => s === 200 || s === 404 }
@@ -422,7 +444,6 @@ export const getMyBookmarks = async (
       }
     }
 
-    // 상세 정보 보강
     const uniquePostIds = [...new Set(rawList.map((b) => b.postId))];
     const detailMap = new Map<number, PostDetailResponse>();
     await Promise.all(
@@ -431,7 +452,6 @@ export const getMyBookmarks = async (
           const detail = await fetchPostDetail(pid);
           detailMap.set(pid, detail);
         } catch (error) {
-          // eslint-disable-next-line no-console
           console.warn(`게시글 ${pid} 상세 조회 실패:`, error);
         }
       })
@@ -463,7 +483,6 @@ export const getMyBookmarks = async (
       },
     };
   } catch {
-    // 어떤 오류든 안전하게 빈 목록
     return {
       success: true,
       data: [],
@@ -477,13 +496,14 @@ export const getMyBookmarks = async (
   }
 };
 
-/* ========= 카드 요약 ========= */
+const PREVIEW_LIMIT = 4;
+
 export const getMyActivitySummary = async (): Promise<MyPageCardData[]> => {
   try {
     const [postsResult, commentsResult, bookmarksResult] = await Promise.all([
-      getMyPosts(1, 3).catch(() => null),
-      getMyComments(1, 3).catch(() => null),
-      getMyBookmarks(1, 3).catch(() => null),
+      getMyPosts(1, PREVIEW_LIMIT).catch(() => null),
+      getMyComments(1, PREVIEW_LIMIT).catch(() => null),
+      getMyBookmarks(1, PREVIEW_LIMIT).catch(() => null),
     ]);
 
     return [
