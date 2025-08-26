@@ -11,6 +11,7 @@ import type {
   BookmarksResponse,
   PostsResponse,
   DeleteResponse,
+  MyPageCardItem,
 } from "@src/types/mypage";
 
 /* ========= 전역 타입 보강 ========= */
@@ -82,6 +83,9 @@ interface JwtPayload {
   [k: string]: unknown;
 }
 
+// 아이콘 타입 정의
+type IconType = "posts" | "comments" | "bookmarks";
+
 function getBoardName(boardId: number): string {
   const map: Record<number, string> = {
     1: "자유",
@@ -109,7 +113,7 @@ async function fetchPostDetail(postId: number): Promise<PostDetailResponse> {
   return res.data;
 }
 
-function invalidateRelatedCaches(context: string) {
+function invalidateRelatedCaches(context: string): void {
   if (typeof window !== "undefined" && window.queryClient) {
     window.queryClient.invalidateQueries({
       predicate: (query: { queryKey: readonly unknown[] }) => {
@@ -126,7 +130,6 @@ function invalidateRelatedCaches(context: string) {
         );
       },
     });
-    // eslint-disable-next-line no-console
     console.log(`${context}: 관련 캐시 무효화 완료`);
   }
 }
@@ -196,10 +199,11 @@ export const getMyPosts = async (
   const myId = me?.id;
   const myTagClass = me?.tag_class;
   const myTagNumber = me?.tag_number;
+
   const isMine = (
     detail?: PostDetailResponse,
     fallbackUser?: PostListItem["user"]
-  ) => {
+  ): boolean => {
     const uid = detail?.user?.id ?? fallbackUser?.id;
     if (typeof myId === "number" && typeof uid === "number")
       return uid === myId;
@@ -235,7 +239,6 @@ export const getMyPosts = async (
     }
     if (list.length === 0) break;
 
-    // 상세 조회 후 소유자 일치만 수집
     const details = await Promise.all(
       list.map(async (p) => {
         try {
@@ -244,23 +247,24 @@ export const getMyPosts = async (
         } catch {
           return {
             base: p,
-            detail: undefined as unknown as PostDetailResponse | undefined,
+            detail: undefined as PostDetailResponse | undefined,
           };
         }
       })
     );
 
-    for (const { base, detail } of details) {
+    for (const { base } of details) {
       if (collected.length >= pageSize) break;
-      if (isMine(detail, base.user)) {
+      if (isMine(undefined, base.user)) {
+        // detail 없이 판단
         collected.push({
           id: base.id,
-          category: getBoardName(detail?.board ?? base.board),
-          title: detail?.title || base.title,
-          date: detail?.created_at || base.created_at,
-          views: detail?.view_count ?? base.view_count,
+          category: getBoardName(base.board), // base.board 사용
+          title: base.title,
+          date: base.created_at,
+          views: base.view_count,
           comments: base.comment_count ?? 0,
-          authorId: detail?.user?.id ?? base.user?.id ?? 0,
+          authorId: base.user?.id ?? 0,
         });
       }
     }
@@ -270,7 +274,7 @@ export const getMyPosts = async (
 
   return {
     success: true,
-    data: collected, // **내 글만**
+    data: collected,
     pagination: {
       currentPage: page,
       totalPages: Math.max(1, Math.ceil(collected.length / pageSize)),
@@ -376,6 +380,7 @@ function isBookmarkRow(v: unknown): v is BookmarkRow {
       typeof (v as Record<string, unknown>).title === "undefined")
   );
 }
+
 function hasBookmarksArray(v: unknown): v is { bookmarks: BookmarkRow[] } {
   return (
     isRecord(v) &&
@@ -501,69 +506,81 @@ const PREVIEW_LIMIT = 4;
 export const getMyActivitySummary = async (): Promise<MyPageCardData[]> => {
   try {
     const [postsResult, commentsResult, bookmarksResult] = await Promise.all([
-      getMyPosts(1, PREVIEW_LIMIT).catch(() => null),
-      getMyComments(1, PREVIEW_LIMIT).catch(() => null),
-      getMyBookmarks(1, PREVIEW_LIMIT).catch(() => null),
+      getMyPosts(1, 50).catch(() => null),
+      getMyComments(1, 50).catch(() => null),
+      getMyBookmarks(1, 50).catch(() => null),
     ]);
 
     return [
       {
         title: "작성글",
         count: postsResult?.pagination?.totalItems ?? 0,
-        icon: "posts",
+        icon: "posts" as IconType,
         path: "posts",
         items:
-          postsResult?.data?.map((post) => ({
-            id: post.id,
-            postId: post.id,
-            title: post.title,
-            date: post.date,
-            category: post.category,
-          })) ?? [],
+          postsResult?.data?.slice(0, PREVIEW_LIMIT).map(
+            (post): MyPageCardItem => ({
+              id: post.id,
+              postId: post.id,
+              title: post.title,
+              date: post.date,
+              category: post.category,
+            })
+          ) ?? [],
       },
       {
         title: "작성댓글",
         count: commentsResult?.pagination?.totalItems ?? 0,
-        icon: "comments",
+        icon: "comments" as IconType,
         path: "comments",
         items:
-          commentsResult?.data?.map((c) => ({
-            id: c.id,
-            postId: c.postId,
-            title: c.postTitle,
-            date: c.date,
-            category: c.postCategory,
-          })) ?? [],
+          commentsResult?.data?.slice(0, PREVIEW_LIMIT).map(
+            (c): MyPageCardItem => ({
+              id: c.id,
+              postId: c.postId,
+              title: c.postTitle,
+              date: c.date,
+              category: c.postCategory,
+            })
+          ) ?? [],
       },
       {
         title: "북마크",
         count: bookmarksResult?.pagination?.totalItems ?? 0,
-        icon: "bookmarks",
+        icon: "bookmarks" as IconType,
         path: "bookmarks",
         items:
-          bookmarksResult?.data?.map((b) => ({
-            id: b.id,
-            postId: b.postId,
-            title: b.title,
-            date: b.date,
-            category: b.category,
-          })) ?? [],
+          bookmarksResult?.data?.slice(0, PREVIEW_LIMIT).map(
+            (b): MyPageCardItem => ({
+              id: b.id,
+              postId: b.postId,
+              title: b.title,
+              date: b.date,
+              category: b.category,
+            })
+          ) ?? [],
       },
     ];
   } catch {
     return [
-      { title: "작성글", count: 0, icon: "posts", path: "posts", items: [] },
+      {
+        title: "작성글",
+        count: 0,
+        icon: "posts" as IconType,
+        path: "posts",
+        items: [],
+      },
       {
         title: "작성댓글",
         count: 0,
-        icon: "comments",
+        icon: "comments" as IconType,
         path: "comments",
         items: [],
       },
       {
         title: "북마크",
         count: 0,
-        icon: "bookmarks",
+        icon: "bookmarks" as IconType,
         path: "bookmarks",
         items: [],
       },
