@@ -179,12 +179,13 @@ export default function AppRouter() {
             path={PATHS.INFO_BOARD}
             element={<PostListPage board="info" />}
           />
+          <Route path={PATHS.SEARCH_BOARD} element={<SearchPage />} />
           <Route path={PATHS.SURVEY_BOARD} element={<SurveyListPage />} />
           <Route path={PATHS.GITHUB_BOARD} element={<GithubListPage />} />
           <Route path={PATHS.POST_DETAIL} element={<PostDetailPage />} />
           <Route path={PATHS.POST_CREATE} element={<WritePostPage />} />
           <Route path={PATHS.POST_EDIT} element={<PostEditPage />} />
-          
+
           {/* 보호: 마이페이지 */}
           <Route
             path={PATHS.MYPAGE}
@@ -208,7 +209,6 @@ export default function AppRouter() {
         {/* 에러 */}
         <Route path={PATHS.ERROR_403} element={<Error403 />} />
         <Route path={PATHS.ERROR_500} element={<Error500 />} />
-        <Route path="/boards/search" element={<SearchPage />} />
 
         {/* 404 */}
         <Route path="*" element={<Error404 />} />
