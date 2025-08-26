@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import type { FreeBoardItem } from "@components/Board/free/PostRow";
@@ -28,22 +29,43 @@ const isRawUserTag = (u: unknown): u is RawUserTag =>
 
 // Post를 FreeBoardItem으로 변환하는 함수
 const transformPostToFreeBoardItem = (
-  post: Post,
-  index: number
+  post: Post
 ): FreeBoardItem & { category: string } => {
+  const boardLabel = getBoardLabel(post);
+
+  // 숫자 보장: 문자열이면 Number로, 실패시 id 그대로 표시(필요시 0 처리 X)
+  const no =
+    typeof (post as any).number === "number"
+      ? (post as any).number
+      : Number.isFinite(Number(post.id))
+      ? Number(post.id)
+      : (post as any).number ?? post.id; // 마지막은 화면표시를 위해 원본 유지
+
   return {
     id: String(post.id),
-    no: index + 1,
-    title: post.title,
+    no, // 실제 글 번호 우선, 안전 변환
+    title: `[${boardLabel}] ${post.title}`,
     author: post.author,
     authorId: `author${post.id}`,
-    dateText: formatYyMmDd(new Date(post.createdAt)),
+    dateText: formatYyMmDd(new Date(post.createdAt)), // createdAt이 ISO가 아닐 경우 대비 필요시 dayjs 사용 고려
     views: post.viewCount,
     likes: 0,
-    category: post.category, // 카테고리 정보 보존
+    category: post.category,
     user: post.user,
   };
 };
+
+function getBoardLabel(post: Post): string {
+  const p = post as any;
+  return (
+    p.boardName ??
+    p.board_title ??
+    p.board ??
+    p.board_alias ??
+    post.category ??
+    "게시판"
+  );
+}
 
 // 검색 결과 전용 컴포넌트
 function SearchResultList({
@@ -220,7 +242,6 @@ export default function SearchPage() {
   );
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [totalCount, setTotalCount] = useState<number>(0);
   const [hasNext, setHasNext] = useState(false);
   const [lastLoadedAt, setLastLoadedAt] = useState<string>(
     formatYyyyMmDdHms(new Date())
@@ -232,6 +253,7 @@ export default function SearchPage() {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
+  const [uniqueCount, setUniqueCount] = useState(0);
 
   useEffect(() => {
     return () => {
@@ -252,15 +274,14 @@ export default function SearchPage() {
     for (const item of items) {
       const maybeUser = item.user;
       const tags = adaptUserTag(isRawUserTag(maybeUser) ? maybeUser : null);
-      if (tags.length > 0) {
-        const authorLabel = tagsToAuthorLabel(tags);
-        m.set(String(item.id), authorLabel);
-      } else {
-        m.set(String(item.id), item.author);
-      }
+      m.set(
+        String(item.id),
+        tags.length > 0 ? tagsToAuthorLabel(tags) : item.author
+      );
     }
     return m;
   }, [items]);
+
   const memoizedRenderAuthorLabel = useCallback(
     (it: FreeBoardItem) => {
       const label = authorLabelMap.get(String(it.id));
@@ -300,15 +321,25 @@ export default function SearchPage() {
         if (!mountedRef.current) return;
 
         // Post[] → FreeBoardItem[] 변환
-        const transformedItems = result.posts.map((post, idx) =>
-          transformPostToFreeBoardItem(post, (pageNum - 1) * PAGE_SIZE + idx)
+        const transformedItems = result.posts.map((post) =>
+          transformPostToFreeBoardItem(post)
         );
 
         if (isNewSearch) {
           setItems(transformedItems);
-          setTotalCount(result.totalCount);
+          // 새 검색은 바로 고유 개수 계산
+          setUniqueCount(
+            new Map(transformedItems.map((it) => [String(it.id), it])).size
+          );
         } else {
-          setItems((prev) => [...prev, ...transformedItems]);
+          setItems((prev) => {
+            const map = new Map(prev.map((p) => [String(p.id), p]));
+            for (const it of transformedItems) map.set(String(it.id), it);
+            const next = Array.from(map.values());
+            // 페이지 추가 후 고유 개수 갱신
+            setUniqueCount(map.size);
+            return next;
+          });
         }
 
         setHasNext(result.hasNext);
@@ -385,12 +416,13 @@ export default function SearchPage() {
   const isInitialLoading = items.length === 0 && busy;
   const listIsLoading = isInitialLoading || busy;
 
+  const displayTotal = uniqueCount; // API totalCount 대신 고유 개수 사용
   const boardName = searchQuery.trim()
     ? `"${searchQuery}" 검색 결과${
         categoryParam !== "전체" ? ` (${categoryParam})` : ""
       }${
         !busy && items.length > 0 && searchQuery.trim()
-          ? ` (총 ${Number(totalCount).toLocaleString()}건)`
+          ? ` (총 ${Number(displayTotal).toLocaleString()}건)`
           : ""
       }`
     : `통합 검색 결과`;
