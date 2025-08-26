@@ -98,7 +98,7 @@ api.interceptors.request.use((config) => {
   const skipAuthHeader =
     url.includes("/auth/google/start") ||
     url.includes("/auth/activate") ||
-    url.includes("/auth/token/refresh/") ||
+    url.includes("/auth/token/refresh") ||
     url.includes("/auth/revoke/");
 
   if (!skipAuthHeader && tokens.access) {
@@ -129,7 +129,7 @@ async function refreshAccessToken(): Promise<string> {
   if (!refresh) throw new Error("NO_REFRESH_TOKEN");
   // 절대 URL(= baseURL 붙은 전용 raw 인스턴스)로 호출해야 프록시 제거 후에도 정상 동작
   const { data } = await raw.post<{ access: string }>(
-    "/api/auth/token/refresh/",
+    "/api/auth/token/refresh",
     { refresh }
   );
   tokens.setAccess(data.access);
@@ -147,7 +147,7 @@ api.interceptors.response.use(
 
     const isRefreshCall =
       typeof original.url === "string" &&
-      original.url.includes("/auth/token/refresh/");
+      original.url.includes("/auth/token/refresh");
 
     if (status === 401 && !isRefreshCall && !original._retry) {
       original._retry = true;
