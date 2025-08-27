@@ -37,7 +37,7 @@ const MyPageLayout: React.FC<MyPageLayoutProps> = ({
   const hasKey = valid || Boolean(userProfile.hasKey);
   const handleProfileClick = () => setIsSettingsOpen(true);
 
-  // ✅ 마이페이지 진입 시 예전 캐시 강제 제거
+  // 마이페이지 진입 시 예전 캐시 강제 제거
   const queryClient = useQueryClient();
   useEffect(() => {
     queryClient.removeQueries({
