@@ -185,29 +185,14 @@ const MyPosts: React.FC = () => {
   }, [pageCache]);
 
   // 총합 안정화(요약/서버/집계 중 최대값)
-  const apiTotalItems = Number.isFinite(postsData?.pagination?.totalItems)
-    ? Number(postsData?.pagination?.totalItems)
-    : undefined;
-  const apiDerivedTotal =
-    knownTotalPages && knownTotalPages > 0
-      ? knownTotalPages * pageSize
-      : undefined;
-
   const computedTotal = useMemo(() => {
-    const candidates = [
-      apiTotalItems,
-      apiDerivedTotal,
-      postsTotalFromSummary,
-      stitchedList.length,
-    ].filter((n): n is number => typeof n === "number" && n >= 0);
+    const candidates = [postsTotalFromSummary, stitchedList.length].filter(
+      (n): n is number => typeof n === "number" && n >= 0
+    );
     return candidates.length ? Math.max(...candidates) : 0;
-  }, [
-    apiTotalItems,
-    apiDerivedTotal,
-    postsTotalFromSummary,
-    stitchedList.length,
-  ]);
+  }, [postsTotalFromSummary, stitchedList.length]);
 
+  // 표시값은 단조 증가만 허용(깜빡임/축소 방지). API의 pageSize 배수로 '갑툭튀'하는 일 없음
   const [stableTotalItems, setStableTotalItems] =
     useState<number>(computedTotal);
   useEffect(() => {
@@ -222,7 +207,7 @@ const MyPosts: React.FC = () => {
   const offset = (currentPage - 1) * pageSize;
   const pageSlice = stitchedList.slice(offset, offset + pageSize);
 
-  // ✅ 필요 시 다음 페이지를 1회 프리패치해서 빈 칸 채우기
+  // 필요 시 다음 페이지를 1회 프리패치해서 빈 칸 채우기
   useEffect(() => {
     const needFill =
       pageSlice.length < pageSize &&
