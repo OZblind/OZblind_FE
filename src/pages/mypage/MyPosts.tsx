@@ -109,6 +109,8 @@ const MyPosts: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = LIST_SETTINGS.ITEMS_PER_PAGE; // 10/페이지
   const timeoutRef = useRef<number | null>(null);
+  const [pageChanging, setPageChanging] = useState(false);
+  const pageChangeTimerRef = useRef<number | null>(null);
 
   // ① 현재 페이지 데이터 (서버)
   const {
@@ -162,6 +164,36 @@ const MyPosts: React.FC = () => {
       );
     }
   }, [currentPage, JSON.stringify(rawItems)]);
+
+  const handlePageChange = (nextPage: number) => {
+    const np = safeParseInt(nextPage, 1);
+    if (!np || np === currentPage) return;
+
+    // 기존 타이머가 있으면 정리
+    if (pageChangeTimerRef.current) {
+      window.clearTimeout(pageChangeTimerRef.current);
+      pageChangeTimerRef.current = null;
+    }
+
+    setIsExiting(true);
+    setPageChanging(true); // 전환 로딩 시작
+
+    // (기존) 페이지 교체 애니메이션 딜레이 유지
+    window.setTimeout(() => {
+      setCurrentPage(np);
+      setIsExiting(false);
+    }, ANIMATION_TIMINGS.ITEM_STAGGER_BASE);
+
+    // (선택) 최악의 경우 대비한 안전 타임아웃 5초 — 즉시 끄기 트리거가 먼저 동작하면 이 타이머는 클리어됨
+    pageChangeTimerRef.current = window.setTimeout(() => {
+      setPageChanging(false);
+      pageChangeTimerRef.current = null;
+    }, 5000);
+  };
+
+  useEffect(() => {
+    if (!postsLoading) setPageChanging(false); // 응답 도착 시 전환 로딩 종료
+  }, [postsLoading]);
 
   // 캐시 → 평탄화 → 중복제거 → 최신순
   const stitchedList: RawPost[] = useMemo(() => {
@@ -274,7 +306,25 @@ const MyPosts: React.FC = () => {
     postsErrorMessage,
     refetchPosts
   );
+  // 전환 중(pageChanging=true) + 현재 페이지 데이터가 이미 캐시에 있으면 로딩 즉시 해제
+  useEffect(() => {
+    if (!pageChanging) return;
 
+    // 현재 페이지에 보여줄 데이터가 있는지 판단
+    const offset = (currentPage - 1) * pageSize;
+    const hasSlice = stitchedList.length > offset; // 스티치 결과로도 확인
+    const hasCachedPage = !!(
+      pageCache[currentPage]?.length && pageCache[currentPage].length > 0
+    );
+
+    if (hasSlice || hasCachedPage) {
+      if (pageChangeTimerRef.current) {
+        window.clearTimeout(pageChangeTimerRef.current);
+        pageChangeTimerRef.current = null;
+      }
+      setPageChanging(false); // 즉시 로딩 해제
+    }
+  }, [pageChanging, currentPage, pageSize, stitchedList.length, pageCache]);
   // 마운트 애니메이션
   useEffect(() => {
     setIsLoaded(true);
@@ -312,21 +362,8 @@ const MyPosts: React.FC = () => {
     navigate(PATHS.POST_DETAIL.replace(":id", String(pid)));
   };
 
-  const handlePageChange = (nextPage: number) => {
-    const np = safeParseInt(nextPage, 1);
-    if (!np || np === currentPage) return;
-    setIsExiting(true);
-    window.setTimeout(() => {
-      setCurrentPage(np);
-      setIsExiting(false);
-    }, ANIMATION_TIMINGS.ITEM_STAGGER_BASE);
-  };
-
   // 로딩 플래그(초기/전환/프리패치 고려)
-  const showLoading =
-    (postsLoading || isAnyLoading) &&
-    !(pageSlice.length > 0 || stitchedList.length > 0);
-
+  const showLoading = pageChanging || postsLoading || isAnyLoading;
   return (
     <>
       <div
