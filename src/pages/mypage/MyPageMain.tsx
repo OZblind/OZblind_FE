@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { PATHS } from "@constants/paths";
@@ -121,6 +122,7 @@ const Card: React.FC<CardProps> = ({
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {items.length > 0 ? (
           <div className="space-y-3 flex-1 overflow-hidden">
+            {/* 미리보기 개수는 리스트 상수 - 1 (기존 정책) */}
             {items.slice(0, LIST_SETTINGS.PREVIEW_ITEMS - 1).map((item) => {
               const targetId = item.postId ?? item.id;
               const disabled = !targetId || typeof targetId !== "number";
@@ -266,12 +268,22 @@ const MyPageMain: React.FC = () => {
     }
   };
 
+  // ✅ “작성글” 카드만 3개로 제한해서 Card에 전달
+  const cardsForRender = useMemo(() => {
+    return (cardData as any[]).map((c) => {
+      if (c?.title === "작성글") {
+        return { ...c, items: (c.items ?? []).slice(0, 3) };
+      }
+      return c;
+    });
+  }, [cardData]);
+
   return (
     <>
       <div className="p-4 sm:p-6 relative overflow-hidden">
         {/* 본문 렌더는 항상 수행 (로딩/에러여도 UI는 보이게) */}
         <div className="flex flex-col lg:flex-row gap-6 justify-center items-start relative">
-          {cardData.map((card, index) => (
+          {cardsForRender.map((card, index) => (
             <Card
               key={`${card.title}-${index}`}
               title={card.title}

@@ -19,7 +19,6 @@ import { icons } from "@src/assets";
 import { useThemeIcon } from "@hooks/useThemeIcon";
 import {
   useMyComments,
-  useMyPagePagination,
   useMyPageLoadingState,
   useMyPageError,
 } from "@src/hooks/useMyPageData";
@@ -38,6 +37,19 @@ interface CommentListItemProps {
   index?: number;
   isExiting?: boolean;
   getCommentIconPath: () => string;
+}
+
+/** [[NICK]]닉네임[[/NICK]]본문 → "닉네임: 본문" */
+function formatCommentContent(raw?: string) {
+  const text = String(raw ?? "");
+  const OPEN = "[[NICK]]";
+  const CLOSE = "[[/NICK]]";
+  if (!text.startsWith(OPEN)) return text;
+  const end = text.indexOf(CLOSE);
+  if (end === -1) return text;
+  const nick = text.substring(OPEN.length, end).trim();
+  const content = text.substring(end + CLOSE.length).trim();
+  return nick ? `${nick}: ${content}` : content;
 }
 
 const CommentListItem: React.FC<CommentListItemProps> = ({
@@ -86,7 +98,7 @@ const CommentListItem: React.FC<CommentListItemProps> = ({
           <div className="flex-1 min-w-0">
             <div className="pl-4 border-l-2 border-primary/30">
               <p className="text-base-content text-sm leading-relaxed break-words">
-                {comment.commentContent}
+                {formatCommentContent(comment.commentContent)}
               </p>
             </div>
           </div>
@@ -107,7 +119,12 @@ const MyComments: React.FC = () => {
   const navigate = useNavigate();
   const [isExiting, setIsExiting] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
+
+  /** UI 페이지 번호 (1 = 최신 페이지) */
+  const [uiPage, setUiPage] = useState(1);
+
+  /** 서버에서 받은 전체 페이지 수를 저장 */
+  const [totalPages, setTotalPages] = useState<number | null>(null);
 
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const themeIcon = useThemeIcon();
@@ -119,25 +136,48 @@ const MyComments: React.FC = () => {
 
   const getCommentIconPath = () => commentIcon || "";
 
+  /** 서버로 요청할 실제 페이지 번호
+   * totalPages를 알기 전에는 uiPage(=1)를 그대로 요청,
+   * 알게 되면 뒤집어서(totalPages - uiPage + 1) 요청
+   */
+  const serverPageToFetch = useMemo(() => {
+    if (!totalPages || totalPages <= 0) return uiPage;
+    return Math.max(1, Math.min(totalPages, totalPages - uiPage + 1));
+  }, [totalPages, uiPage]);
+
   const {
     data: commentsData,
     isLoading: commentsLoading,
     error: commentsErrorMessage,
     refetch: refetchComments,
-  } = useMyComments(currentPage, LIST_SETTINGS.ITEMS_PER_PAGE);
+  } = useMyComments(serverPageToFetch, LIST_SETTINGS.ITEMS_PER_PAGE);
 
   const { isAnyLoading } = useMyPageLoadingState();
-  const { totalPages, onPageChange: handlePageChange } = useMyPagePagination(
-    commentsData,
-    currentPage,
-    setCurrentPage
-  );
   const { hasError, errorMessage, retry } = useMyPageError(
     commentsErrorMessage,
     refetchComments
   );
 
-  const comments = commentsData?.data || [];
+  /** 서버 응답에서 totalPages 동기화 */
+  useEffect(() => {
+    const tp = commentsData?.pagination?.totalPages;
+    if (typeof tp === "number" && tp > 0) {
+      setTotalPages((prev) => (prev === tp ? prev : tp));
+      // UI 페이지가 범위를 벗어나면 보정
+      if (uiPage < 1 || (tp && uiPage > tp)) {
+        setUiPage(1);
+      }
+    }
+  }, [commentsData, uiPage]);
+
+  /** 리스트(페이지 내부)는 최신순 정렬(안전망) */
+  const comments = useMemo(() => {
+    const raw = commentsData?.data || [];
+    return [...raw].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  }, [commentsData]);
+
   const allCommentsCount = commentsData?.pagination?.totalItems || 0;
 
   useEffect(() => {
@@ -191,6 +231,20 @@ const MyComments: React.FC = () => {
     if (!postId) return;
     navigate(PATHS.POST_DETAIL.replace(":id", String(postId)));
   };
+
+  /** UI 페이지 변경 핸들러 (1=최신) */
+  const handlePageChange = useCallback(
+    (nextUiPage: number) => {
+      const tp = totalPages ?? commentsData?.pagination?.totalPages ?? 1;
+      const clamped = Math.max(1, Math.min(tp, nextUiPage));
+      setUiPage(clamped);
+      // 필요 시 스크롤 상단 이동 등 추가 가능
+    },
+    [totalPages, commentsData]
+  );
+
+  const totalPagesForUI =
+    totalPages ?? commentsData?.pagination?.totalPages ?? 1;
 
   return (
     <>
@@ -313,14 +367,14 @@ const MyComments: React.FC = () => {
           )}
         </div>
 
-        {/* 페이지네이션 */}
+        {/* 페이지네이션 (UI 기준: 1=최신) */}
         {!commentsLoading &&
           !hasError &&
           commentsData &&
           allCommentsCount > 0 && (
             <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
+              currentPage={uiPage}
+              totalPages={totalPagesForUI}
               onPageChange={handlePageChange}
               isLoaded={isLoaded}
               isExiting={isExiting}

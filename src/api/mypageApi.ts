@@ -195,91 +195,103 @@ export const getMyPosts = async (
   page: number = 1,
   pageSize: number = 20
 ): Promise<PostsResponse> => {
+  // 내 신원
   const me = await getMyIdentity();
   const myId = me?.id;
   const myTagClass = me?.tag_class;
   const myTagNumber = me?.tag_number;
 
-  const isMine = (
-    detail?: PostDetailResponse,
-    fallbackUser?: PostListItem["user"]
-  ): boolean => {
-    const uid = detail?.user?.id ?? fallbackUser?.id;
-    if (typeof myId === "number" && typeof uid === "number")
-      return uid === myId;
-
-    if (
-      myTagClass &&
-      myTagNumber &&
-      detail?.user?.tag_class &&
-      detail?.user?.tag_number
-    ) {
-      return (
-        detail.user.tag_class === myTagClass &&
-        detail.user.tag_number === myTagNumber
-      );
+  // 이 글이 "내 글"인지 판별 (상세조회 없이 목록의 user 필드로 판단)
+  const isMineByUser = (u?: {
+    id?: number;
+    tag_class?: string;
+    tag_number?: number;
+  }) => {
+    if (!u) return false;
+    if (typeof myId === "number" && typeof u.id === "number")
+      return u.id === myId;
+    if (myTagClass && myTagNumber && u.tag_class && u.tag_number) {
+      return u.tag_class === myTagClass && u.tag_number === myTagNumber;
     }
     return false;
   };
 
-  const collected: PostItem[] = [];
-  let currentPage = page;
-  for (let scanned = 0; scanned < MAX_SCAN_PAGES; scanned += 1) {
-    if (collected.length >= pageSize) break;
+  // 이 페이지를 만들기 위해 필요한 "내 글" 누적 개수
+  const needUntil = page * pageSize;
 
-    let list: PostListItem[] = [];
-    try {
-      const res = await api.get<PostListResponse>("/api/posts/", {
-        params: { page: currentPage, page_size: pageSize },
-        withCredentials: true,
-      });
-      list = Array.isArray(res.data?.results) ? res.data.results : [];
-    } catch {
-      list = [];
-    }
-    if (list.length === 0) break;
+  // 서버 페이지를 1부터 차례로 스캔하면서 내 글을 모은다
+  const seenIds = new Set<number>();
+  const mine: PostListItem[] = [];
 
-    const details = await Promise.all(
-      list.map(async (p) => {
-        try {
-          const d = await fetchPostDetail(p.id);
-          return { base: p, detail: d };
-        } catch {
-          return {
-            base: p,
-            detail: undefined as PostDetailResponse | undefined,
-          };
-        }
-      })
-    );
+  let serverPage = 1;
+  // 너무 과도한 스캔 방지: 최소 page까지는 보장, 여유로 MAX_SCAN_PAGES 더 본다
+  const scanCeil = Math.max(page + MAX_SCAN_PAGES, page); // ex) page=3이면 최소 8페이지까지
 
-    for (const { base } of details) {
-      if (collected.length >= pageSize) break;
-      if (isMine(undefined, base.user)) {
-        // detail 없이 판단
-        collected.push({
-          id: base.id,
-          category: getBoardName(base.board), // base.board 사용
-          title: base.title,
-          date: base.created_at,
-          views: base.view_count,
-          comments: base.comment_count ?? 0,
-          authorId: base.user?.id ?? 0,
-        });
-      }
+  while (mine.length < needUntil && serverPage <= scanCeil) {
+    const res = await api.get<PostListResponse>("/api/posts/", {
+      params: {
+        page: serverPage,
+        page_size: pageSize, // 서버 페이지 크기 = 클라 페이지 크기(정렬/경계 안정화)
+        ordering: "-created_at", // 최신순 힌트(백엔드가 무시해도 무해)
+      },
+      withCredentials: true,
+      validateStatus: (s) => s === 200 || s === 404,
+    });
+
+    const results =
+      res.status === 200 && Array.isArray(res.data?.results)
+        ? res.data.results
+        : [];
+
+    if (results.length === 0) break; // 페이지 없음(404 또는 빈 결과)
+
+    for (const p of results) {
+      if (!isMineByUser(p.user)) continue;
+      if (seenIds.has(p.id)) continue; // 중복 제거
+      seenIds.add(p.id);
+      mine.push(p);
+      if (mine.length >= needUntil) break;
     }
 
-    currentPage += 1;
+    serverPage += 1;
   }
+
+  // 안정적인 최신순 정렬(날짜 ↓, 동일시각은 id ↓)
+  mine.sort((a, b) => {
+    const at = +new Date(a.created_at);
+    const bt = +new Date(b.created_at);
+    if (bt !== at) return bt - at;
+    const ai = typeof a.id === "number" ? a.id : Number(a.id);
+    const bi = typeof b.id === "number" ? b.id : Number(b.id);
+    return (bi || 0) - (ai || 0);
+  });
+
+  // 요청한 페이지 구간만 슬라이스(이전 페이지에서 본 글 제외 효과)
+  const start = (page - 1) * pageSize;
+  const slice = mine.slice(start, start + pageSize);
+
+  // MyPage용 PostItem으로 매핑
+  const mapped: PostItem[] = slice.map((base) => ({
+    id: base.id,
+    category: getBoardName(base.board),
+    title: base.title,
+    date: base.created_at,
+    views: base.view_count,
+    comments: base.comment_count ?? 0,
+    authorId: base.user?.id ?? 0,
+  }));
+
+  // 총합은 스캔한 범위 내에서의 "내 글" 개수(백엔드 한계상 정확 총합은 계산 불가)
+  const collectedTotal = mine.length;
 
   return {
     success: true,
-    data: collected,
+    data: mapped,
     pagination: {
       currentPage: page,
-      totalPages: Math.max(1, Math.ceil(collected.length / pageSize)),
       itemsPerPage: pageSize,
-      totalItems: collected.length,
+      totalItems: collectedTotal, // 스캔된 범위 내 총합
+      totalPages: Math.max(1, Math.ceil(collectedTotal / pageSize)),
     },
   };
 };
@@ -500,7 +512,73 @@ export const getMyBookmarks = async (
     };
   }
 };
+export async function fetchMyPosts(params: {
+  page: number;
+  pageSize: number;
+}): Promise<{
+  data: PostListItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems?: number;
+    totalPages?: number;
+  };
+}> {
+  const { page, pageSize } = params;
 
+  try {
+    const res = await api.get<PostListResponse>("/api/posts/", {
+      params: {
+        page,
+        page_size: pageSize,
+        // 백엔드 수정 불가이므로, OrderingFilter 허용 필드에 맞춰 안전하게 사용
+        // (views.py 기준: created_at, view_count) → 최신순
+        ordering: "-created_at",
+      },
+      withCredentials: true,
+      // out-of-range 페이지는 404가 오므로 예외로 던지지 않게 처리
+      validateStatus: (s) => s === 200 || s === 404,
+    });
+
+    if (res.status === 404) {
+      // 존재하지 않는 페이지: 빈 결과를 반환하고, total은 알 수 없으니 생략
+      return {
+        data: [],
+        pagination: {
+          page,
+          pageSize,
+        },
+      };
+    }
+
+    const list = Array.isArray(res.data?.results) ? res.data.results : [];
+    const totalItems =
+      typeof res.data?.count === "number" ? res.data.count : undefined;
+    const totalPages =
+      typeof totalItems === "number"
+        ? Math.max(1, Math.ceil(totalItems / pageSize))
+        : undefined;
+
+    return {
+      data: list,
+      pagination: {
+        page,
+        pageSize,
+        totalItems,
+        totalPages,
+      },
+    };
+  } catch {
+    // 네트워크/직렬화 오류 등: 안전한 기본값 반환
+    return {
+      data: [],
+      pagination: {
+        page,
+        pageSize,
+      },
+    };
+  }
+}
 const PREVIEW_LIMIT = 4;
 
 export const getMyActivitySummary = async (): Promise<MyPageCardData[]> => {
